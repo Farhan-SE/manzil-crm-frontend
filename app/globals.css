@@ -2,25 +2,118 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1d20;
+  --cream: #f2f3ec;
+  --ink: #1a1d20;
+  --primary: #1c222a;
+  --primary-foreground: #ffffff;
+  --muted: #737a7f;
+  --border-color: #d1d5db;
+  --placeholder: #9ca3af;
+  --dash-bg: #f4fcf3;
+  --sidebar-bg: #f8f9f6;
+  --dash-border: #dddfd8;
+  --dash-ink: #0b1116;
+  --dash-muted: #44474a;
+  --dash-placeholder: #6b7280;
+  --hot: #a3453d;
+  --warm: #feb565;
+  --nav-active: #ffdcbc;
+  --nav-active-fg: #2c1700;
+  --nav-idle: #7a7f83;
+  --badge-neutral: #dde5dc;
+  --avatar-bg: #ffb86c;
+  --status-inquiry: #6b7a8f;
+  --status-visit: #3f7d6b;
+  --status-negotiation: #885205;
+  --cold: #3b6c9e;
+  --column-bg: #f8faf7;
+  --stage-inquiry: #27538a;
+  --stage-contacted: #31658e;
+  --stage-site-visit: #286039;
+  --stage-negotiation: #b45a16;
+  --stage-booked: #68428c;
+  --stage-sold: #286039;
+  --stage-lost: #a63c3c;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-cream: var(--cream);
+  --color-ink: var(--ink);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border-color);
+  --color-placeholder: var(--placeholder);
+  --color-dash-bg: var(--dash-bg);
+  --color-sidebar: var(--sidebar-bg);
+  --color-dash-border: var(--dash-border);
+  --color-dash-ink: var(--dash-ink);
+  --color-dash-muted: var(--dash-muted);
+  --color-dash-placeholder: var(--dash-placeholder);
+  --color-hot: var(--hot);
+  --color-warm: var(--warm);
+  --color-nav-active: var(--nav-active);
+  --color-nav-active-fg: var(--nav-active-fg);
+  --color-nav-idle: var(--nav-idle);
+  --color-badge-neutral: var(--badge-neutral);
+  --color-avatar: var(--avatar-bg);
+  --color-status-inquiry: var(--status-inquiry);
+  --color-status-visit: var(--status-visit);
+  --color-status-negotiation: var(--status-negotiation);
+  --color-cold: var(--cold);
+  --color-column-bg: var(--column-bg);
+  --color-stage-inquiry: var(--stage-inquiry);
+  --color-stage-contacted: var(--stage-contacted);
+  --color-stage-site-visit: var(--stage-site-visit);
+  --color-stage-negotiation: var(--stage-negotiation);
+  --color-stage-booked: var(--stage-booked);
+  --color-stage-sold: var(--stage-sold);
+  --color-stage-lost: var(--stage-lost);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-fraunces);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.kanban-scroll {
+  scrollbar-color: var(--dash-muted) transparent;
+  scrollbar-width: thin;
+}
+
+.kanban-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.kanban-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kanban-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--dash-muted);
+  border-radius: 9999px;
+}
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
