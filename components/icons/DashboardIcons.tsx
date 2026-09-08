@@ -142,6 +142,29 @@ export function FilterIcon({ className }: IconProps) {
   );
 }
 
+export function MapPinIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M6 15s5-4.6 5-8.5A5 5 0 1 0 1 6.5C1 10.4 6 15 6 15Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <circle cx="6" cy="6.3" r="1.8" stroke="currentColor" strokeWidth="1.3" />
+    </svg>
+  );
+}
+
+export function LockIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1.5" y="6.5" width="11" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M4.25 6.5V4.25a2.75 2.75 0 0 1 5.5 0V6.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function TrashIcon({ className }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">

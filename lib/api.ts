@@ -254,6 +254,99 @@ export type Agent = { id: number; first_name: string; last_name: string };
 
 export const getAgents = () => apiFetch<Agent[]>("/auth/agents");
 
+// ── Inventory ─────────────────────────────────────────────────────────────────
+
+/** `client_name`/`client_number` come back null unless `can_see_contact` — the server masks them. */
+export type Listing = {
+  id: string;
+  area_name: string;
+  category_id: string | null;
+  interest_id: string | null;
+  city: string | null;
+  location: string | null;
+  price: number | null;
+  description: string | null;
+  can_see_contact: boolean;
+  client_name: string | null;
+  client_number: string | null;
+  assigned_to: { id: number; first_name: string; last_name: string } | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InventoryQuery = {
+  search?: string;
+  category_id?: string;
+  interest_id?: string;
+  assigned_to_id?: number;
+  city?: string;
+  price_min?: number;
+  price_max?: number;
+  limit?: number;
+};
+
+export type ListingInput = {
+  area_name: string;
+  client_name: string;
+  client_number: string;
+  category_id?: string;
+  interest_id?: string;
+  city?: string;
+  location?: string;
+  price?: number;
+  description?: string;
+  assigned_to_id?: number;
+};
+
+export const getListings = (params: InventoryQuery = {}) =>
+  apiFetch<Listing[]>(`/listings${buildQueryString(params)}`);
+
+export const createListing = (dto: ListingInput) =>
+  apiFetch<Listing>("/listings", { method: "POST", body: JSON.stringify(dto) });
+
+export const updateListing = (id: string, dto: Partial<ListingInput>) =>
+  apiFetch<Listing>(`/listings/${id}`, { method: "PATCH", body: JSON.stringify(dto) });
+
+export const deleteListing = (id: string) =>
+  apiFetch<{ message: string }>(`/listings/${id}`, { method: "DELETE" });
+
+export type PartnerProject = {
+  id: string;
+  project_name: string;
+  developer: string | null;
+  category_id: string | null;
+  interest_id: string | null;
+  city: string | null;
+  location: string | null;
+  price: number | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PartnerProjectInput = {
+  project_name: string;
+  developer?: string;
+  category_id?: string;
+  interest_id?: string;
+  city?: string;
+  location?: string;
+  price?: number;
+  description?: string;
+};
+
+export const getPartnerProjects = (params: InventoryQuery = {}) =>
+  apiFetch<PartnerProject[]>(`/partner-projects${buildQueryString(params)}`);
+
+export const createPartnerProject = (dto: PartnerProjectInput) =>
+  apiFetch<PartnerProject>("/partner-projects", { method: "POST", body: JSON.stringify(dto) });
+
+export const updatePartnerProject = (id: string, dto: Partial<PartnerProjectInput>) =>
+  apiFetch<PartnerProject>(`/partner-projects/${id}`, { method: "PATCH", body: JSON.stringify(dto) });
+
+export const deletePartnerProject = (id: string) =>
+  apiFetch<{ message: string }>(`/partner-projects/${id}`, { method: "DELETE" });
+
 // ── Follow-ups ────────────────────────────────────────────────────────────────
 
 export type FollowUp = {
