@@ -81,7 +81,7 @@ export function Sidebar() {
 
       <nav className="hide-scrollbar flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
         {NAV_ITEMS.map(({ label, href, Icon }) => {
-          const isActive = pathname === href;
+          const isActive = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
               key={href}

@@ -385,3 +385,64 @@ export const setFollowUpCompleted = (id: string, completed: boolean) =>
     method: "PATCH",
     body: JSON.stringify({ completed }),
   });
+
+// ── Customers ─────────────────────────────────────────────────────────────────
+
+export type Customer = {
+  id: string;
+  customer_name: string;
+  cnic_number: string;
+  contact_number: string;
+  alternate_contact_number: string | null;
+  email: string | null;
+  address: string | null;
+  city: string | null;
+  relation_type: string | null;
+  source_id: string | null;
+  customer_since: string | null;
+  notes: string | null;
+  assigned_to: { id: number; first_name: string; last_name: string } | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CustomersResponse = { data: Customer[]; total: number; page: number; limit: number };
+
+export type CustomersQuery = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  relation_type?: string;
+  source_id?: string;
+  city?: string;
+  assigned_to_id?: number;
+};
+
+export type CustomerInput = {
+  customer_name: string;
+  cnic_number: string;
+  contact_number: string;
+  alternate_contact_number?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  relation_type: string;
+  source_id?: string;
+  customer_since?: string;
+  notes?: string;
+  assigned_to_id?: number;
+};
+
+export const getCustomers = (params: CustomersQuery = {}) =>
+  apiFetch<CustomersResponse>(`/customers${buildQueryString(params)}`);
+
+export const getCustomer = (id: string) => apiFetch<Customer>(`/customers/${id}`);
+
+export const createCustomer = (dto: CustomerInput) =>
+  apiFetch<Customer>("/customers", { method: "POST", body: JSON.stringify(dto) });
+
+export const updateCustomer = (id: string, dto: Partial<CustomerInput>) =>
+  apiFetch<Customer>(`/customers/${id}`, { method: "PATCH", body: JSON.stringify(dto) });
+
+export const deleteCustomer = (id: string) =>
+  apiFetch<{ message: string }>(`/customers/${id}`, { method: "DELETE" });
