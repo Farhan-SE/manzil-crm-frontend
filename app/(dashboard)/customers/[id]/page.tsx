@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ViewTransition } from "react";
 import { EmailIcon, MapPinIcon, TrashIcon } from "@/components/icons/DashboardIcons";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { deleteCustomer, getCustomer, getSources, type Customer } from "@/lib/api";
+import { deleteCustomer, getCustomer, type Customer } from "@/lib/api";
 import { useIsAdmin } from "@/lib/session";
 import { getSessionUser } from "@/lib/api";
 
@@ -59,7 +59,6 @@ export default function CustomerDetailPage() {
   const admin = useIsAdmin();
 
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [sourceName, setSourceName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -73,12 +72,6 @@ export default function CustomerDetailPage() {
         const data = await getCustomer(params.id);
         if (cancelled) return;
         setCustomer(data);
-
-        if (data.source_id) {
-          const sources = await getSources();
-          if (cancelled) return;
-          setSourceName(sources.find((s) => s.id === data.source_id)?.name ?? null);
-        }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load customer.");
       } finally {
@@ -175,7 +168,7 @@ export default function CustomerDetailPage() {
             </div>
             <p className="mt-1 text-sm text-dash-muted">
               Customer since {formatDate(customer.customer_since)}
-              {sourceName ? ` · via ${sourceName}` : ""}
+              {customer.source ? ` · via ${customer.source.name}` : ""}
             </p>
           </div>
         </div>
@@ -280,7 +273,7 @@ export default function CustomerDetailPage() {
         <div className="col-span-4 flex flex-col gap-6">
           <Section title="Relationship">
             <InfoRow label="Customer since">{formatDate(customer.customer_since)}</InfoRow>
-            <InfoRow label="Source">{sourceName ?? "—"}</InfoRow>
+            <InfoRow label="Source">{customer.source?.name ?? "—"}</InfoRow>
             <InfoRow label="Location">{fullAddress || "—"}</InfoRow>
           </Section>
 

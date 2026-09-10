@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ViewTransition } from "react";
 import { PlusIcon, SearchIcon } from "@/components/icons/DashboardIcons";
-import { ImportCustomersModal } from "@/components/customers/ImportCustomersModal";
+import { ImportCsvModal } from "@/components/ImportCsvModal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getCustomers, type Customer } from "@/lib/api";
 import { useIsAdmin } from "@/lib/session";
@@ -275,10 +275,10 @@ export default function CustomersPage() {
     </div>
 
     {isImportOpen && (
-      <ImportCustomersModal
+      <ImportCsvModal
+        kind="customers"
         onClose={() => setIsImportOpen(false)}
-        // Parses and previews only — there's no bulk-import endpoint to POST to yet.
-        onImport={() => 0}
+        onImported={() => void load()}
       />
     )}
     </ViewTransition>

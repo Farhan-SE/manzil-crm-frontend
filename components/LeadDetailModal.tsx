@@ -91,15 +91,17 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
   const [newTime, setNewTime] = useState("");
   const [isAddingFollowUp, setIsAddingFollowUp] = useState(false);
 
+  // Admin-only: these lists feed the edit dropdowns. Names for display come nested
+  // on the lead itself, so an agent never fetches them.
   useEffect(() => {
-    if (!lead) return;
+    if (!lead || !admin) return;
     Promise.all([getInterests(), getCategories()])
       .then(([interestList, categoryList]) => {
         setInterests(interestList);
         setCategories(categoryList);
       })
       .catch(() => {});
-  }, [lead]);
+  }, [lead, admin]);
 
   useEffect(() => {
     if (!lead || !admin) return;
@@ -208,8 +210,8 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
   const assignedName = currentLead.assigned_to
     ? `${currentLead.assigned_to.first_name} ${currentLead.assigned_to.last_name}`
     : "Unassigned";
-  const interestName = interests.find((i) => i.id === currentLead.interest_id)?.name ?? "—";
-  const categoryName = categories.find((c) => c.id === currentLead.category_id)?.name ?? "—";
+  const interestName = currentLead.interest?.name ?? "—";
+  const categoryName = currentLead.category?.name ?? "—";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>

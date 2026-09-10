@@ -8,6 +8,7 @@ type JwtPayload = {
   role: string;
   first_name?: string;
   last_name?: string;
+  password_changed?: boolean;
   exp?: number;
 };
 
@@ -64,6 +65,8 @@ export type SessionUser = {
   role: string;
   first_name: string;
   last_name: string;
+  /** False only for a user still on the generated password from add-user. */
+  password_changed: boolean;
 };
 
 /** Decodes the current access token's payload — the JWT is the only source of the caller's identity on the client. */
@@ -78,6 +81,8 @@ export function getSessionUser(): SessionUser | null {
     role: payload.role,
     first_name: payload.first_name ?? "",
     last_name: payload.last_name ?? "",
+    // Tokens issued before this claim existed shouldn't force the first-login flow.
+    password_changed: payload.password_changed ?? true,
   };
 }
 
@@ -160,18 +165,25 @@ export async function forgotPassword(email: string): Promise<ForgotPasswordRespo
 
 // ── Leads ─────────────────────────────────────────────────────────────────────
 
+export type TaxonomyRef = { id: string; name: string };
+
 export type LeadTemperature = "HOT" | "WARM" | "COLD";
 
 export type Lead = {
   id: string;
   client_name: string;
   client_number: string;
+  // *_id is what forms bind to; the sibling object carries the name so nothing
+  // has to fetch a lookup list just to decode an id.
   interest_id: string | null;
+  interest: TaxonomyRef | null;
   category_id: string | null;
+  category: TaxonomyRef | null;
   city: string | null;
   area: string | null;
   budget: number | null;
   source_id: string | null;
+  source: TaxonomyRef | null;
   temperature: LeadTemperature;
   stage: string;
   assigned_to: { id: number; first_name: string; last_name: string } | null;
@@ -248,11 +260,72 @@ export const getInterests = () => apiFetch<Interest[]>("/interests");
 export const getSources = () => apiFetch<Source[]>("/sources");
 export const getCategories = () => apiFetch<Category[]>("/categories");
 
+/** Create/rename/delete are admin-only server-side; the three lists share one shape. */
+export type TaxonomyKind = "interests" | "sources" | "categories";
+
+export const createTaxonomyItem = (kind: TaxonomyKind, name: string) =>
+  apiFetch<Interest>(`/${kind}`, { method: "POST", body: JSON.stringify({ name }) });
+
+export const renameTaxonomyItem = (kind: TaxonomyKind, id: string, name: string) =>
+  apiFetch<Interest>(`/${kind}/${id}`, { method: "PATCH", body: JSON.stringify({ name }) });
+
+export const deleteTaxonomyItem = (kind: TaxonomyKind, id: string) =>
+  apiFetch<{ status: string; message: string }>(`/${kind}/${id}`, { method: "DELETE" });
+
 // ── Agents ────────────────────────────────────────────────────────────────────
 
 export type Agent = { id: number; first_name: string; last_name: string };
 
 export const getAgents = () => apiFetch<Agent[]>("/auth/agents");
+
+// ── Team ──────────────────────────────────────────────────────────────────────
+
+export type TeamMember = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  user_role: string;
+  blocked: boolean;
+  password_changed: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AddUserInput = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  user_role: "admin" | "agent";
+};
+
+export const getUsers = () => apiFetch<TeamMember[]>("/auth/users");
+
+/** The generated password comes back once, in this response — it is never retrievable again. */
+export const addUser = (dto: AddUserInput) =>
+  apiFetch<{ user: TeamMember; password: string }>("/auth/add-user", {
+    method: "POST",
+    body: JSON.stringify(dto),
+  });
+
+export const setUserBlocked = (id: number, blocked: boolean) =>
+  apiFetch<TeamMember>(`/auth/users/${id}/block`, {
+    method: "PATCH",
+    body: JSON.stringify({ blocked }),
+  });
+
+export const setUserRole = (id: number, userRole: "admin" | "agent") =>
+  apiFetch<TeamMember>(`/auth/users/${id}/role`, {
+    method: "PATCH",
+    body: JSON.stringify({ user_role: userRole }),
+  });
+
+/** The new password only takes effect on the next login — the current token keeps working. */
+export const changePassword = (currentPassword: string, newPassword: string) =>
+  apiFetch<{ status: string; message: string }>("/auth/change-password", {
+    method: "PATCH",
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 
@@ -355,6 +428,8 @@ export type FollowUp = {
   due_date: string;
   due_time: string;
   completed: boolean;
+  completed_at: string | null;
+  overdue: boolean;
   lead: {
     id: string;
     client_name: string;
@@ -368,7 +443,17 @@ export type FollowUp = {
   updated_at: string;
 };
 
-export const getFollowUps = (params: { lead_id?: string; limit?: number } = {}) =>
+export type FollowUpStatus = "upcoming" | "overdue" | "completed";
+
+export type FollowUpsQuery = {
+  lead_id?: string;
+  status?: FollowUpStatus;
+  search?: string;
+  assigned_to_id?: number;
+  limit?: number;
+};
+
+export const getFollowUps = (params: FollowUpsQuery = {}) =>
   apiFetch<FollowUp[]>(`/follow-ups${buildQueryString(params)}`);
 
 /** Everything due today, scoped to the caller's leads for agents. Filters mirror the leads list. */
@@ -399,6 +484,7 @@ export type Customer = {
   city: string | null;
   relation_type: string | null;
   source_id: string | null;
+  source: TaxonomyRef | null;
   customer_since: string | null;
   notes: string | null;
   assigned_to: { id: number; first_name: string; last_name: string } | null;
@@ -446,3 +532,54 @@ export const updateCustomer = (id: string, dto: Partial<CustomerInput>) =>
 
 export const deleteCustomer = (id: string) =>
   apiFetch<{ message: string }>(`/customers/${id}`, { method: "DELETE" });
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+
+/** `scope` is "system" for admins, "own" for agents — the server decides, not the client. */
+export type DashboardStats = {
+  scope: "system" | "own";
+  open_leads: number;
+  pipeline_value: number;
+  closed_volume: number;
+  overdue_follow_ups: number;
+  customers: number;
+  leads_won: number;
+};
+
+export const getDashboardStats = () => apiFetch<DashboardStats>("/stats/dashboard");
+
+// ── CSV import ────────────────────────────────────────────────────────────────
+
+export type ImportResult = {
+  total: number;
+  added: number;
+  skipped: number;
+  errors: { row: number; reason: string }[];
+};
+
+/** Multipart upload — no Content-Type header, the browser sets the boundary itself. */
+async function uploadCsv(path: string, file: File): Promise<ImportResult> {
+  const token = getValidToken();
+  const body = new FormData();
+  body.append("file", file);
+
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body,
+  });
+
+  if (res.status === 401) {
+    onUnauthorized();
+    throw new Error("Unauthorized");
+  }
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}));
+    const msg = payload?.message ?? res.statusText;
+    throw new Error(Array.isArray(msg) ? msg[0] : msg);
+  }
+  return res.json() as Promise<ImportResult>;
+}
+
+export const importCustomersCsv = (file: File) => uploadCsv("/customers/import", file);
+export const importLeadsCsv = (file: File) => uploadCsv("/leads/import", file);

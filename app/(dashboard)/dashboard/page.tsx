@@ -7,15 +7,38 @@ import { ViewTransition } from "react";
 import { ArrowRightIcon, PhoneIcon, SearchIcon } from "@/components/icons/DashboardIcons";
 import { LeadDetailModal } from "@/components/LeadDetailModal";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getActiveLeads, getFollowUps, getLeads, type FollowUp, type Lead } from "@/lib/api";
+import {
+  getActiveLeads,
+  getDashboardStats,
+  getFollowUps,
+  getLeads,
+  type DashboardStats,
+  type FollowUp,
+  type Lead,
+} from "@/lib/api";
 import { useSessionFullName } from "@/lib/session";
 
-const STATS = [
-  { label: "MY OPEN LEADS", value: "24" },
-  { label: "PIPELINE VALUE", value: "PKR 8.45M" },
-  { label: "CLOSED VOLUME", value: "PKR 42.0M" },
-  { label: "OVERDUE FOLLOW-UPS", value: "3", tone: "hot" as const },
-];
+/** PKR amounts get abbreviated — a raw 8450000 is unreadable in a stat tile. */
+function formatMoney(value: number) {
+  if (value >= 10_000_000) return `PKR ${(value / 10_000_000).toFixed(2)}Cr`;
+  if (value >= 100_000) return `PKR ${(value / 100_000).toFixed(2)}L`;
+  if (value >= 1_000) return `PKR ${(value / 1_000).toFixed(1)}K`;
+  return `PKR ${value.toLocaleString()}`;
+}
+
+function buildStats(stats: DashboardStats) {
+  const isSystem = stats.scope === "system";
+  return [
+    { label: isSystem ? "OPEN LEADS" : "MY OPEN LEADS", value: String(stats.open_leads) },
+    { label: "PIPELINE VALUE", value: formatMoney(stats.pipeline_value) },
+    { label: "CLOSED VOLUME", value: formatMoney(stats.closed_volume) },
+    {
+      label: "OVERDUE FOLLOW-UPS",
+      value: String(stats.overdue_follow_ups),
+      tone: stats.overdue_follow_ups > 0 ? ("hot" as const) : undefined,
+    },
+  ];
+}
 
 const STAGE_LABELS: Record<string, string> = {
   inquiry: "Inquiry",
@@ -44,6 +67,7 @@ export default function DashboardPage() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
   const [isLoadingFollowUps, setIsLoadingFollowUps] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
 
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<Lead[]>([]);
@@ -87,6 +111,7 @@ export default function DashboardPage() {
       .then(setFollowUps)
       .catch(() => {})
       .finally(() => setIsLoadingFollowUps(false));
+    getDashboardStats().then(setStats).catch(() => {});
   }
 
   useEffect(() => {
@@ -143,23 +168,35 @@ export default function DashboardPage() {
       </div>
 
       <div className="flex gap-4">
-        {STATS.map((stat) => (
-          <div
-            key={stat.label}
-            className="flex flex-1 flex-col gap-3 rounded-lg border border-dash-border bg-white p-[21px] shadow-sm"
-          >
-            <p className="text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">
-              {stat.label}
-            </p>
-            <p
-              className={`text-xl font-bold tracking-[-0.525px] ${
-                stat.tone === "hot" ? "text-hot" : "text-dash-ink"
-              }`}
+        {!stats &&
+          Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex flex-1 flex-col gap-3 rounded-lg border border-dash-border bg-white p-[21px] shadow-sm"
             >
-              {stat.value}
-            </p>
-          </div>
-        ))}
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-6 w-20" />
+            </div>
+          ))}
+
+        {stats &&
+          buildStats(stats).map((stat) => (
+            <div
+              key={stat.label}
+              className="flex flex-1 flex-col gap-3 rounded-lg border border-dash-border bg-white p-[21px] shadow-sm"
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">
+                {stat.label}
+              </p>
+              <p
+                className={`text-xl font-bold tracking-[-0.525px] ${
+                  stat.tone === "hot" ? "text-hot" : "text-dash-ink"
+                }`}
+              >
+                {stat.value}
+              </p>
+            </div>
+          ))}
       </div>
 
       <div className="grid grid-cols-12 gap-6">

@@ -11,6 +11,7 @@ import {
   LeadsFilterPanel,
   type LeadFilters,
 } from "@/components/LeadsFilterPanel";
+import { ImportCsvModal } from "@/components/ImportCsvModal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { SelectOption } from "@/components/ui/Select";
 import {
@@ -81,6 +82,7 @@ export default function LeadsPage() {
 
 function LeadsDirectory() {
   const admin = isAdmin();
+  const [isImportOpen, setIsImportOpen] = useState(false);
   // Seeded from ?search= so the dashboard's quick search can land here on a lead.
   const initialSearch = useSearchParams().get("search") ?? "";
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -234,6 +236,16 @@ function LeadsDirectory() {
               />
             )}
           </div>
+
+          {admin && (
+            <button
+              type="button"
+              onClick={() => setIsImportOpen(true)}
+              className="rounded-lg border border-dash-border px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
+            >
+              Import
+            </button>
+          )}
         </div>
       </div>
 
@@ -418,6 +430,9 @@ function LeadsDirectory() {
       onClose={() => setSelectedLead(null)}
       onChanged={load}
     />
+    {isImportOpen && (
+      <ImportCsvModal kind="leads" onClose={() => setIsImportOpen(false)} onImported={load} />
+    )}
     </ViewTransition>
   );
 }
