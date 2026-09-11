@@ -119,7 +119,7 @@ export function TaxonomyModal({
         className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl bg-sidebar shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-dash-border px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-dash-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
               className="font-serif text-2xl font-bold text-dash-ink"
@@ -139,7 +139,7 @@ export function TaxonomyModal({
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-6 py-5">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-5 sm:px-6">
           {error && <p className="rounded-lg bg-hot/10 px-3 py-2 text-sm text-hot">{error}</p>}
 
           {isLoading &&
@@ -217,7 +217,7 @@ export function TaxonomyModal({
 
         <form
           onSubmit={handleAdd}
-          className="flex items-center gap-2 border-t border-dash-border px-6 py-4"
+          className="flex items-center gap-2 border-t border-dash-border px-4 py-4 sm:px-6"
         >
           <input
             type="text"

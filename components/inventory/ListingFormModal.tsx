@@ -63,8 +63,11 @@ export function ListingFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-xl rounded-xl bg-sidebar shadow-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4 border-b border-dash-border px-6 py-4">
+      <div
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-xl bg-sidebar shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-dash-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
               className="font-serif text-2xl font-bold text-dash-ink"
@@ -86,8 +89,8 @@ export function ListingFormModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-6 py-5">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:px-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="listing-client" className="text-sm text-dash-muted">
                 Client name
@@ -133,7 +136,7 @@ export function ListingFormModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="listing-city" className="text-sm text-dash-muted">
                 City
@@ -162,7 +165,7 @@ export function ListingFormModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="listing-category" className="text-sm text-dash-muted">
                 Category

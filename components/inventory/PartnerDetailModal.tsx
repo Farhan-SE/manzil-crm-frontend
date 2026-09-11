@@ -28,8 +28,11 @@ export function PartnerDetailModal({
 }: PartnerDetailModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-xl bg-sidebar shadow-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4 border-b border-dash-border px-6 py-4">
+      <div
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-sidebar shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-dash-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
               className="truncate font-serif text-2xl font-bold text-dash-ink"
@@ -58,8 +61,8 @@ export function PartnerDetailModal({
           </button>
         </div>
 
-        <div className="flex flex-col gap-5 px-6 py-5">
-          <div className="flex items-center justify-between">
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-badge-neutral px-3 py-1 text-xs font-semibold text-dash-ink">
                 {categoryName}

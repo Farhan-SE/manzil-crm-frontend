@@ -133,11 +133,11 @@ export default function TodayPage() {
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-8 py-8">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:gap-8 sm:px-8 sm:py-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1">
           <h1
-            className="font-serif text-[34px] font-semibold leading-none text-dash-ink"
+            className="font-serif text-[28px] font-semibold leading-none text-dash-ink sm:text-[34px]"
             style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
           >
             Today
@@ -148,8 +148,8 @@ export default function TodayPage() {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative w-64">
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
+          <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
             <SearchIcon className="absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-muted" />
             <input
               type="text"
@@ -164,7 +164,7 @@ export default function TodayPage() {
               type="button"
               onClick={() => setIsFilterOpen((v) => !v)}
               aria-expanded={isFilterOpen}
-              className="flex items-center gap-2 rounded-lg border border-dash-border px-4 py-2.5 text-sm font-semibold text-dash-ink"
+              className="flex shrink-0 items-center gap-2 rounded-lg border border-dash-border px-4 py-2.5 text-sm font-semibold text-dash-ink"
             >
               <FilterIcon className="h-[9px] w-[13.5px]" />
               Filter
@@ -198,7 +198,7 @@ export default function TodayPage() {
       </div>
 
       <div className="overflow-hidden rounded-lg border border-dash-border bg-sidebar shadow-sm">
-        <div className="flex gap-4 border-b border-dash-border bg-dash-bg px-6 py-4">
+        <div className="hidden gap-4 border-b border-dash-border bg-dash-bg px-6 py-4 md:flex">
           <span className="w-10 shrink-0" />
           <p className="w-[100px] shrink-0 text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">
             Time
@@ -217,27 +217,27 @@ export default function TodayPage() {
             Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className={`flex items-center gap-4 px-6 py-3 ${i > 0 ? "border-t border-dash-border" : ""}`}
+                className={`flex items-center gap-3 px-4 py-3 md:gap-4 md:px-6 ${i > 0 ? "border-t border-dash-border" : ""}`}
               >
-                <div className="flex w-10 shrink-0 justify-center">
+                <div className="flex w-6 shrink-0 justify-center md:w-10">
                   <Skeleton className="size-4" />
                 </div>
-                <Skeleton className="h-3 w-[70px] shrink-0" />
-                <div className="flex flex-1 flex-col gap-1.5">
-                  <Skeleton className="h-4 w-64" />
+                <Skeleton className="hidden h-3 w-[70px] shrink-0 md:block" />
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Skeleton className="h-4 w-full max-w-64" />
                   <Skeleton className="h-3 w-40" />
                 </div>
-                <div className="w-[120px] shrink-0">
+                <div className="hidden w-[120px] shrink-0 md:block">
                   <Skeleton className="h-5 w-20" />
                 </div>
-                <div className="flex w-[100px] shrink-0 justify-end">
+                <div className="flex w-9 shrink-0 justify-end md:w-[100px]">
                   <Skeleton className="size-4" />
                 </div>
               </div>
             ))}
 
           {!isLoading && followUps.length === 0 && (
-            <p className="px-6 py-10 text-center text-sm text-dash-placeholder">
+            <p className="px-4 py-10 text-center text-sm text-dash-placeholder md:px-6">
               {debouncedSearch || activeFilterCount > 0
                 ? "No follow-ups match those filters."
                 : "Nothing scheduled for today."}
@@ -247,14 +247,16 @@ export default function TodayPage() {
           {followUps.map((followUp, i) => {
             const stage = STAGE_BADGES[followUp.lead.stage];
             const location = [followUp.lead.area, followUp.lead.city].filter(Boolean).join(", ");
+            const timeTone =
+              !followUp.completed && isUpcoming(followUp) ? "text-status-negotiation" : "text-dash-muted";
             return (
               <div
                 key={followUp.id}
-                className={`flex items-center gap-4 px-6 py-3 ${i > 0 ? "border-t border-dash-border" : ""} ${
+                className={`flex items-start gap-3 px-4 py-3 md:items-center md:gap-4 md:px-6 ${i > 0 ? "border-t border-dash-border" : ""} ${
                   followUp.completed ? "opacity-60" : ""
                 }`}
               >
-                <div className="flex w-10 shrink-0 items-center justify-center">
+                <div className="flex w-6 shrink-0 items-center justify-center pt-1 md:w-10 md:pt-0">
                   <input
                     type="checkbox"
                     checked={followUp.completed}
@@ -263,17 +265,11 @@ export default function TodayPage() {
                     className="size-4 accent-warm"
                   />
                 </div>
-                <p
-                  className={`w-[100px] shrink-0 text-[11.5px] ${
-                    !followUp.completed && isUpcoming(followUp)
-                      ? "text-status-negotiation"
-                      : "text-dash-muted"
-                  }`}
-                >
+                <p className={`hidden w-[100px] shrink-0 text-[11.5px] md:block ${timeTone}`}>
                   {formatTime(followUp.due_time)}
                 </p>
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="flex items-baseline gap-2">
+                  <p className="flex flex-wrap items-baseline gap-x-2">
                     <span
                       className="font-serif text-base font-semibold text-dash-ink"
                       style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
@@ -286,7 +282,10 @@ export default function TodayPage() {
                       — {followUp.text}
                     </span>
                   </p>
-                  <div className="flex items-center gap-2 text-[13px] text-dash-muted">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-dash-muted">
+                    {/* Time and stage get their own columns from md up; below that they ride in this line. */}
+                    <span className={`font-medium md:hidden ${timeTone}`}>{formatTime(followUp.due_time)}</span>
+                    <span className="md:hidden">·</span>
                     <span>{location || followUp.lead.client_number}</span>
                     {admin && (
                       <>
@@ -298,9 +297,16 @@ export default function TodayPage() {
                         </span>
                       </>
                     )}
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.315px] md:hidden ${
+                        stage?.className ?? "bg-badge-neutral text-dash-muted"
+                      }`}
+                    >
+                      {stage?.label ?? followUp.lead.stage}
+                    </span>
                   </div>
                 </div>
-                <div className="w-[120px] shrink-0">
+                <div className="hidden w-[120px] shrink-0 md:block">
                   <span
                     className={`rounded px-2 py-1 text-[10.5px] font-bold uppercase tracking-[0.315px] ${
                       stage?.className ?? "bg-badge-neutral text-dash-muted"
@@ -309,7 +315,7 @@ export default function TodayPage() {
                     {stage?.label ?? followUp.lead.stage}
                   </span>
                 </div>
-                <div className="flex w-[100px] shrink-0 items-center justify-end gap-3">
+                <div className="flex w-9 shrink-0 items-center justify-end gap-3 pt-0.5 md:w-[100px] md:pt-0">
                   <a
                     href={`tel:${followUp.lead.client_number}`}
                     className="text-muted"

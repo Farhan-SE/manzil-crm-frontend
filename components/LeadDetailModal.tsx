@@ -408,7 +408,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="flex items-center justify-between gap-3 pt-2 sm:gap-4">
             {admin ? (
               <button
                 type="button"
@@ -422,7 +422,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
             ) : (
               <span />
             )}
-            <div className="flex items-center justify-end gap-4">
+            <div className="flex items-center justify-end gap-3 sm:gap-4">
               <button
                 type="button"
                 onClick={onClose}
@@ -434,7 +434,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
                 type="button"
                 onClick={handleSave}
                 disabled={!isDirty || isSaving}
-                className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-dash-ink"
+                className="whitespace-nowrap rounded-xl bg-dash-ink px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-dash-ink sm:px-5"
               >
                 {isSaving ? "Saving…" : "Save changes"}
               </button>
