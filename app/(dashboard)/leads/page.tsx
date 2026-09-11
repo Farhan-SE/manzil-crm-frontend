@@ -42,14 +42,15 @@ const TEMP_BADGES: Record<string, string> = {
   COLD: "bg-cold/15 text-cold",
 };
 
+// Spans only apply to the lg grid; below lg each row collapses into a card.
 const COLUMN_CLASSES = {
-  client: "col-span-3",
-  category: "col-span-1",
-  interest: "col-span-2",
-  location: "col-span-2",
-  budget: "col-span-1",
-  status: "col-span-2",
-  actions: "col-span-1",
+  client: "lg:col-span-3",
+  category: "lg:col-span-1",
+  interest: "lg:col-span-2",
+  location: "lg:col-span-2",
+  budget: "lg:col-span-1",
+  status: "lg:col-span-2",
+  actions: "lg:col-span-1",
 };
 
 function initials(name: string) {
@@ -177,16 +178,16 @@ function LeadsDirectory() {
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-6 py-12">
-      <div className="flex items-end justify-between">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-6 lg:py-12">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <h1
-          className="font-serif text-[34px] font-semibold text-dash-ink"
+          className="font-serif text-[28px] font-semibold text-dash-ink sm:text-[34px]"
           style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
         >
           Leads Directory
         </h1>
-        <div className="flex items-center gap-3">
-          <div className="relative w-64">
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
+          <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
             <SearchIcon className="absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-muted" />
             <input
               type="text"
@@ -204,7 +205,7 @@ function LeadsDirectory() {
               type="button"
               onClick={() => setIsFilterOpen((v) => !v)}
               aria-expanded={isFilterOpen}
-              className="flex items-center gap-2 rounded-lg border border-dash-border bg-sidebar px-3 py-2.5"
+              className="flex shrink-0 items-center gap-2 rounded-lg border border-dash-border bg-sidebar px-3 py-2.5"
               aria-label="Filter leads"
             >
               <FilterIcon className="h-3 w-[18px] text-dash-ink" />
@@ -241,7 +242,7 @@ function LeadsDirectory() {
             <button
               type="button"
               onClick={() => setIsImportOpen(true)}
-              className="rounded-lg border border-dash-border px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
+              className="shrink-0 rounded-lg border border-dash-border px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
             >
               Import
             </button>
@@ -250,7 +251,7 @@ function LeadsDirectory() {
       </div>
 
       <div className="overflow-hidden rounded-lg border border-dash-border">
-        <div className="grid grid-cols-12 gap-4 border-b border-dash-border bg-dash-bg/50 px-6 py-4">
+        <div className="hidden gap-4 border-b border-dash-border bg-dash-bg/50 px-6 py-4 lg:grid lg:grid-cols-12">
           <p className={`${COLUMN_CLASSES.client} text-xs font-bold uppercase tracking-[0.6px] text-dash-muted`}>
             Client &amp; Source
           </p>
@@ -278,7 +279,7 @@ function LeadsDirectory() {
           Array.from({ length: PAGE_SIZE }).map((_, i) => (
             <div
               key={i}
-              className={`grid grid-cols-12 items-center gap-4 bg-white px-6 py-4 ${
+              className={`flex flex-col gap-2 bg-white px-4 py-4 sm:px-6 lg:grid lg:grid-cols-12 lg:items-center lg:gap-4 ${
                 i > 0 ? "border-t border-dash-border" : ""
               }`}
             >
@@ -289,18 +290,18 @@ function LeadsDirectory() {
                   <Skeleton className="h-2.5 w-16" />
                 </div>
               </div>
-              <Skeleton className={`${COLUMN_CLASSES.category} h-3 w-12`} />
-              <Skeleton className={`${COLUMN_CLASSES.interest} h-3 w-16`} />
-              <Skeleton className={`${COLUMN_CLASSES.location} h-3 w-28`} />
-              <div className={`${COLUMN_CLASSES.budget} flex flex-col gap-1.5`}>
+              <Skeleton className={`${COLUMN_CLASSES.category} hidden h-3 w-12 lg:block`} />
+              <Skeleton className={`${COLUMN_CLASSES.interest} hidden h-3 w-16 lg:block`} />
+              <Skeleton className={`${COLUMN_CLASSES.location} hidden h-3 w-28 lg:block`} />
+              <div className={`${COLUMN_CLASSES.budget} hidden flex-col gap-1.5 lg:flex`}>
                 <Skeleton className="h-2.5 w-8" />
                 <Skeleton className="h-2.5 w-14" />
               </div>
-              <div className={`${COLUMN_CLASSES.status} flex gap-1.5`}>
+              <div className={`${COLUMN_CLASSES.status} flex gap-1.5 pl-11 lg:pl-0`}>
                 <Skeleton className="h-4 w-11" />
                 <Skeleton className="h-4 w-14" />
               </div>
-              <div className={`${COLUMN_CLASSES.actions} flex justify-end`}>
+              <div className={`${COLUMN_CLASSES.actions} hidden justify-end lg:flex`}>
                 <Skeleton className="size-5" />
               </div>
             </div>
@@ -318,7 +319,7 @@ function LeadsDirectory() {
           <div
             key={lead.id}
             onClick={() => setSelectedLead(lead)}
-            className={`grid cursor-pointer grid-cols-12 items-center gap-4 bg-white px-6 py-4 hover:bg-dash-bg/40 ${
+            className={`flex cursor-pointer flex-col gap-2 bg-white px-4 py-4 hover:bg-dash-bg/40 sm:px-6 lg:grid lg:grid-cols-12 lg:items-center lg:gap-4 ${
               i > 0 ? "border-t border-dash-border" : ""
             }`}
           >
@@ -326,23 +327,42 @@ function LeadsDirectory() {
               <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-dash-border bg-avatar/20 text-xs text-dash-ink">
                 {initials(lead.client_name)}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-sm text-dash-ink">{lead.client_name}</p>
                 <p className="truncate text-[11px] text-dash-muted">
                   {(lead.source_id && sourceNames[lead.source_id]) || lead.client_number}
                 </p>
               </div>
+              <a
+                href={`tel:${lead.client_number}`}
+                onClick={(e) => e.stopPropagation()}
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-dash-border text-dash-muted lg:hidden"
+                aria-label={`Call ${lead.client_name}`}
+              >
+                <PhoneIcon className="size-3.5" />
+              </a>
             </div>
-            <p className={`${COLUMN_CLASSES.category} truncate text-sm text-dash-ink`}>
+            <p className={`${COLUMN_CLASSES.category} hidden truncate text-sm text-dash-ink lg:block`}>
               {(lead.category_id && categoryNames[lead.category_id]) || "—"}
             </p>
-            <p className={`${COLUMN_CLASSES.interest} truncate text-sm text-dash-ink`}>
+            <p className={`${COLUMN_CLASSES.interest} hidden truncate text-sm text-dash-ink lg:block`}>
               {(lead.interest_id && interestNames[lead.interest_id]) || "—"}
             </p>
-            <p className={`${COLUMN_CLASSES.location} truncate text-sm text-dash-ink`}>
+            <p className={`${COLUMN_CLASSES.location} hidden truncate text-sm text-dash-ink lg:block`}>
               {[lead.area, lead.city].filter(Boolean).join(", ") || "—"}
             </p>
-            <div className={COLUMN_CLASSES.budget}>
+            {/* Below lg the four desktop columns fold into one summary line under the name. */}
+            <p className="truncate pl-11 text-xs text-dash-muted lg:hidden">
+              {[
+                lead.category_id && categoryNames[lead.category_id],
+                lead.interest_id && interestNames[lead.interest_id],
+                [lead.area, lead.city].filter(Boolean).join(", "),
+                lead.budget != null && `PKR ${lead.budget.toLocaleString()}`,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "No details yet"}
+            </p>
+            <div className={`${COLUMN_CLASSES.budget} hidden lg:block`}>
               {lead.budget == null ? (
                 <p className="text-[11.5px] text-dash-muted">—</p>
               ) : (
@@ -354,7 +374,7 @@ function LeadsDirectory() {
                 </>
               )}
             </div>
-            <div className={`${COLUMN_CLASSES.status} flex flex-wrap items-center gap-1.5`}>
+            <div className={`${COLUMN_CLASSES.status} flex flex-wrap items-center gap-1.5 pl-11 lg:pl-0`}>
               <span
                 className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.45px] ${
                   TEMP_BADGES[lead.temperature] ?? "bg-badge-neutral text-dash-muted"
@@ -366,7 +386,7 @@ function LeadsDirectory() {
                 {STAGE_LABELS[lead.stage] ?? lead.stage}
               </span>
             </div>
-            <div className={`${COLUMN_CLASSES.actions} flex items-center justify-end gap-1 opacity-70`}>
+            <div className={`${COLUMN_CLASSES.actions} hidden items-center justify-end gap-1 opacity-70 lg:flex`}>
               <a
                 href={`tel:${lead.client_number}`}
                 onClick={(e) => e.stopPropagation()}
@@ -379,7 +399,7 @@ function LeadsDirectory() {
           </div>
         ))}
 
-        <div className="flex items-center justify-between border-t border-dash-border bg-dash-bg/50 px-6 py-4">
+        <div className="flex flex-col items-center gap-3 border-t border-dash-border bg-dash-bg/50 px-4 py-4 sm:flex-row sm:justify-between sm:px-6">
           <p className="text-xs text-dash-muted">
             Showing {firstRow}–{lastRow} of {total} leads
           </p>
@@ -392,7 +412,10 @@ function LeadsDirectory() {
             >
               Prev
             </button>
-            <div className="flex items-center gap-1">
+            <span className="px-1 text-sm text-dash-muted sm:hidden">
+              {page} / {totalPages}
+            </span>
+            <div className="hidden items-center gap-1 sm:flex">
               {pageNumbers(page, totalPages).map((entry, i) =>
                 typeof entry === "number" ? (
                   <button

@@ -82,7 +82,8 @@ export function LeadsFilterPanel({
   }
 
   return (
-    <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-[420px] rounded-xl border border-dash-border bg-sidebar p-4 shadow-lg">
+    // A 420px popover can't fit beside the button on a phone, so below sm it pins to the viewport.
+    <div className="fixed inset-x-4 top-20 z-40 rounded-xl border border-dash-border bg-sidebar p-4 shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+8px)] sm:z-20 sm:w-[420px]">
       <div className="flex items-center justify-between pb-3">
         <p className="text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">Filters</p>
         <button type="button" onClick={onClear} className="text-xs font-medium text-dash-muted underline">
@@ -195,7 +196,7 @@ export function LeadsFilterPanel({
         <button
           type="button"
           onClick={() => onApply(draft)}
-          className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white"
+          className="w-full rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white sm:w-auto"
         >
           Apply filters
         </button>

@@ -215,7 +215,10 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-xl rounded-xl bg-sidebar shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-xl bg-sidebar shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
         {isSaved ? (
           <div className="flex flex-col items-center gap-3 px-6 py-10 animate-[fade-in_300ms_ease-out]">
             <DotLottieReact
@@ -234,7 +237,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
           </div>
         ) : (
         <>
-        <div className="flex items-center justify-between gap-4 border-b border-dash-border px-6 py-4">
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-dash-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
               className="truncate font-serif text-2xl font-bold text-dash-ink"
@@ -263,8 +266,9 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
           </button>
         </div>
 
-        <div className="flex flex-col gap-5 px-6 py-5">
-          <div className="grid grid-cols-2 gap-4">
+        {/* Only the body scrolls, so the name and close button stay reachable on short screens. */}
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:px-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Stage" htmlFor="stage">
               <Select
                 id="stage"
@@ -288,7 +292,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Category" htmlFor="category">
               {admin ? (
                 <Select
@@ -376,7 +380,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
                   placeholder="Add a follow-up..."
                   className={inputClass}
                 />
-                <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_auto]">
                   <input
                     type="date"
                     value={newDate}
@@ -393,7 +397,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
                     type="button"
                     onClick={handleAddFollowUp}
                     disabled={isAddingFollowUp || !newText || !newDate || !newTime}
-                    className="rounded-xl border border-dash-border px-5 text-sm font-bold text-dash-ink transition-colors hover:bg-dash-bg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+                    className="col-span-2 rounded-xl border border-dash-border px-5 py-2 text-sm font-bold text-dash-ink transition-colors hover:bg-dash-bg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent sm:col-span-1 sm:py-0"
                   >
                     Add
                   </button>
@@ -404,7 +408,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <div className="flex items-center justify-between gap-4 pt-2">
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             {admin ? (
               <button
                 type="button"
@@ -418,7 +422,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
             ) : (
               <span />
             )}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-end gap-4">
               <button
                 type="button"
                 onClick={onClose}

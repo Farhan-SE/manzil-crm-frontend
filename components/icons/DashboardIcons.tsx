@@ -1,5 +1,21 @@
 type IconProps = { className?: string };
 
+export function MenuIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 18 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M1 1H17M1 7H17M1 13H17" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function ChevronDownIcon({ className }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">

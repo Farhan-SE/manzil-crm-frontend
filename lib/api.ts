@@ -42,6 +42,14 @@ export function getValidToken(): string | null {
   return token;
 }
 
+/** Presence flag for proxy.ts, which runs on the server and can't read web storage. */
+function setSessionCookie(token: string, remember: boolean) {
+  const exp = decodeJwtExp(token);
+  // Mirrors the storage choice: "keep me signed in" lasts until the token expires, otherwise it ends with the browser session.
+  const maxAge = remember && exp ? `; max-age=${Math.max(0, Math.floor((exp - Date.now()) / 1000))}` : "";
+  document.cookie = `session=1; path=/; SameSite=Lax${maxAge}`;
+}
+
 export function setToken(token: string, remember: boolean) {
   if (typeof window === "undefined") return;
   if (remember) {
@@ -51,12 +59,14 @@ export function setToken(token: string, remember: boolean) {
     sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
     localStorage.removeItem(ACCESS_TOKEN_KEY);
   }
+  setSessionCookie(token, remember);
 }
 
 export function clearToken() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+  document.cookie = "session=; path=/; max-age=0";
 }
 
 export type SessionUser = {
@@ -94,6 +104,7 @@ function onUnauthorized() {
   clearToken();
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("unauthorized"));
+    window.location.href = "/";
   }
 }
 

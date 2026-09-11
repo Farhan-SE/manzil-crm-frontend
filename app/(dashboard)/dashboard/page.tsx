@@ -122,15 +122,15 @@ export default function DashboardPage() {
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-6 py-12">
-      <div className="flex items-end justify-between border-b border-dash-border pb-[25px]">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-6 lg:py-12">
+      <div className="flex flex-col gap-4 border-b border-dash-border pb-5 sm:flex-row sm:items-end sm:justify-between sm:pb-[25px]">
         <h1
-          className="font-serif text-[32px] font-bold tracking-[-0.64px] text-dash-ink"
+          className="font-serif text-2xl font-bold tracking-[-0.64px] text-dash-ink sm:text-[32px]"
           style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
         >
           Welcome back,{fullName && <span className="ml-2 capitalize">{fullName}</span>}
         </h1>
-        <div ref={searchRef} className="relative w-64">
+        <div ref={searchRef} className="relative w-full sm:w-64">
           <SearchIcon className="absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-dash-placeholder" />
           <input
             type="text"
@@ -167,12 +167,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="flex gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {!stats &&
           Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="flex flex-1 flex-col gap-3 rounded-lg border border-dash-border bg-white p-[21px] shadow-sm"
+              className="flex min-w-0 flex-col gap-2 rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:gap-3 sm:p-[21px]"
             >
               <Skeleton className="h-3 w-28" />
               <Skeleton className="h-6 w-20" />
@@ -183,13 +183,13 @@ export default function DashboardPage() {
           buildStats(stats).map((stat) => (
             <div
               key={stat.label}
-              className="flex flex-1 flex-col gap-3 rounded-lg border border-dash-border bg-white p-[21px] shadow-sm"
+              className="flex min-w-0 flex-col gap-2 rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:gap-3 sm:p-[21px]"
             >
-              <p className="text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">
+              <p className="text-[10px] font-bold uppercase tracking-[0.6px] text-dash-muted sm:text-xs">
                 {stat.label}
               </p>
               <p
-                className={`text-xl font-bold tracking-[-0.525px] ${
+                className={`truncate text-lg font-bold tracking-[-0.525px] sm:text-xl ${
                   stat.tone === "hot" ? "text-hot" : "text-dash-ink"
                 }`}
               >
@@ -199,8 +199,8 @@ export default function DashboardPage() {
           ))}
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-8 flex flex-col gap-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-3 lg:col-span-8">
           <div className="flex items-center justify-between pb-2">
             <h2 className="border-b-2 border-dash-ink pb-1.5 text-xs font-bold uppercase tracking-[1.2px] text-dash-ink">
               Active Leads
@@ -211,14 +211,14 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-dash-border bg-sidebar shadow-sm">
+          <div className="overflow-x-auto rounded-lg border border-dash-border bg-sidebar shadow-sm">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-dash-border bg-dash-bg">
                   <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.55px] text-dash-muted">
                     Client
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.55px] text-dash-muted">
+                  <th className="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.55px] text-dash-muted sm:table-cell">
                     Location
                   </th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.55px] text-dash-muted">
@@ -239,7 +239,7 @@ export default function DashboardPage() {
                           <Skeleton className="h-3.5 w-32" />
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="hidden px-4 py-4 sm:table-cell">
                         <Skeleton className="h-3.5 w-28" />
                       </td>
                       <td className="px-4 py-4">
@@ -280,14 +280,20 @@ export default function DashboardPage() {
                                 : "bg-cold"
                           }`}
                         />
-                        <span className="text-base text-dash-ink">{lead.client_name}</span>
+                        <span className="min-w-0">
+                          <span className="block text-sm text-dash-ink sm:text-base">{lead.client_name}</span>
+                          {/* Location has no column of its own below sm, so it rides under the name. */}
+                          <span className="block text-xs text-dash-muted sm:hidden">
+                            {[lead.area, lead.city].filter(Boolean).join(", ") || "—"}
+                          </span>
+                        </span>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-base text-dash-muted">
+                    <td className="hidden px-4 py-4 text-base text-dash-muted sm:table-cell">
                       {[lead.area, lead.city].filter(Boolean).join(", ") || "—"}
                     </td>
                     <td className="px-4 py-4">
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         <span
                           className={`rounded-sm border px-[9px] py-[3px] text-[10px] uppercase tracking-[0.5px] ${
                             lead.temperature === "HOT"
@@ -323,7 +329,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="col-span-4 flex flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-3 lg:col-span-4">
           <div className="pb-2">
             <h2 className="border-b-2 border-dash-ink pb-1.5 text-xs font-bold uppercase tracking-[1.2px] text-dash-ink">
                Follow-ups

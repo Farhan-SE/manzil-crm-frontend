@@ -9,7 +9,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-dvh bg-dash-bg">
       <Sidebar />
-      <main className="pl-[256px]">{children}</main>
+      <main className="lg:pl-[256px]">{children}</main>
       <WelcomeGate />
     </div>
   );
