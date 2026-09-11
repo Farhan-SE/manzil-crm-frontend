@@ -4,7 +4,8 @@ import { useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   useDroppable,
   useSensor,
@@ -76,11 +77,19 @@ function SortableLeadCard({
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        // iOS otherwise opens its long-press menu over the card during the hold.
+        WebkitTouchCallout: "none",
+      }}
       {...attributes}
       {...listeners}
       onClick={() => onOpen(lead)}
-      className={canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}
+      className={`touch-manipulation select-none ${
+        canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+      }`}
     >
       <LeadCardContent lead={lead} subtitle={subtitle} />
     </div>
@@ -147,7 +156,12 @@ export function PipelineBoard({
 }: PipelineBoardProps) {
   const [board, setBoard] = useState<Lead[]>(leads);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  // Touch needs press-and-hold: with a distance trigger the browser claims the swipe as a scroll
+  // and cancels the gesture, so cards never pick up on a phone.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+  );
 
   // The parent owns the fetched list; re-sync whenever it reloads.
   const [syncedFrom, setSyncedFrom] = useState(leads);

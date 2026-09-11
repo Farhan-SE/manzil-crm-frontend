@@ -101,10 +101,11 @@ export default function PipelinePage() {
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex h-dvh w-full max-w-[1280px] flex-col gap-6 px-8 py-8">
+    {/* Below lg the 3.5rem mobile top bar sits above this, so a full h-dvh would overflow the screen. */}
+    <div className="mx-auto flex h-[calc(100dvh-3.5rem)] w-full max-w-[1280px] flex-col gap-4 px-4 py-4 sm:gap-6 sm:px-8 sm:py-8 lg:h-dvh">
       <div className="flex shrink-0 items-center justify-between">
         <h1
-          className="font-serif text-[34px] font-semibold text-dash-ink"
+          className="font-serif text-[28px] font-semibold text-dash-ink sm:text-[34px]"
           style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
         >
           Pipeline
