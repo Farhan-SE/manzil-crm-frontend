@@ -64,12 +64,12 @@ export function AddTeamMemberModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-xl bg-sidebar shadow-lg"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-sidebar shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {created ? (
           // Deliberately no auto-close: this is the only time the password is ever shown.
-          <div className="flex flex-col items-center gap-3 px-6 py-8 animate-[fade-in_300ms_ease-out]">
+          <div className="flex flex-col items-center gap-3 px-4 py-8 animate-[fade-in_300ms_ease-out] sm:px-6">
             <DotLottieReact
               src="/login/success.lottie"
               autoplay
@@ -113,7 +113,7 @@ export function AddTeamMemberModal({
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between border-b border-dash-border px-6 py-4">
+            <div className="flex items-center justify-between border-b border-dash-border px-4 py-4 sm:px-6">
               <h2
                 className="font-serif text-2xl font-bold text-dash-ink"
                 style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
@@ -130,8 +130,8 @@ export function AddTeamMemberModal({
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-6 py-5">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 py-5 sm:px-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="member-first-name" className="text-sm text-dash-muted">
                     First name

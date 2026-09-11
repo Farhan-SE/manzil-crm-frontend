@@ -44,7 +44,7 @@ function Field({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-dash-border bg-white p-6 shadow-sm">
+    <section className="flex flex-col gap-4 rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:p-6">
       <h2 className="text-xs font-bold uppercase tracking-[1px] text-dash-muted">{title}</h2>
       {children}
     </section>
@@ -154,12 +154,12 @@ export default function EditCustomerPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-8 py-8">
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-12 gap-6">
-          <Skeleton className="col-span-8 h-96 rounded-lg" />
-          <Skeleton className="col-span-4 h-96 rounded-lg" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <Skeleton className="h-96 rounded-lg lg:col-span-8" />
+          <Skeleton className="h-96 rounded-lg lg:col-span-4" />
         </div>
       </div>
     );
@@ -167,7 +167,7 @@ export default function EditCustomerPage() {
 
   if (notFound) {
     return (
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-8 py-8">
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
         <Link href="/customers" className="text-sm text-dash-muted transition-colors hover:text-dash-ink">
           ← Customers
         </Link>
@@ -180,7 +180,7 @@ export default function EditCustomerPage() {
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-8 py-8">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <Link
         href={`/customers/${params.id}`}
         className="w-fit text-sm text-dash-muted transition-colors hover:text-dash-ink"
@@ -188,10 +188,10 @@ export default function EditCustomerPage() {
         ← {customerName}
       </Link>
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1
-            className="font-serif text-[34px] font-semibold text-dash-ink"
+            className="font-serif text-[28px] font-semibold text-dash-ink sm:text-[34px]"
             style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
           >
             Edit customer
@@ -222,11 +222,11 @@ export default function EditCustomerPage() {
       <form
         id="edit-customer-form"
         onSubmit={handleSubmit}
-        className="grid grid-cols-12 items-start gap-6"
+        className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12"
       >
-        <div className="col-span-8 flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-8">
           <Section title="Identity">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Full name" htmlFor="customer-name" required>
                 <input
                   id="customer-name"
@@ -253,7 +253,7 @@ export default function EditCustomerPage() {
           </Section>
 
           <Section title="Contact">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Phone" htmlFor="customer-phone" required>
                 <input
                   id="customer-phone"
@@ -288,7 +288,7 @@ export default function EditCustomerPage() {
               />
             </Field>
 
-            <div className="grid grid-cols-[2fr_1fr] gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
               <Field label="Address" htmlFor="customer-address">
                 <input
                   id="customer-address"
@@ -324,7 +324,7 @@ export default function EditCustomerPage() {
           </Section>
         </div>
 
-        <div className="col-span-4 flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-4">
           <Section title="Relationship">
             <Field label="Type" htmlFor="customer-type" required>
               <Select

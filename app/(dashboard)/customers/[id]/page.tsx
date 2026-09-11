@@ -37,7 +37,7 @@ function initials(name: string) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-dash-border bg-white p-6 shadow-sm">
+    <section className="rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:p-6">
       <h2 className="pb-4 text-xs font-bold uppercase tracking-[1px] text-dash-muted">{title}</h2>
       {children}
     </section>
@@ -46,7 +46,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-6 border-b border-dash-border py-3 last:border-b-0 last:pb-0">
+    <div className="flex items-start justify-between gap-4 border-b border-dash-border py-3 last:border-b-0 last:pb-0 sm:gap-6">
       <p className="shrink-0 text-sm text-dash-muted">{label}</p>
       <div className="min-w-0 text-right text-sm text-dash-ink">{children}</div>
     </div>
@@ -98,7 +98,7 @@ export default function CustomerDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-8 py-8">
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
         <Skeleton className="h-4 w-24" />
         <div className="flex items-center gap-4">
           <Skeleton className="size-14 rounded-full" />
@@ -107,9 +107,9 @@ export default function CustomerDetailPage() {
             <Skeleton className="h-4 w-48" />
           </div>
         </div>
-        <div className="grid grid-cols-12 gap-6">
-          <Skeleton className="col-span-8 h-72 rounded-lg" />
-          <Skeleton className="col-span-4 h-72 rounded-lg" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <Skeleton className="h-72 rounded-lg lg:col-span-8" />
+          <Skeleton className="h-72 rounded-lg lg:col-span-4" />
         </div>
       </div>
     );
@@ -117,7 +117,7 @@ export default function CustomerDetailPage() {
 
   if (!customer) {
     return (
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-8 py-8">
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
         <Link href="/customers" className="text-sm text-dash-muted transition-colors hover:text-dash-ink">
           ← Customers
         </Link>
@@ -137,7 +137,7 @@ export default function CustomerDetailPage() {
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-8 py-8">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <Link
         href="/customers"
         className="w-fit text-sm text-dash-muted transition-colors hover:text-dash-ink"
@@ -145,7 +145,7 @@ export default function CustomerDetailPage() {
         ← Customers
       </Link>
 
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="flex min-w-0 items-center gap-4">
           <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-avatar/30 text-lg font-bold text-dash-ink">
             {initials(customer.customer_name)}
@@ -153,7 +153,7 @@ export default function CustomerDetailPage() {
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <h1
-                className="truncate font-serif text-[34px] font-semibold text-dash-ink"
+                className="truncate font-serif text-2xl font-semibold text-dash-ink sm:text-[34px]"
                 style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
               >
                 {customer.customer_name}
@@ -173,7 +173,7 @@ export default function CustomerDetailPage() {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
           {canEdit && (
             <Link
               href={`/customers/${customer.id}/edit`}
@@ -198,8 +198,8 @@ export default function CustomerDetailPage() {
 
       {error && <p className="rounded-lg bg-hot/10 px-4 py-3 text-sm text-hot">{error}</p>}
 
-      <div className="grid grid-cols-12 items-start gap-6">
-        <div className="col-span-8 flex flex-col gap-6">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-8">
           <Section title="Identity">
             <InfoRow label="Full name">{customer.customer_name}</InfoRow>
             <InfoRow label="CNIC">{customer.cnic_number || "—"}</InfoRow>
@@ -270,7 +270,7 @@ export default function CustomerDetailPage() {
           </Section>
         </div>
 
-        <div className="col-span-4 flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-4">
           <Section title="Relationship">
             <InfoRow label="Customer since">{formatDate(customer.customer_since)}</InfoRow>
             <InfoRow label="Source">{customer.source?.name ?? "—"}</InfoRow>

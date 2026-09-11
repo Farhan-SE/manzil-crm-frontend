@@ -178,17 +178,17 @@ export default function InventoryPage() {
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-8 py-8">
-      <div className="flex items-center justify-between gap-4">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1
-          className="font-serif text-[34px] font-semibold text-dash-ink"
+          className="font-serif text-[28px] font-semibold text-dash-ink sm:text-[34px]"
           style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
         >
           Inventory
         </h1>
 
-        <div className="flex items-center gap-3">
-          <div className="relative w-64">
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
+          <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
             <SearchIcon className="absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-muted" />
             <input
               type="text"
@@ -211,7 +211,7 @@ export default function InventoryPage() {
                   setIsProjectFormOpen(true);
                 }
               }}
-              className="flex items-center gap-2 rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
+              className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
             >
               <PlusIcon className="size-3" />
               {isClientView ? "Seller lead" : "Add project"}
@@ -221,7 +221,7 @@ export default function InventoryPage() {
       </div>
 
       <div className="flex justify-center">
-        <div className="relative grid grid-cols-2 rounded-xl bg-badge-neutral p-1">
+        <div className="relative grid w-full grid-cols-2 rounded-xl bg-badge-neutral p-1 sm:w-auto">
           {/* Sliding thumb: same width as one cell, so translate-x-full lands it exactly on the other. */}
           <span
             aria-hidden
@@ -230,19 +230,20 @@ export default function InventoryPage() {
             }`}
           />
           {([
-            ["client", "Client Listings"],
-            ["partner", "Sales Partner Inventory"],
-          ] as const).map(([id, label]) => (
+            ["client", "Client Listings", "Client Listings"],
+            ["partner", "Sales Partner Inventory", "Partner Inventory"],
+          ] as const).map(([id, label, shortLabel]) => (
             <button
               key={id}
               type="button"
               onClick={() => setView(id)}
               aria-pressed={view === id}
-              className={`relative z-10 whitespace-nowrap px-5 py-1.5 text-sm font-semibold transition-colors ${
+              className={`relative z-10 whitespace-nowrap px-3 py-1.5 text-sm font-semibold transition-colors sm:px-5 ${
                 view === id ? "text-dash-ink" : "text-dash-muted hover:text-dash-ink"
               }`}
             >
-              {label}
+              <span className="sm:hidden">{shortLabel}</span>
+              <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
         </div>

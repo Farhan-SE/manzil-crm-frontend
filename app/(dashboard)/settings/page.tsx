@@ -44,7 +44,7 @@ function Field({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-dash-border bg-white p-6 shadow-sm">
+    <section className="flex flex-col gap-4 rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:p-6">
       <h2 className="text-xs font-bold uppercase tracking-[1px] text-dash-muted">{title}</h2>
       {children}
     </section>
@@ -53,7 +53,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function InfoRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-6 border-b border-dash-border py-3 last:border-b-0 last:pb-0">
+    <div className="flex items-start justify-between gap-4 border-b border-dash-border py-3 last:border-b-0 last:pb-0 sm:gap-6">
       <p className="shrink-0 text-sm text-dash-muted">{label}</p>
       <div className="min-w-0 text-right text-sm text-dash-ink">{children}</div>
     </div>
@@ -95,7 +95,7 @@ function TaxonomySummary({
   }, [kind, refreshKey]);
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-dash-border bg-white p-6 shadow-sm">
+    <section className="flex flex-col gap-4 rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:p-6">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-xs font-bold uppercase tracking-[1px] text-dash-muted">{title}</h2>
         {!isLoading && <span className="text-xs text-dash-muted">{items.length}</span>}
@@ -198,18 +198,18 @@ export default function SettingsPage() {
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-8 py-8">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <div>
         <h1
-          className="font-serif text-[34px] font-semibold text-dash-ink"
+          className="font-serif text-[28px] font-semibold text-dash-ink sm:text-[34px]"
           style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
         >
           Settings
         </h1>
       </div>
 
-      <div className="grid grid-cols-12 items-start gap-6">
-        <div className="col-span-7 flex flex-col gap-6">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-7">
           <Section title="Change password">
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <Field label="Current password" htmlFor="current-password" required>
@@ -259,7 +259,7 @@ export default function SettingsPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                   {isSubmitting ? "Saving..." : "Change password"}
                 </button>
@@ -268,11 +268,13 @@ export default function SettingsPage() {
           </Section>
         </div>
 
-        <div className="col-span-5 flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-5">
           <Section title="Account">
             <div className="flex flex-col">
               <InfoRow label="Name">{fullName || "—"}</InfoRow>
-              <InfoRow label="Email">{getSessionUser()?.email ?? "—"}</InfoRow>
+              <InfoRow label="Email">
+                <span className="break-all">{getSessionUser()?.email ?? "—"}</span>
+              </InfoRow>
               <InfoRow label="Role">{admin ? "Admin" : "Agent"}</InfoRow>
             </div>
           </Section>
@@ -293,7 +295,7 @@ export default function SettingsPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {TAXONOMIES.map((taxonomy) => (
               <TaxonomySummary
                 key={taxonomy.kind}

@@ -55,7 +55,7 @@ export function ImportCsvModal({
         className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-sidebar shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-dash-border px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-dash-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
               className="font-serif text-2xl font-bold text-dash-ink"
@@ -80,7 +80,7 @@ export function ImportCsvModal({
           </button>
         </div>
 
-        <div className="flex flex-col gap-4 px-6 py-5">
+        <div className="flex flex-col gap-4 px-4 py-5 sm:px-6">
           {!result && (
             <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-dash-border py-12 text-center transition-colors hover:border-dash-muted/50 hover:bg-white/50">
               <span className="text-sm font-semibold text-dash-ink">

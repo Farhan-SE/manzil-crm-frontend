@@ -15,12 +15,13 @@ const CUSTOMER_TYPES = [
   { id: "investor", label: "Investor", className: "bg-warm/20 text-warm" },
 ];
 
+// Spans only apply to the md grid; below md each row collapses into a card.
 const COLS = {
-  customer: "col-span-3",
-  contact: "col-span-3",
-  type: "col-span-2",
-  since: "col-span-2",
-  agent: "col-span-2",
+  customer: "md:col-span-3",
+  contact: "md:col-span-3",
+  type: "md:col-span-2",
+  since: "md:col-span-2",
+  agent: "md:col-span-2",
 };
 
 const headerCell = "text-xs font-bold uppercase tracking-[0.6px] text-dash-muted";
@@ -43,6 +44,14 @@ function formatSince(date: string | null) {
     month: "short",
     year: "numeric",
   });
+}
+
+/** Page numbers around the current page, with an ellipsis before the last one when it's far. */
+function pageNumbers(current: number, totalPages: number) {
+  if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+  const start = Math.min(Math.max(current - 1, 1), totalPages - 3);
+  const window = [start, start + 1, start + 2];
+  return window[2] === totalPages - 1 ? [...window, totalPages] : [...window, "...", totalPages];
 }
 
 export default function CustomersPage() {
@@ -94,20 +103,22 @@ export default function CustomersPage() {
   }, [load]);
 
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const firstRow = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const lastRow = Math.min(page * PAGE_SIZE, total);
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-8 py-8">
-      <div className="flex items-center justify-between gap-4">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1
-          className="font-serif text-[34px] font-semibold text-dash-ink"
+          className="font-serif text-[28px] font-semibold text-dash-ink sm:text-[34px]"
           style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
         >
           Customers
         </h1>
 
-        <div className="flex items-center gap-3">
-          <div className="relative w-64">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap sm:gap-3">
+          <div className="relative w-full sm:w-64">
             <SearchIcon className="absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-muted" />
             <input
               type="text"
@@ -122,13 +133,13 @@ export default function CustomersPage() {
               <button
                 type="button"
                 onClick={() => setIsImportOpen(true)}
-                className="rounded-lg border border-dash-border px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
+                className="flex-1 rounded-lg border border-dash-border px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg sm:flex-none"
               >
                 Import
               </button>
               <Link
                 href="/customers/new"
-                className="flex items-center gap-2 rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
+                className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 sm:flex-none"
               >
                 <PlusIcon className="size-3" />
                 Add customer
@@ -138,7 +149,7 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {[["all", "All"], ...CUSTOMER_TYPES.map((t) => [t.id, t.label])].map(([id, label]) => (
           <button
             key={id}
@@ -160,7 +171,7 @@ export default function CustomersPage() {
       )}
 
       <div className="overflow-hidden rounded-lg border border-dash-border">
-        <div className="grid grid-cols-12 gap-4 border-b border-dash-border bg-dash-bg/50 px-6 py-4">
+        <div className="hidden gap-4 border-b border-dash-border bg-dash-bg/50 px-6 py-4 md:grid md:grid-cols-12">
           <p className={`${COLS.customer} ${headerCell}`}>Customer</p>
           <p className={`${COLS.contact} ${headerCell}`}>Contact</p>
           <p className={`${COLS.type} ${headerCell}`}>Type</p>
@@ -172,23 +183,23 @@ export default function CustomersPage() {
           Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className={`grid grid-cols-12 items-center gap-4 bg-white px-6 py-4 ${
+              className={`flex items-center gap-3 bg-white px-4 py-4 md:grid md:grid-cols-12 md:gap-4 md:px-6 ${
                 i > 0 ? "border-t border-dash-border" : ""
               }`}
             >
-              <div className={`${COLS.customer} flex items-center gap-3`}>
-                <Skeleton className="size-9 rounded-full" />
+              <div className={`${COLS.customer} flex min-w-0 flex-1 items-center gap-3`}>
+                <Skeleton className="size-9 shrink-0 rounded-full" />
                 <Skeleton className="h-4 w-32" />
               </div>
-              <Skeleton className={`${COLS.contact} h-4 w-28`} />
-              <Skeleton className={`${COLS.type} h-4 w-16`} />
-              <Skeleton className={`${COLS.since} h-4 w-20`} />
-              <Skeleton className={`${COLS.agent} h-4 w-24`} />
+              <Skeleton className={`${COLS.contact} hidden h-4 w-28 md:block`} />
+              <Skeleton className={`${COLS.type} h-4 w-16 shrink-0`} />
+              <Skeleton className={`${COLS.since} hidden h-4 w-20 md:block`} />
+              <Skeleton className={`${COLS.agent} hidden h-4 w-24 md:block`} />
             </div>
           ))}
 
         {!isLoading && customers.length === 0 && (
-          <p className="bg-white px-6 py-10 text-center text-sm text-dash-placeholder">
+          <p className="bg-white px-4 py-10 text-center text-sm text-dash-placeholder md:px-6">
             {debouncedSearch || typeFilter !== "all"
               ? "No customers match those filters."
               : "No customers yet."}
@@ -198,11 +209,14 @@ export default function CustomersPage() {
         {!isLoading &&
           customers.map((customer, i) => {
             const type = CUSTOMER_TYPES.find((t) => t.id === customer.relation_type);
+            const agentName = customer.assigned_to
+              ? `${customer.assigned_to.first_name} ${customer.assigned_to.last_name}`
+              : "Unassigned";
             return (
               <Link
                 key={customer.id}
                 href={`/customers/${customer.id}`}
-                className={`grid grid-cols-12 items-center gap-4 bg-white px-6 py-4 transition-colors hover:bg-dash-bg/40 ${
+                className={`flex flex-col gap-1.5 bg-white px-4 py-4 transition-colors hover:bg-dash-bg/40 md:grid md:grid-cols-12 md:items-center md:gap-4 md:px-6 ${
                   i > 0 ? "border-t border-dash-border" : ""
                 }`}
               >
@@ -210,20 +224,32 @@ export default function CustomersPage() {
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-avatar/30 text-xs font-bold text-dash-ink">
                     {initials(customer.customer_name)}
                   </span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-dash-ink">
                       {customer.customer_name}
                     </p>
                     <p className="truncate text-[11px] text-dash-muted">{customer.cnic_number}</p>
                   </div>
+                  {type && (
+                    <span
+                      className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.45px] md:hidden ${type.className}`}
+                    >
+                      {type.label}
+                    </span>
+                  )}
                 </div>
 
-                <div className={`${COLS.contact} min-w-0`}>
+                {/* Below md the contact and agent columns fold into one line under the name. */}
+                <p className="truncate pl-12 text-xs text-dash-muted md:hidden">
+                  {[customer.contact_number, customer.city, agentName].filter(Boolean).join(" · ")}
+                </p>
+
+                <div className={`${COLS.contact} hidden min-w-0 md:block`}>
                   <p className="truncate text-sm text-dash-ink">{customer.contact_number}</p>
                   <p className="truncate text-[11px] text-dash-muted">{customer.city ?? ""}</p>
                 </div>
 
-                <div className={COLS.type}>
+                <div className={`${COLS.type} hidden md:block`}>
                   {type && (
                     <span
                       className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.45px] ${type.className}`}
@@ -233,45 +259,64 @@ export default function CustomersPage() {
                   )}
                 </div>
 
-                <p className={`${COLS.since} text-sm text-dash-muted`}>
+                <p className={`${COLS.since} hidden text-sm text-dash-muted md:block`}>
                   {formatSince(customer.customer_since)}
                 </p>
 
-                <p className={`${COLS.agent} truncate text-sm text-dash-muted`}>
-                  {customer.assigned_to
-                    ? `${customer.assigned_to.first_name} ${customer.assigned_to.last_name}`
-                    : "Unassigned"}
+                <p className={`${COLS.agent} hidden truncate text-sm text-dash-muted md:block`}>
+                  {agentName}
                 </p>
               </Link>
             );
           })}
-      </div>
 
-      {!isLoading && total > PAGE_SIZE && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-dash-muted">
-            Page {page} of {lastPage} · {total} customer{total === 1 ? "" : "s"}
+        <div className="flex flex-col items-center gap-3 border-t border-dash-border bg-dash-bg/50 px-4 py-4 sm:flex-row sm:justify-between sm:px-6">
+          <p className="text-xs text-dash-muted">
+            Showing {firstRow}–{lastRow} of {total} customer{total === 1 ? "" : "s"}
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="rounded-lg border border-dash-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => setPage((p) => Math.max(p - 1, 1))}
+              disabled={page === 1}
+              className="rounded-md px-3 py-1.5 text-sm text-dash-ink disabled:opacity-50"
             >
-              Previous
+              Prev
             </button>
+            <span className="px-1 text-sm text-dash-muted sm:hidden">
+              {page} / {lastPage}
+            </span>
+            <div className="hidden items-center gap-1 sm:flex">
+              {pageNumbers(page, lastPage).map((entry, i) =>
+                typeof entry === "number" ? (
+                  <button
+                    key={entry}
+                    type="button"
+                    onClick={() => setPage(entry)}
+                    className={`flex size-8 items-center justify-center rounded-md text-sm text-dash-ink ${
+                      entry === page ? "bg-badge-neutral" : ""
+                    }`}
+                  >
+                    {entry}
+                  </button>
+                ) : (
+                  <span key={`gap-${i}`} className="px-1 text-base text-dash-muted">
+                    …
+                  </span>
+                ),
+              )}
+            </div>
             <button
               type="button"
+              onClick={() => setPage((p) => Math.min(p + 1, lastPage))}
               disabled={page >= lastPage}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-lg border border-dash-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md px-3 py-1.5 text-sm text-dash-ink disabled:opacity-50"
             >
               Next
             </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
 
     {isImportOpen && (
