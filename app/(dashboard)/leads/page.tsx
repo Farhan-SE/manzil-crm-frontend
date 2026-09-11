@@ -399,7 +399,7 @@ function LeadsDirectory() {
           </div>
         ))}
 
-        <div className="flex flex-col items-center gap-3 border-t border-dash-border bg-dash-bg/50 px-4 py-4 sm:flex-row sm:justify-between sm:px-6">
+        <div className="flex flex-col items-center gap-3 border-t border-dash-border bg-white px-4 py-4 sm:flex-row sm:justify-between sm:px-6">
           <p className="text-xs text-dash-muted">
             Showing {firstRow}–{lastRow} of {total} leads
           </p>
