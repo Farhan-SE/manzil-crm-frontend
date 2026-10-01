@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { deleteCustomer, getCustomer, type Customer } from "@/lib/api";
 import { useIsAdmin } from "@/lib/session";
 import { getSessionUser } from "@/lib/api";
+import { COUNTRIES, CUSTOMER_STAGES } from "@/lib/customers";
 
 const CUSTOMER_TYPES = [
   { id: "buyer", label: "Buyer", className: "bg-cold/15 text-cold" },
@@ -129,6 +130,8 @@ export default function CustomerDetailPage() {
   }
 
   const type = CUSTOMER_TYPES.find((t) => t.id === customer.relation_type);
+  const stage = CUSTOMER_STAGES.find((s) => s.id === customer.stage);
+  const countryName = COUNTRIES.find((c) => c.id === customer.country)?.name ?? customer.country;
   const agentName = customer.assigned_to
     ? `${customer.assigned_to.first_name} ${customer.assigned_to.last_name}`
     : null;
@@ -167,7 +170,7 @@ export default function CustomerDetailPage() {
               )}
             </div>
             <p className="mt-1 text-sm text-dash-muted">
-              Customer since {formatDate(customer.customer_since)}
+              Customer ID {customer.customer_no} · Customer since {formatDate(customer.customer_since)}
               {customer.source ? ` · via ${customer.source.name}` : ""}
             </p>
           </div>
@@ -261,6 +264,7 @@ export default function CustomerDetailPage() {
               )}
             </InfoRow>
             <InfoRow label="City">{customer.city || "—"}</InfoRow>
+            <InfoRow label="Country">{countryName}</InfoRow>
           </Section>
 
           <Section title="Notes">
@@ -273,7 +277,18 @@ export default function CustomerDetailPage() {
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-4">
           <Section title="Relationship">
             <InfoRow label="Customer since">{formatDate(customer.customer_since)}</InfoRow>
+            <InfoRow label="Stage">
+              <span
+                className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                  stage?.className ?? "bg-badge-neutral text-dash-muted"
+                }`}
+              >
+                {stage?.label ?? customer.stage}
+              </span>
+            </InfoRow>
+            <InfoRow label="Leads">{customer.lead_count}</InfoRow>
             <InfoRow label="Source">{customer.source?.name ?? "—"}</InfoRow>
+            <InfoRow label="Sub-source">{customer.sub_source || "—"}</InfoRow>
             <InfoRow label="Location">{fullAddress || "—"}</InfoRow>
           </Section>
 
@@ -285,7 +300,9 @@ export default function CustomerDetailPage() {
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-dash-ink">{agentName}</p>
-                  <p className="text-[11px] text-dash-muted">Assigned agent</p>
+                  <p className="text-[11px] text-dash-muted">
+                    {customer.assigned_to?.team || "Assigned agent"}
+                  </p>
                 </div>
               </div>
             ) : (

@@ -2,8 +2,16 @@
 
 import { useEffect, useState, type SubmitEvent } from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { CustomerPicker } from "@/components/CustomerPicker";
 import { Select, type SelectOption } from "@/components/ui/Select";
-import { createLead, getAgents, getCategories, getInterests, getSources } from "@/lib/api";
+import {
+  createLead,
+  getAgents,
+  getCategories,
+  getInterests,
+  getSources,
+  type Customer,
+} from "@/lib/api";
 
 type Temperature = "HOT" | "WARM" | "COLD";
 type Option = SelectOption;
@@ -25,14 +33,14 @@ const inputClass =
   "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
 
 export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
-  const [clientName, setClientName] = useState("");
-  const [clientNumber, setClientNumber] = useState("");
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [interestId, setInterestId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [city, setCity] = useState("");
   const [area, setArea] = useState("");
   const [budget, setBudget] = useState("");
   const [sourceId, setSourceId] = useState("");
+  const [subSource, setSubSource] = useState("");
   const [temperature, setTemperature] = useState<Temperature>("WARM");
   const [assignTo, setAssignTo] = useState(UNASSIGNED_ID);
 
@@ -76,32 +84,42 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
   if (!isOpen) return null;
 
   function resetForm() {
-    setClientName("");
-    setClientNumber("");
+    setCustomer(null);
     setInterestId("");
     setCategoryId("");
     setCity("");
     setArea("");
     setBudget("");
     setSourceId("");
+    setSubSource("");
     setTemperature("WARM");
     setAssignTo(UNASSIGNED_ID);
   }
 
+  function handleCustomerChange(next: Customer | null) {
+    setCustomer(next);
+    if (!next) return;
+    // Carries over what the customer record already knows, without overwriting anything typed.
+    if (!city && next.city) setCity(next.city);
+    if (!sourceId && next.source_id) setSourceId(next.source_id);
+    if (!subSource && next.sub_source) setSubSource(next.sub_source);
+  }
+
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!customer) return setError("Select a customer for this lead.");
     setError(null);
     setIsSubmitting(true);
     try {
       await createLead({
-        client_name: clientName,
-        client_number: clientNumber,
+        customer_id: customer.id,
         interest_id: interestId || undefined,
         category_id: categoryId || undefined,
         city: city || undefined,
         area: area || undefined,
         budget: budget ? Number(budget) : undefined,
         source_id: sourceId || undefined,
+        sub_source: subSource || undefined,
         temperature,
         assigned_to_id: assignTo !== UNASSIGNED_ID ? Number(assignTo) : undefined,
       });
@@ -142,7 +160,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
             >
               Lead added
             </p>
-            <p className="text-sm text-dash-muted">{clientName} is now in your pipeline.</p>
+            <p className="text-sm text-dash-muted">{customer?.customer_name} is now in your pipeline.</p>
           </div>
         ) : (
         <>
@@ -164,35 +182,12 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-6 py-5">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="client-name" className="text-sm text-dash-muted">
-                Client name
-              </label>
-              <input
-                id="client-name"
-                type="text"
-                required
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Full name"
-                className={inputClass}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="client-number" className="text-sm text-dash-muted">
-                Client number
-              </label>
-              <input
-                id="client-number"
-                type="tel"
-                required
-                value={clientNumber}
-                onChange={(e) => setClientNumber(e.target.value)}
-                placeholder="03xx-xxxxxxx"
-                className={inputClass}
-              />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="lead-customer" className="text-sm text-dash-muted">
+              Customer
+              <span className="text-hot"> *</span>
+            </label>
+            <CustomerPicker value={customer} onChange={handleCustomerChange} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -278,6 +273,20 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
                 placeholder={isLoadingOptions ? "Loading..." : "Select source"}
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="sub-source" className="text-sm text-dash-muted">
+              Sub-source (optional)
+            </label>
+            <input
+              id="sub-source"
+              type="text"
+              value={subSource}
+              onChange={(e) => setSubSource(e.target.value)}
+              placeholder="e.g. Client reference"
+              className={inputClass}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">

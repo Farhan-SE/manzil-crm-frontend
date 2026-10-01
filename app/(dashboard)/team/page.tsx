@@ -2,11 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ViewTransition } from "react";
-import { EmailIcon, PlusIcon, SearchIcon } from "@/components/icons/DashboardIcons";
+import { EmailIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/components/icons/DashboardIcons";
 import { AddTeamMemberModal } from "@/components/team/AddTeamMemberModal";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getSessionUser, getUsers, setUserBlocked, setUserRole, type TeamMember } from "@/lib/api";
+import {
+  deleteTeam,
+  getSessionUser,
+  getTeams,
+  getUsers,
+  setUserBlocked,
+  setUserRole,
+  type Team,
+  type TeamMember,
+} from "@/lib/api";
+import { EditTeamMemberModal } from "@/components/team/EditTeamMemberModal";
+import { TeamFormModal } from "@/components/team/TeamFormModal";
 import { useIsAdmin } from "@/lib/session";
 
 // Spans only apply to the md grid; below md each row collapses into a card.
@@ -46,7 +57,14 @@ export default function TeamPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editing, setEditing] = useState<TeamMember | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+
+  const [teams, setTeams] = useState<Team[]>([]);
+  // "all", "none" (members without a team) or a team id — narrows the members list below.
+  const [teamFilter, setTeamFilter] = useState("all");
+  const [isTeamFormOpen, setIsTeamFormOpen] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
 
   const currentUserId = getSessionUser()?.id;
 
@@ -63,9 +81,30 @@ export default function TeamPage() {
     }
   }, []);
 
+  const loadTeams = useCallback(() => {
+    getTeams()
+      .then(setTeams)
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    loadTeams();
+  }, [load, loadTeams]);
+
+  async function handleDeleteTeam(team: Team) {
+    const note = team.member_count > 0 ? ` Its ${team.member_count} member(s) will be left without a team.` : "";
+    if (!window.confirm(`Delete the team "${team.name}"?${note}`)) return;
+    setError(null);
+    try {
+      await deleteTeam(team.id);
+      if (teamFilter === team.id) setTeamFilter("all");
+      loadTeams();
+      void load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't delete that team.");
+    }
+  }
 
   async function handleBlockToggle(member: TeamMember) {
     setBusyId(member.id);
@@ -96,14 +135,23 @@ export default function TeamPage() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return members;
-    return members.filter((m) =>
-      [m.first_name, m.last_name, m.email, m.user_role].some((f) => f.toLowerCase().includes(term)),
+    const inTeam = members.filter(
+      (m) => teamFilter === "all" || (teamFilter === "none" ? !m.team_id : m.team_id === teamFilter),
     );
-  }, [members, search]);
+    if (!term) return inTeam;
+    return inTeam.filter((m) =>
+      [m.first_name, m.last_name, m.email, m.user_role, m.team ?? ""].some((f) => f.toLowerCase().includes(term)),
+    );
+  }, [members, search, teamFilter]);
 
   const adminCount = members.filter((m) => m.user_role === "admin").length;
   const agentCount = members.length - adminCount;
+  const noTeamCount = members.filter((m) => !m.team_id).length;
+  const teamCards = [
+    { id: "all", name: "All members", count: members.length, team: null },
+    ...teams.map((team) => ({ id: team.id, name: team.name, count: team.member_count, team })),
+    ...(noTeamCount > 0 ? [{ id: "none", name: "No team", count: noTeamCount, team: null }] : []),
+  ];
 
   return (
     <ViewTransition>
@@ -124,6 +172,82 @@ export default function TeamPage() {
           )}
         </div>
 
+      </div>
+
+      {error && <p className="rounded-lg bg-hot/10 px-4 py-3 text-sm text-hot">{error}</p>}
+
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xs font-bold uppercase tracking-[1px] text-dash-muted">Teams</h2>
+          {admin && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingTeam(null);
+                setIsTeamFormOpen(true);
+              }}
+              className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-dash-border px-3 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
+            >
+              <PlusIcon className="size-3" />
+              Add team
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-3">
+          {teamCards.map((card) => (
+            <div
+              key={card.id}
+              className={`flex items-center justify-between gap-2 rounded-lg border bg-white transition-colors ${
+                teamFilter === card.id ? "border-dash-ink" : "border-dash-border hover:border-dash-muted/40"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setTeamFilter(card.id)}
+                aria-pressed={teamFilter === card.id}
+                className="flex min-w-0 flex-1 flex-col items-start gap-0.5 px-4 py-3 text-left"
+              >
+                <span className="w-full truncate text-sm font-semibold text-dash-ink">{card.name}</span>
+                <span className="text-xs text-dash-muted">
+                  {card.count} member{card.count === 1 ? "" : "s"}
+                </span>
+              </button>
+              {admin && card.team && (
+                <div className="flex shrink-0 items-center gap-1 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingTeam(card.team);
+                      setIsTeamFormOpen(true);
+                    }}
+                    aria-label={`Edit ${card.name}`}
+                    title="Edit"
+                    className="flex size-7 items-center justify-center rounded-lg text-dash-muted transition-colors hover:bg-dash-bg hover:text-dash-ink"
+                  >
+                    <PencilIcon className="size-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => card.team && void handleDeleteTeam(card.team)}
+                    aria-label={`Delete ${card.name}`}
+                    title="Delete"
+                    className="flex size-7 items-center justify-center rounded-lg text-dash-muted transition-colors hover:bg-dash-bg hover:text-red-600"
+                  >
+                    <TrashIcon className="size-3" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-[1px] text-dash-muted">
+          Members{teamFilter !== "all" ? ` — ${teamCards.find((c) => c.id === teamFilter)?.name ?? ""}` : ""}
+        </h2>
         <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
           <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
             <SearchIcon className="absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-muted" />
@@ -147,8 +271,6 @@ export default function TeamPage() {
           )}
         </div>
       </div>
-
-      {error && <p className="rounded-lg bg-hot/10 px-4 py-3 text-sm text-hot">{error}</p>}
 
       <div className="overflow-hidden rounded-lg border border-dash-border">
         <div className="hidden gap-4 border-b border-dash-border bg-dash-bg/50 px-6 py-4 md:grid md:grid-cols-12">
@@ -180,7 +302,7 @@ export default function TeamPage() {
 
         {!isLoading && filtered.length === 0 && (
           <p className="bg-white px-4 py-10 text-center text-sm text-dash-placeholder md:px-6">
-            {search ? "Nobody matches that search." : "No team members yet."}
+            {search || teamFilter !== "all" ? "Nobody matches that filter." : "No team members yet."}
           </p>
         )}
 
@@ -202,6 +324,7 @@ export default function TeamPage() {
                     <p className="truncate text-sm font-semibold text-dash-ink">
                       {member.first_name} {member.last_name}
                     </p>
+                    {member.team && <p className="truncate text-[11px] text-dash-muted">{member.team}</p>}
                     {/* Email and joined date get their own columns from md up. */}
                     <a
                       href={`mailto:${member.email}`}
@@ -254,6 +377,13 @@ export default function TeamPage() {
 
                 {admin && (
                   <div className={`${COLS.actions} flex shrink-0 items-center justify-end gap-2`}>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(member)}
+                      className="rounded-lg border border-dash-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
+                    >
+                      Update
+                    </button>
                     {/* The server refuses self-block, so it isn't offered. */}
                     {member.id !== currentUserId && (
                       <button
@@ -275,10 +405,42 @@ export default function TeamPage() {
             );
           })}
       </div>
+      </section>
     </div>
 
     {isAddOpen && (
-      <AddTeamMemberModal onClose={() => setIsAddOpen(false)} onCreated={() => void load()} />
+      <AddTeamMemberModal
+        teams={teams}
+        onClose={() => setIsAddOpen(false)}
+        onCreated={() => {
+          void load();
+          loadTeams();
+        }}
+      />
+    )}
+    {editing && (
+      <EditTeamMemberModal
+        member={editing}
+        teams={teams}
+        onClose={() => setEditing(null)}
+        onUpdated={(updated) => {
+          setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+          loadTeams();
+        }}
+      />
+    )}
+    {isTeamFormOpen && (
+      <TeamFormModal
+        key={editingTeam?.id ?? "new-team"}
+        initial={editingTeam}
+        members={members}
+        onClose={() => setIsTeamFormOpen(false)}
+        onSaved={() => {
+          loadTeams();
+          // Saving can rename the team and move members, both of which show on the list below.
+          void load();
+        }}
+      />
     )}
     </ViewTransition>
   );

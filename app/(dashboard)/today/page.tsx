@@ -17,10 +17,10 @@ import {
   getInterests,
   getSources,
   getTodayFollowUps,
-  isAdmin,
   setFollowUpCompleted,
   type FollowUp,
 } from "@/lib/api";
+import { useIsAdmin } from "@/lib/session";
 
 const STAGE_BADGES: Record<string, { label: string; className: string }> = {
   inquiry: { label: "Inquiry", className: "bg-stage-inquiry/10 text-stage-inquiry" },
@@ -45,7 +45,7 @@ function isUpcoming(followUp: FollowUp) {
 }
 
 export default function TodayPage() {
-  const admin = isAdmin();
+  const admin = useIsAdmin();
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");

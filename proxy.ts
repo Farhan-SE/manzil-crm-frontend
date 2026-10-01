@@ -25,6 +25,7 @@ export const config = {
     "/leads/:path*",
     "/today/:path*",
     "/pipeline/:path*",
+    "/projects/:path*",
     "/inventory/:path*",
     "/customers/:path*",
     "/tasks/:path*",

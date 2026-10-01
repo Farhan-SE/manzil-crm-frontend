@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { importCustomersCsv, importLeadsCsv, type ImportResult } from "@/lib/api";
+import { importCustomersCsv, importLeadsCsv, importUnitsCsv, type ImportResult } from "@/lib/api";
 
 export function ImportCsvModal({
   kind,
+  projectId,
+  projectName,
   onClose,
   onImported,
 }: {
-  kind: "customers" | "leads";
+  kind: "customers" | "leads" | "units";
+  /** Units only: the project every row is imported into. */
+  projectId?: string;
+  projectName?: string;
   onClose: () => void;
   onImported: () => void;
 }) {
@@ -17,10 +22,17 @@ export function ImportCsvModal({
   const [isImporting, setIsImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
 
-  const headers =
-    kind === "customers"
-      ? "Name, CNIC, Phone, Alt phone, Email, Address, City, Type, Since, Source, Notes"
-      : "Name, Phone, Interest, Category, Source, City, Area, Budget, Temperature, Stage";
+  const headers = {
+    customers: "Name, CNIC, Phone, Alt phone, Email, Address, City, Type, Since, Source, Notes",
+    leads: "Name, Phone, Interest, Category, Source, City, Area, Budget, Temperature, Stage",
+    units: "Unit, Type, Features, Floor, Beds, Price, Area, Status",
+  }[kind];
+
+  const note = {
+    customers: "Duplicate phone numbers are skipped.",
+    leads: "The same number can appear more than once — one client may raise several leads.",
+    units: `Every row is added to ${projectName ?? "the selected project"}. Unit numbers it already has are skipped.`,
+  }[kind];
 
   function pickFile(picked: File) {
     setError("");
@@ -38,7 +50,12 @@ export function ImportCsvModal({
     setIsImporting(true);
     setError("");
     try {
-      const res = kind === "customers" ? await importCustomersCsv(file) : await importLeadsCsv(file);
+      const res =
+        kind === "customers"
+          ? await importCustomersCsv(file)
+          : kind === "leads"
+            ? await importLeadsCsv(file)
+            : await importUnitsCsv(file, projectId ?? "");
       setResult(res);
       setFile(null);
       if (res.added > 0) onImported();
@@ -65,9 +82,7 @@ export function ImportCsvModal({
             </h2>
             <p className="mt-0.5 text-xs text-dash-muted">
               Columns can be in any order. Recognised headers: {headers}.{" "}
-              {kind === "customers"
-                ? "Duplicate phone numbers are skipped."
-                : "The same number can appear more than once — one client may raise several leads."}
+              {note}
             </p>
           </div>
           <button

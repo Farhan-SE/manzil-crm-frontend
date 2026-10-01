@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { MapPinIcon, TrashIcon } from "@/components/icons/DashboardIcons";
 import type { PartnerProject } from "@/lib/api";
+import { formatCompact } from "@/lib/inventory";
 
 function formatPrice(price: number | null) {
   return price == null ? "Not set" : `PKR ${price.toLocaleString()}`;
@@ -73,6 +75,34 @@ export function PartnerDetailModal({
             </div>
             <p className="text-lg font-bold text-dash-ink">{formatPrice(project.price)}</p>
           </div>
+
+          <div className="grid grid-cols-3 gap-3 rounded-lg border border-dash-border bg-white p-3 text-center">
+            <div>
+              <p className="text-[11px] text-dash-muted">Token</p>
+              <p className="text-sm font-semibold text-dash-ink">
+                {project.token_amount != null ? `PKR ${formatCompact(project.token_amount)}` : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-dash-muted">Partial down payment</p>
+              <p className="text-sm font-semibold text-dash-ink">
+                {project.pdp_percent != null ? `${project.pdp_percent}%` : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-dash-muted">Complete down payment</p>
+              <p className="text-sm font-semibold text-dash-ink">
+                {project.cdp_percent != null ? `${project.cdp_percent}%` : "—"}
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href={`/inventory?project=${project.id}`}
+            className="w-fit text-sm font-semibold text-stage-inquiry hover:underline"
+          >
+            View units — {project.available_units} of {project.total_units} available
+          </Link>
 
           {project.description && (
             <p className="text-sm leading-relaxed text-dash-ink">{project.description}</p>

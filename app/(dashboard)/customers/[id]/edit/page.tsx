@@ -6,8 +6,9 @@ import { useParams, useRouter } from "next/navigation";
 import { ViewTransition } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import { SuccessModal } from "@/components/ui/SuccessModal";
+import { COUNTRIES, CUSTOMER_STAGES } from "@/lib/customers";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getAgents, getCustomer, getSources, updateCustomer } from "@/lib/api";
+import { getAgents, getCustomer, getSources, updateCustomer, type CustomerStage } from "@/lib/api";
 
 const inputClass =
   "w-full min-w-0 rounded-xl border border-dash-border bg-white px-4 py-2.5 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
@@ -17,6 +18,8 @@ const TYPE_OPTIONS: SelectOption[] = [
   { id: "seller", name: "Seller" },
   { id: "investor", name: "Investor" },
 ];
+
+const STAGE_OPTIONS: SelectOption[] = CUSTOMER_STAGES.map((s) => ({ id: s.id, name: s.label }));
 
 const UNASSIGNED_ID = "unassigned";
 
@@ -65,6 +68,9 @@ export default function EditCustomerPage() {
   const [relationType, setRelationType] = useState("buyer");
   const [customerSince, setCustomerSince] = useState("");
   const [sourceId, setSourceId] = useState("");
+  const [subSource, setSubSource] = useState("");
+  const [country, setCountry] = useState("PK");
+  const [stage, setStage] = useState<CustomerStage>("inquiry");
   const [notes, setNotes] = useState("");
   const [assignTo, setAssignTo] = useState(UNASSIGNED_ID);
 
@@ -99,6 +105,9 @@ export default function EditCustomerPage() {
         setRelationType(customer.relation_type ?? "buyer");
         setCustomerSince(customer.customer_since ?? "");
         setSourceId(customer.source_id ?? "");
+        setSubSource(customer.sub_source ?? "");
+        setCountry(customer.country);
+        setStage(customer.stage);
         setNotes(customer.notes ?? "");
         setAssignTo(customer.assigned_to ? String(customer.assigned_to.id) : UNASSIGNED_ID);
 
@@ -140,6 +149,9 @@ export default function EditCustomerPage() {
         city: city || undefined,
         relation_type: relationType,
         source_id: sourceId || undefined,
+        sub_source: subSource,
+        country,
+        stage,
         customer_since: customerSince || undefined,
         notes: notes || undefined,
         assigned_to_id: assignTo !== UNASSIGNED_ID ? Number(assignTo) : undefined,
@@ -288,7 +300,7 @@ export default function EditCustomerPage() {
               />
             </Field>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr_1fr]">
               <Field label="Address" htmlFor="customer-address">
                 <input
                   id="customer-address"
@@ -308,6 +320,9 @@ export default function EditCustomerPage() {
                   placeholder="e.g. Karachi"
                   className={inputClass}
                 />
+              </Field>
+              <Field label="Country" htmlFor="customer-country">
+                <Select id="customer-country" value={country} onChange={setCountry} options={COUNTRIES} />
               </Field>
             </div>
           </Section>
@@ -341,6 +356,24 @@ export default function EditCustomerPage() {
                 onChange={setSourceId}
                 options={sources}
                 placeholder="Select"
+              />
+            </Field>
+            <Field label="Sub-source" htmlFor="customer-sub-source">
+              <input
+                id="customer-sub-source"
+                type="text"
+                value={subSource}
+                onChange={(e) => setSubSource(e.target.value)}
+                placeholder="e.g. Client reference"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Stage" htmlFor="customer-stage">
+              <Select
+                id="customer-stage"
+                value={stage}
+                onChange={(v) => setStage(v as CustomerStage)}
+                options={STAGE_OPTIONS}
               />
             </Field>
             <Field label="Customer since" htmlFor="customer-since">

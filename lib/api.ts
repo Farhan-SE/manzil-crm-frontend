@@ -180,8 +180,33 @@ export type TaxonomyRef = { id: string; name: string };
 
 export type LeadTemperature = "HOT" | "WARM" | "COLD";
 
+export type LeadTab = "all" | "new" | "watchlist";
+
 export type Lead = {
   id: string;
+  /** The short lead ID shown to users; `id` stays the key for requests. */
+  lead_no: number;
+  sub_source: string | null;
+  is_starred: boolean;
+  /** The most recently logged follow-up, if any. */
+  last_task: {
+    text: string;
+    task_type: string | null;
+    sub_task: string | null;
+    due_date: string;
+    completed: boolean;
+  } | null;
+  project_id: string | null;
+  project: TaxonomyRef | null;
+  /** The unit this lead is interested in. */
+  unit_id: string | null;
+  unit: { id: string; unit_number: string; status: UnitStatus } | null;
+  /** Leads linked to the same customer, this one included. */
+  client_lead_count: number;
+  /** Null only on leads that predate the customer link, or were imported with an unknown number. */
+  customer_id: string | null;
+  customer: { id: string; customer_no: number; customer_name: string } | null;
+  // Copied from the customer by the server.
   client_name: string;
   client_number: string;
   // *_id is what forms bind to; the sibling object carries the name so nothing
@@ -197,18 +222,26 @@ export type Lead = {
   source: TaxonomyRef | null;
   temperature: LeadTemperature;
   stage: string;
-  assigned_to: { id: number; first_name: string; last_name: string } | null;
+  assigned_to: { id: number; first_name: string; last_name: string; team: string | null } | null;
   created_by: { id: number; first_name: string; last_name: string } | null;
   created_at: string;
   updated_at: string;
 };
 
-export type LeadsResponse = { data: Lead[]; total: number; page: number; limit: number };
+export type LeadsResponse = {
+  data: Lead[];
+  total: number;
+  page: number;
+  limit: number;
+  tab_counts: Record<LeadTab, number>;
+};
 
 export type LeadsQuery = {
   page?: number;
   limit?: number;
   search?: string;
+  tab?: LeadTab;
+  sort?: "asc" | "desc";
   stage?: string;
   temperature?: string;
   interest_id?: string;
@@ -237,14 +270,15 @@ export const getActiveLeads = (limit = 5) => apiFetch<Lead[]>(`/leads/active${bu
 export const getLead = (id: string) => apiFetch<Lead>(`/leads/${id}`);
 
 export type CreateLeadInput = {
-  client_name: string;
-  client_number: string;
+  /** The lead's client — the server takes the name and number from this customer. */
+  customer_id: string;
   interest_id?: string;
   category_id?: string;
   city?: string;
   area?: string;
   budget?: number;
   source_id?: string;
+  sub_source?: string;
   temperature?: LeadTemperature;
   assigned_to_id?: number;
 };
@@ -252,11 +286,17 @@ export type CreateLeadInput = {
 export const createLead = (dto: CreateLeadInput) =>
   apiFetch<Lead>("/leads", { method: "POST", body: JSON.stringify(dto) });
 
-export type UpdateLeadInput = Partial<CreateLeadInput> & { stage?: string };
+export type UpdateLeadInput = Partial<Omit<CreateLeadInput, "customer_id">> & { stage?: string };
 
 /** Returns the updated lead, so callers can refresh their copy without a follow-up GET. */
 export const updateLead = (id: string, dto: UpdateLeadInput) =>
   apiFetch<Lead>(`/leads/${id}`, { method: "PATCH", body: JSON.stringify(dto) });
+
+export const setLeadStarred = (id: string, isStarred: boolean) =>
+  apiFetch<{ id: string; is_starred: boolean }>(`/leads/${id}/star`, {
+    method: "PATCH",
+    body: JSON.stringify({ is_starred: isStarred }),
+  });
 
 export const deleteLead = (id: string) =>
   apiFetch<{ message: string }>(`/leads/${id}`, { method: "DELETE" });
@@ -297,6 +337,9 @@ export type TeamMember = {
   last_name: string;
   email: string;
   user_role: string;
+  team_id: string | null;
+  /** The linked team's name, shown under the agent's name, e.g. "Sales - Lahore". */
+  team: string | null;
   blocked: boolean;
   password_changed: boolean;
   created_at: string;
@@ -308,7 +351,29 @@ export type AddUserInput = {
   last_name: string;
   email: string;
   user_role: "admin" | "agent";
+  team_id?: string;
 };
+
+/** `null` takes the member out of their team. */
+export const setUserTeam = (id: number, teamId: string | null) =>
+  apiFetch<TeamMember>(`/auth/users/${id}/team`, {
+    method: "PATCH",
+    body: JSON.stringify({ team_id: teamId }),
+  });
+
+export type Team = { id: string; name: string; member_count: number; created_at: string };
+
+export const getTeams = () => apiFetch<Team[]>("/teams");
+
+/** `memberIds` becomes the team's whole membership; members already in another team are moved. */
+export const createTeam = (name: string, memberIds: number[]) =>
+  apiFetch<Team>("/teams", { method: "POST", body: JSON.stringify({ name, member_ids: memberIds }) });
+
+export const updateTeam = (id: string, name: string, memberIds: number[]) =>
+  apiFetch<Team>(`/teams/${id}`, { method: "PATCH", body: JSON.stringify({ name, member_ids: memberIds }) });
+
+/** Members are kept — they just end up without a team. */
+export const deleteTeam = (id: string) => apiFetch<{ message: string }>(`/teams/${id}`, { method: "DELETE" });
 
 export const getUsers = () => apiFetch<TeamMember[]>("/auth/users");
 
@@ -404,6 +469,19 @@ export type PartnerProject = {
   location: string | null;
   price: number | null;
   description: string | null;
+  project_type: string;
+  is_active: boolean;
+  is_starred: boolean;
+  grade: string | null;
+  token_amount: number | null;
+  pdp_percent: number | null;
+  cdp_percent: number | null;
+  // Added up from the project's units by the server.
+  unit_types: string[];
+  total_units: number;
+  available_units: number;
+  price_min: number | null;
+  price_max: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -417,6 +495,12 @@ export type PartnerProjectInput = {
   location?: string;
   price?: number;
   description?: string;
+  project_type?: string;
+  is_active?: boolean;
+  grade?: string;
+  token_amount?: number;
+  pdp_percent?: number;
+  cdp_percent?: number;
 };
 
 export const getPartnerProjects = (params: InventoryQuery = {}) =>
@@ -431,11 +515,87 @@ export const updatePartnerProject = (id: string, dto: Partial<PartnerProjectInpu
 export const deletePartnerProject = (id: string) =>
   apiFetch<{ message: string }>(`/partner-projects/${id}`, { method: "DELETE" });
 
+export const setProjectStarred = (id: string, isStarred: boolean) =>
+  apiFetch<{ id: string; is_starred: boolean }>(`/partner-projects/${id}/star`, {
+    method: "PATCH",
+    body: JSON.stringify({ is_starred: isStarred }),
+  });
+
+// ── Units ─────────────────────────────────────────────────────────────────────
+
+/** In sale order: token, partial down payment, complete down payment, sold (closed won). */
+export type UnitStatus = "available" | "token" | "pdp" | "cdp" | "sold";
+
+export type Unit = {
+  id: string;
+  project_id: string;
+  project: TaxonomyRef | null;
+  unit_number: string;
+  unit_type: string | null;
+  features: string | null;
+  floor: string | null;
+  beds: number | null;
+  price: number | null;
+  area_sqft: number | null;
+  status: UnitStatus;
+  /** The lead that has paid towards this unit; null while it's available. */
+  lead: { id: string; lead_no: number; client_name: string } | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UnitsResponse = {
+  data: Unit[];
+  total: number;
+  page: number;
+  limit: number;
+  status_counts: Record<UnitStatus, number>;
+  /** Every unit type in use, for the filter. */
+  unit_types: string[];
+};
+
+export type UnitsQuery = {
+  project_id?: string;
+  unit_type?: string;
+  search?: string;
+  status?: UnitStatus;
+  sort?: "asc" | "desc";
+  page?: number;
+  limit?: number;
+};
+
+export type UnitInput = {
+  project_id: string;
+  unit_number: string;
+  unit_type?: string;
+  features?: string;
+  floor?: string;
+  beds?: number;
+  price?: number;
+  area_sqft?: number;
+  status?: UnitStatus;
+};
+
+export const getUnits = (params: UnitsQuery = {}) =>
+  apiFetch<UnitsResponse>(`/units${buildQueryString(params)}`);
+
+export const createUnit = (dto: UnitInput) =>
+  apiFetch<Unit>("/units", { method: "POST", body: JSON.stringify(dto) });
+
+export const updateUnit = (id: string, dto: Partial<UnitInput>) =>
+  apiFetch<Unit>(`/units/${id}`, { method: "PATCH", body: JSON.stringify(dto) });
+
+export const deleteUnit = (id: string) =>
+  apiFetch<{ message: string }>(`/units/${id}`, { method: "DELETE" });
+
 // ── Follow-ups ────────────────────────────────────────────────────────────────
 
 export type FollowUp = {
   id: string;
   text: string;
+  /** Null on follow-ups written before tasks had a type. */
+  task_type: string | null;
+  sub_task: string | null;
   due_date: string;
   due_time: string;
   completed: boolean;
@@ -476,6 +636,30 @@ export type CreateFollowUpInput = { lead_id: string; text: string; due_date: str
 export const createFollowUp = (dto: CreateFollowUpInput) =>
   apiFetch<{ message: string }>("/follow-ups", { method: "POST", body: JSON.stringify(dto) });
 
+export type LogTaskInput = {
+  lead_id: string;
+  task_type: string;
+  sub_task: string;
+  completed_date: string;
+  completed_time: string;
+  comment: string;
+  next_task: string;
+  /** Omitted for next tasks that schedule nothing ("Do Nothing", "Closed (Won)"). */
+  deadline_date?: string;
+  deadline_time?: string;
+  project_id?: string;
+  unit_id?: string;
+  temperature: LeadTemperature;
+};
+
+/** Records the task just done, schedules the next one and updates the lead in one request. */
+export const logTask = (dto: LogTaskInput) =>
+  apiFetch<{ message: string }>("/follow-ups/log", { method: "POST", body: JSON.stringify(dto) });
+
+/** Open tasks due on each of the 7 days from `from` (YYYY-MM-DD); days with none are left out. */
+export const getWeekLoad = (from: string) =>
+  apiFetch<{ date: string; count: number }[]>(`/follow-ups/week-load${buildQueryString({ from })}`);
+
 export const setFollowUpCompleted = (id: string, completed: boolean) =>
   apiFetch<{ message: string }>(`/follow-ups/${id}/complete`, {
     method: "PATCH",
@@ -484,8 +668,19 @@ export const setFollowUpCompleted = (id: string, completed: boolean) =>
 
 // ── Customers ─────────────────────────────────────────────────────────────────
 
+export type CustomerStage = "inquiry" | "prospect" | "mature" | "pre_closure" | "sold";
+
 export type Customer = {
   id: string;
+  /** The short client ID shown to users; `id` stays the key for URLs. */
+  customer_no: number;
+  stage: CustomerStage;
+  sub_source: string | null;
+  /** ISO 3166-1 alpha-2, e.g. "PK". */
+  country: string;
+  is_starred: boolean;
+  /** Leads linked to this customer. */
+  lead_count: number;
   customer_name: string;
   cnic_number: string;
   contact_number: string;
@@ -498,17 +693,25 @@ export type Customer = {
   source: TaxonomyRef | null;
   customer_since: string | null;
   notes: string | null;
-  assigned_to: { id: number; first_name: string; last_name: string } | null;
+  assigned_to: { id: number; first_name: string; last_name: string; team: string | null } | null;
   created_at: string;
   updated_at: string;
 };
 
-export type CustomersResponse = { data: Customer[]; total: number; page: number; limit: number };
+export type CustomersResponse = {
+  data: Customer[];
+  total: number;
+  page: number;
+  limit: number;
+  stage_counts: Record<CustomerStage, number>;
+};
 
 export type CustomersQuery = {
   page?: number;
   limit?: number;
   search?: string;
+  stage?: CustomerStage;
+  sort?: "asc" | "desc";
   relation_type?: string;
   source_id?: string;
   city?: string;
@@ -525,6 +728,9 @@ export type CustomerInput = {
   city?: string;
   relation_type: string;
   source_id?: string;
+  sub_source?: string;
+  country?: string;
+  stage?: CustomerStage;
   customer_since?: string;
   notes?: string;
   assigned_to_id?: number;
@@ -540,6 +746,12 @@ export const createCustomer = (dto: CustomerInput) =>
 
 export const updateCustomer = (id: string, dto: Partial<CustomerInput>) =>
   apiFetch<Customer>(`/customers/${id}`, { method: "PATCH", body: JSON.stringify(dto) });
+
+export const setCustomerStarred = (id: string, isStarred: boolean) =>
+  apiFetch<{ id: string; is_starred: boolean }>(`/customers/${id}/star`, {
+    method: "PATCH",
+    body: JSON.stringify({ is_starred: isStarred }),
+  });
 
 export const deleteCustomer = (id: string) =>
   apiFetch<{ message: string }>(`/customers/${id}`, { method: "DELETE" });
@@ -594,3 +806,5 @@ async function uploadCsv(path: string, file: File): Promise<ImportResult> {
 
 export const importCustomersCsv = (file: File) => uploadCsv("/customers/import", file);
 export const importLeadsCsv = (file: File) => uploadCsv("/leads/import", file);
+export const importUnitsCsv = (file: File, projectId: string) =>
+  uploadCsv(`/units/import${buildQueryString({ project_id: projectId })}`, file);

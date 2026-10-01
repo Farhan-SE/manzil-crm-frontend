@@ -3,7 +3,7 @@
 import { useState, type SubmitEvent } from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { Select, type SelectOption } from "@/components/ui/Select";
-import { addUser, type TeamMember } from "@/lib/api";
+import { addUser, type Team, type TeamMember } from "@/lib/api";
 
 const inputClass =
   "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
@@ -13,10 +13,14 @@ const ROLE_OPTIONS: SelectOption[] = [
   { id: "admin", name: "Admin" },
 ];
 
+const NO_TEAM: SelectOption = { id: "", name: "No team" };
+
 export function AddTeamMemberModal({
+  teams,
   onClose,
   onCreated,
 }: {
+  teams: Team[];
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -24,6 +28,7 @@ export function AddTeamMemberModal({
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "agent">("agent");
+  const [teamId, setTeamId] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +45,7 @@ export function AddTeamMemberModal({
         last_name: lastName,
         email,
         user_role: role,
+        team_id: teamId || undefined,
       });
       setCreated(result);
       onCreated();
@@ -195,6 +201,18 @@ export function AddTeamMemberModal({
                   Admins see every lead, customer and listing. Agents see only what&apos;s assigned
                   to them.
                 </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="member-team" className="text-sm text-dash-muted">
+                  Team
+                </label>
+                <Select
+                  id="member-team"
+                  value={teamId}
+                  onChange={setTeamId}
+                  options={[NO_TEAM, ...teams.map((t) => ({ id: t.id, name: t.name }))]}
+                />
               </div>
 
               {error && <p className="text-sm text-hot">{error}</p>}

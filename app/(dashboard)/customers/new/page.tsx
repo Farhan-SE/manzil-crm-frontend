@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { ViewTransition } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import { SuccessModal } from "@/components/ui/SuccessModal";
-import { createCustomer, getAgents, getSources } from "@/lib/api";
+import { COUNTRIES, CUSTOMER_STAGES } from "@/lib/customers";
+import { createCustomer, getAgents, getSources, type CustomerStage } from "@/lib/api";
 
 const inputClass =
   "w-full min-w-0 rounded-xl border border-dash-border bg-white px-4 py-2.5 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
@@ -16,6 +17,8 @@ const TYPE_OPTIONS: SelectOption[] = [
   { id: "seller", name: "Seller" },
   { id: "investor", name: "Investor" },
 ];
+
+const STAGE_OPTIONS: SelectOption[] = CUSTOMER_STAGES.map((s) => ({ id: s.id, name: s.label }));
 
 const UNASSIGNED_ID = "unassigned";
 
@@ -67,6 +70,9 @@ export default function NewCustomerPage() {
   const [relationType, setRelationType] = useState("buyer");
   const [customerSince, setCustomerSince] = useState(today);
   const [sourceId, setSourceId] = useState("");
+  const [subSource, setSubSource] = useState("");
+  const [country, setCountry] = useState("PK");
+  const [stage, setStage] = useState<CustomerStage>("inquiry");
   const [notes, setNotes] = useState("");
   const [assignTo, setAssignTo] = useState(UNASSIGNED_ID);
 
@@ -120,6 +126,9 @@ export default function NewCustomerPage() {
         city: city || undefined,
         relation_type: relationType,
         source_id: sourceId || undefined,
+        sub_source: subSource,
+        country,
+        stage,
         customer_since: customerSince || undefined,
         notes: notes || undefined,
         assigned_to_id: assignTo !== UNASSIGNED_ID ? Number(assignTo) : undefined,
@@ -244,7 +253,7 @@ export default function NewCustomerPage() {
               />
             </Field>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr_1fr]">
               <Field label="Address" htmlFor="customer-address">
                 <input
                   id="customer-address"
@@ -264,6 +273,9 @@ export default function NewCustomerPage() {
                   placeholder="e.g. Karachi"
                   className={inputClass}
                 />
+              </Field>
+              <Field label="Country" htmlFor="customer-country">
+                <Select id="customer-country" value={country} onChange={setCountry} options={COUNTRIES} />
               </Field>
             </div>
           </Section>
@@ -297,6 +309,24 @@ export default function NewCustomerPage() {
                 onChange={setSourceId}
                 options={sources}
                 placeholder={isLoadingOptions ? "Loading..." : "Select"}
+              />
+            </Field>
+            <Field label="Sub-source" htmlFor="customer-sub-source">
+              <input
+                id="customer-sub-source"
+                type="text"
+                value={subSource}
+                onChange={(e) => setSubSource(e.target.value)}
+                placeholder="e.g. Client reference"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Stage" htmlFor="customer-stage">
+              <Select
+                id="customer-stage"
+                value={stage}
+                onChange={(v) => setStage(v as CustomerStage)}
+                options={STAGE_OPTIONS}
               />
             </Field>
             <Field label="Customer since" htmlFor="customer-since">

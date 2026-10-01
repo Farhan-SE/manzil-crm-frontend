@@ -3,6 +3,7 @@
 import { useState, type SubmitEvent } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import type { PartnerProject, PartnerProjectInput } from "@/lib/api";
+import { PROJECT_TYPES } from "@/lib/inventory";
 
 const inputClass =
   "w-full min-w-0 rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
@@ -36,6 +37,12 @@ export function PartnerFormModal({
   const [interest, setInterest] = useState(initial?.interest_id ?? "");
   const [price, setPrice] = useState(initial?.price != null ? String(initial.price) : "");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [projectType, setProjectType] = useState(initial?.project_type ?? "exclusive");
+  const [isActive, setIsActive] = useState(initial?.is_active ?? true);
+  const [grade, setGrade] = useState(initial?.grade ?? "");
+  const [tokenAmount, setTokenAmount] = useState(initial?.token_amount != null ? String(initial.token_amount) : "");
+  const [pdpPercent, setPdpPercent] = useState(initial?.pdp_percent != null ? String(initial.pdp_percent) : "");
+  const [cdpPercent, setCdpPercent] = useState(initial?.cdp_percent != null ? String(initial.cdp_percent) : "");
 
   function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -48,6 +55,13 @@ export function PartnerFormModal({
       location: location || undefined,
       price: price ? Number(price) : undefined,
       description: description || undefined,
+      project_type: projectType,
+      is_active: isActive,
+      // Sent even when empty so clearing the field on an edit actually clears it.
+      grade,
+      token_amount: tokenAmount ? Number(tokenAmount) : undefined,
+      pdp_percent: pdpPercent ? Number(pdpPercent) : undefined,
+      cdp_percent: cdpPercent ? Number(cdpPercent) : undefined,
     });
   }
 
@@ -63,7 +77,7 @@ export function PartnerFormModal({
               className="font-serif text-2xl font-bold text-dash-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
-              {initial ? "Edit project" : "Partner project"}
+              {initial ? "Edit project" : "New project"}
             </h2>
             <p className="mt-0.5 text-xs text-dash-muted">
               A developer&apos;s project your team markets. Visible to everyone.
@@ -166,7 +180,7 @@ export function PartnerFormModal({
             </div>
             <div className="flex flex-col gap-1.5">
               <label htmlFor="partner-price" className="text-sm text-dash-muted">
-                Price (PKR, optional)
+                Starting price (PKR)
               </label>
               <input
                 id="partner-price"
@@ -174,6 +188,91 @@ export function PartnerFormModal({
                 min="0"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
+                placeholder="0"
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="partner-type" className="text-sm text-dash-muted">
+                Type
+              </label>
+              <Select id="partner-type" value={projectType} onChange={setProjectType} options={PROJECT_TYPES} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="partner-grade" className="text-sm text-dash-muted">
+                Grade (optional)
+              </label>
+              <input
+                id="partner-grade"
+                type="text"
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                placeholder="e.g. A+"
+                className={inputClass}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="partner-active" className="text-sm text-dash-muted">
+                Status
+              </label>
+              <Select
+                id="partner-active"
+                value={isActive ? "active" : "inactive"}
+                onChange={(v) => setIsActive(v === "active")}
+                options={[
+                  { id: "active", name: "Active" },
+                  { id: "inactive", name: "Inactive" },
+                ]}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="partner-token" className="text-sm text-dash-muted">
+                Token (PKR)
+              </label>
+              <input
+                id="partner-token"
+                type="number"
+                min="0"
+                value={tokenAmount}
+                onChange={(e) => setTokenAmount(e.target.value)}
+                placeholder="0"
+                className={inputClass}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="partner-pdp" className="text-sm text-dash-muted">
+                Partial down payment (%)
+              </label>
+              <input
+                id="partner-pdp"
+                type="number"
+                min="0"
+                max="100"
+                step="any"
+                value={pdpPercent}
+                onChange={(e) => setPdpPercent(e.target.value)}
+                placeholder="0"
+                className={inputClass}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="partner-cdp" className="text-sm text-dash-muted">
+                Complete down payment (%)
+              </label>
+              <input
+                id="partner-cdp"
+                type="number"
+                min="0"
+                max="100"
+                step="any"
+                value={cdpPercent}
+                onChange={(e) => setCdpPercent(e.target.value)}
                 placeholder="0"
                 className={inputClass}
               />

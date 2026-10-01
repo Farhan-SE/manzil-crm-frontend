@@ -18,14 +18,14 @@ import {
   getInterests,
   getLeads,
   getSources,
-  isAdmin,
   type Lead,
 } from "@/lib/api";
+import { useIsAdmin } from "@/lib/session";
 
 const BOARD_LIMIT = 200;
 
 export default function PipelinePage() {
-  const admin = isAdmin();
+  const admin = useIsAdmin();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
