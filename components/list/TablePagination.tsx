@@ -3,7 +3,7 @@ import { Listbox } from "@/components/ui/Listbox";
 
 const PAGE_SIZES = [10, 20, 50];
 
-const arrowClass = "flex size-6 items-center justify-center text-ink disabled:opacity-30";
+const arrowClass = "flex size-8 items-center justify-center text-ink disabled:opacity-30";
 
 export function TablePagination({
   page,

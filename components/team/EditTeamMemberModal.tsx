@@ -8,7 +8,7 @@ const NO_TEAM: SelectOption = { id: "", name: "No team" };
 const NO_MANAGER: SelectOption = { id: "", name: "No line manager" };
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 export function EditTeamMemberModal({
   member,
@@ -67,11 +67,11 @@ export function EditTeamMemberModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6">
           <h2
-            className="font-serif text-2xl font-bold text-dash-ink"
+            className="font-serif text-2xl font-bold text-ink"
             style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
           >
             Update member
@@ -80,7 +80,7 @@ export function EditTeamMemberModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-dash-muted transition-colors hover:text-dash-ink"
+            className="text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -88,10 +88,10 @@ export function EditTeamMemberModal({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 py-5 sm:px-6">
           <div>
-            <p className="text-sm font-semibold text-dash-ink">
+            <p className="text-sm font-semibold text-ink">
               {member.first_name} {member.last_name}
             </p>
-            <p className="text-xs text-dash-muted">
+            <p className="text-xs text-muted">
               E.ID: {member.id} · {member.email}
             </p>
           </div>
@@ -99,7 +99,7 @@ export function EditTeamMemberModal({
           <div className="grid grid-cols-2 gap-3">
             {textFields.map((field) => (
               <div key={field.id} className="flex flex-col gap-1.5">
-                <label htmlFor={`edit-member-${field.id}`} className="text-sm text-dash-muted">
+                <label htmlFor={`edit-member-${field.id}`} className="text-sm text-muted">
                   {field.label}
                 </label>
                 <input
@@ -113,7 +113,7 @@ export function EditTeamMemberModal({
               </div>
             ))}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="edit-member-manager" className="text-sm text-dash-muted">
+              <label htmlFor="edit-member-manager" className="text-sm text-muted">
                 Line manager
               </label>
               <Select
@@ -132,7 +132,7 @@ export function EditTeamMemberModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="edit-member-joined" className="text-sm text-dash-muted">
+              <label htmlFor="edit-member-joined" className="text-sm text-muted">
                 Joined on
               </label>
               <input
@@ -146,7 +146,7 @@ export function EditTeamMemberModal({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="edit-member-team" className="text-sm text-dash-muted">
+            <label htmlFor="edit-member-team" className="text-sm text-muted">
               Team
             </label>
             <Select
@@ -155,7 +155,7 @@ export function EditTeamMemberModal({
               onChange={setTeamId}
               options={[NO_TEAM, ...teams.map((t) => ({ id: t.id, name: t.name }))]}
             />
-            <p className="text-xs text-dash-muted">
+            <p className="text-xs text-muted">
               Shown under this member&apos;s name in the customers and leads lists.
             </p>
           </div>
@@ -166,14 +166,14 @@ export function EditTeamMemberModal({
             <button
               type="button"
               onClick={onClose}
-              className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+              className="text-sm font-medium text-muted transition-colors hover:text-ink"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? "Saving..." : "Save changes"}
             </button>

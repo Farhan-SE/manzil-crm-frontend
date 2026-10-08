@@ -10,11 +10,11 @@ import { PipelineBoard } from "@/components/PipelineBoard";
 import { Icon } from "@/components/ui/Icon";
 import {
   getAgents,
-  getPartnerProjects,
+  getProjectOptions,
   getPipeline,
   type Agent,
   type Lead,
-  type PartnerProject,
+  type ProjectOption,
   type PipelineQuery,
   type PipelineResponse,
 } from "@/lib/api";
@@ -66,12 +66,12 @@ export default function PipelinePage() {
   const [sort, setSort] = useState<"recent" | "value">("recent");
   const [showAll, setShowAll] = useState(false);
 
-  const [projects, setProjects] = useState<PartnerProject[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [months] = useState(recentMonths);
 
   useEffect(() => {
-    getPartnerProjects({ limit: 500 }).then(setProjects).catch(() => {});
+    getProjectOptions().then(setProjects).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -139,7 +139,7 @@ export default function PipelinePage() {
             <h1 className="font-serif text-xl font-bold text-ink" style={headingStyle}>
               Sales pipeline
             </h1>
-            <p className="text-[10px] text-muted">
+            <p className="text-[11px] text-muted">
               {pipeline
                 ? `${pipeline.active_count} active opportunities · ${formatMoney(pipeline.active_value)}`
                 : " "}
@@ -236,10 +236,10 @@ export default function PipelinePage() {
             <table className={tableClass}>
               <thead>
                 <tr className={headRowClass}>
-                  <th className={headCellClass}>Stage</th>
-                  <th className={`${headCellClass} w-[20%]`}>Deals</th>
-                  <th className={`${headCellClass} w-[25%]`}>Value</th>
-                  <th className={`${headCellClass} w-[20%]`}>Share of value</th>
+                  <th scope="col" className={headCellClass}>Stage</th>
+                  <th scope="col" className={`${headCellClass} w-[20%]`}>Deals</th>
+                  <th scope="col" className={`${headCellClass} w-[25%]`}>Value</th>
+                  <th scope="col" className={`${headCellClass} w-[20%]`}>Share of value</th>
                 </tr>
               </thead>
               <tbody>

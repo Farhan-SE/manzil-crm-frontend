@@ -6,7 +6,7 @@ import { Select, type SelectOption } from "@/components/ui/Select";
 import { addUser, type Team, type TeamMember } from "@/lib/api";
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 const ROLE_OPTIONS: SelectOption[] = [
   { id: "agent", name: "Agent" },
@@ -71,7 +71,7 @@ export function AddTeamMemberModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
         {created ? (
           // Deliberately no auto-close: this is the only time the password is ever shown.
@@ -83,45 +83,45 @@ export function AddTeamMemberModal({
               style={{ width: 140, height: 140 }}
             />
             <p
-              className="font-serif text-xl font-bold text-dash-ink"
+              className="font-serif text-xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               {created.user.first_name} added
             </p>
-            <p className="text-center text-sm text-dash-muted">
+            <p className="text-center text-sm text-muted">
               Share this password with them — it won&apos;t be shown again.
             </p>
 
-            <div className="mt-1 flex w-full items-center gap-3 rounded-xl border border-dash-border bg-white px-4 py-3">
-              <code className="flex-1 select-all break-all font-mono text-sm font-semibold text-dash-ink">
+            <div className="mt-1 flex w-full items-center gap-3 rounded-xl border border-border bg-white px-4 py-3">
+              <code className="flex-1 select-all break-all font-mono text-sm font-semibold text-ink">
                 {created.password}
               </code>
               <button
                 type="button"
                 onClick={copyPassword}
-                className="shrink-0 rounded-lg border border-dash-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
+                className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-dash-bg"
               >
                 {copied ? "Copied" : "Copy"}
               </button>
             </div>
 
-            <p className="text-xs text-dash-muted">{created.user.email}</p>
+            <p className="text-xs text-muted">{created.user.email}</p>
 
             {error && <p className="text-sm text-hot">{error}</p>}
 
             <button
               type="button"
               onClick={onClose}
-              className="mt-2 rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
+              className="mt-2 rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90"
             >
               Done
             </button>
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between border-b border-dash-border px-4 py-4 sm:px-6">
+            <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6">
               <h2
-                className="font-serif text-2xl font-bold text-dash-ink"
+                className="font-serif text-2xl font-bold text-ink"
                 style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
               >
                 Add team member
@@ -130,7 +130,7 @@ export function AddTeamMemberModal({
                 type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="text-dash-muted transition-colors hover:text-dash-ink"
+                className="text-muted transition-colors hover:text-ink"
               >
                 ✕
               </button>
@@ -139,7 +139,7 @@ export function AddTeamMemberModal({
             <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 py-5 sm:px-6">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="member-first-name" className="text-sm text-dash-muted">
+                  <label htmlFor="member-first-name" className="text-sm text-muted">
                     First name
                     <span className="text-hot"> *</span>
                   </label>
@@ -154,7 +154,7 @@ export function AddTeamMemberModal({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="member-last-name" className="text-sm text-dash-muted">
+                  <label htmlFor="member-last-name" className="text-sm text-muted">
                     Last name
                     <span className="text-hot"> *</span>
                   </label>
@@ -171,7 +171,7 @@ export function AddTeamMemberModal({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="member-email" className="text-sm text-dash-muted">
+                <label htmlFor="member-email" className="text-sm text-muted">
                   Email
                   <span className="text-hot"> *</span>
                 </label>
@@ -187,7 +187,7 @@ export function AddTeamMemberModal({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="member-role" className="text-sm text-dash-muted">
+                <label htmlFor="member-role" className="text-sm text-muted">
                   Role
                   <span className="text-hot"> *</span>
                 </label>
@@ -197,14 +197,14 @@ export function AddTeamMemberModal({
                   onChange={(v) => setRole(v as "admin" | "agent")}
                   options={ROLE_OPTIONS}
                 />
-                <p className="text-xs text-dash-muted">
+                <p className="text-xs text-muted">
                   Admins see every lead, customer and listing. Agents see only what&apos;s assigned
                   to them.
                 </p>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="member-team" className="text-sm text-dash-muted">
+                <label htmlFor="member-team" className="text-sm text-muted">
                   Team
                 </label>
                 <Select
@@ -221,14 +221,14 @@ export function AddTeamMemberModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+                  className="text-sm font-medium text-muted transition-colors hover:text-ink"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? "Adding..." : "Add member"}
                 </button>

@@ -71,7 +71,7 @@ const TABS: { id: StaffTab; label: string }[] = [
 const COLUMN_COUNT = 9;
 
 const headerActionClass =
-  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-dash-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
+  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
 
 /** "Jan 24" and "2 years" — when they joined and how long ago that was. */
 function tenure(member: TeamMember) {
@@ -191,6 +191,7 @@ export default function StaffPage() {
   return (
     <ViewTransition>
       <div className="flex w-full flex-col">
+        <h1 className="sr-only">Staff</h1>
         <FilterBar
           onSearch={() => {
             setFilters(draft);
@@ -316,7 +317,7 @@ export default function StaffPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className="hidden w-8 lg:table-cell">
+                <th scope="col" className="hidden w-8 lg:table-cell">
                   <input
                     type="checkbox"
                     aria-label="Select all staff"
@@ -325,14 +326,14 @@ export default function StaffPage() {
                     className={checkboxClass}
                   />
                 </th>
-                <th className={headCellClass}>Employee detail</th>
-                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Department</th>
-                <th className={`${headCellClass} hidden w-[9%] lg:table-cell`}>Tenure</th>
-                <th className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Region</th>
-                <th className={`${headCellClass} hidden w-[12%] sm:table-cell`}>Line manager</th>
-                <th className={`${headCellClass} w-[34%] lg:w-[12%]`}>Leads</th>
-                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Projects allocated</th>
-                <th className="w-[40px] lg:w-[12%]" />
+                <th scope="col" className={headCellClass}>Employee detail</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Department</th>
+                <th scope="col" className={`${headCellClass} hidden w-[9%] lg:table-cell`}>Tenure</th>
+                <th scope="col" className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Region</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] sm:table-cell`}>Line manager</th>
+                <th scope="col" className={`${headCellClass} w-[34%] lg:w-[12%]`}>Leads</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Projects allocated</th>
+                <th scope="col" className="w-[40px] lg:w-[12%]" />
               </tr>
             </thead>
             <tbody>
@@ -350,7 +351,7 @@ export default function StaffPage() {
 
               {!isLoading && staff.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? `No ${tabNoun} match those filters.` : `No ${tabNoun}.`}
                   </td>
                 </tr>

@@ -7,7 +7,7 @@ export const UNIT_STATUSES: { id: UnitStatus; tab: string; label: string; classN
   { id: "token", tab: "Token", label: "Token", className: "bg-stage-inquiry/10 text-stage-inquiry" },
   { id: "pdp", tab: "PDP", label: "Partial Down Payment", className: "bg-warm/20 text-warm" },
   { id: "cdp", tab: "CDP", label: "Complete Down Payment", className: "bg-stage-negotiation/10 text-stage-negotiation" },
-  { id: "sold", tab: "SCW", label: "Sold (Closed Won)", className: "bg-badge-neutral text-dash-muted" },
+  { id: "sold", tab: "SCW", label: "Sold (Closed Won)", className: "bg-badge-neutral text-muted" },
 ];
 
 export const UNIT_STATUS_OPTIONS: SelectOption[] = UNIT_STATUSES.map((s) => ({ id: s.id, name: s.label }));

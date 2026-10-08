@@ -43,7 +43,7 @@ const TEMPERATURE_OPTIONS: SelectOption[] = [
 ];
 
 const numberInputClass =
-  "w-full min-w-0 rounded-xl border border-dash-border bg-white px-3 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full min-w-0 rounded-xl border border-border bg-white px-3 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 function withAllOption(options: SelectOption[], label: string): SelectOption[] {
   return [{ id: "", name: label }, ...options];
@@ -78,17 +78,17 @@ export function LeadsFilterPanel({
 
   return (
     // A 420px popover can't fit beside the button on a phone, so below sm it pins to the viewport.
-    <div className="fixed inset-x-4 top-20 z-40 rounded-xl border border-dash-border bg-sidebar p-4 shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+8px)] sm:z-20 sm:w-[420px]">
+    <div className="fixed inset-x-4 top-20 z-40 rounded-xl border border-border bg-sidebar p-4 shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+8px)] sm:z-20 sm:w-[420px]">
       <div className="flex items-center justify-between pb-3">
-        <p className="text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">Filters</p>
-        <button type="button" onClick={onClear} className="text-xs font-medium text-dash-muted underline">
+        <p className="text-xs font-bold uppercase tracking-[0.6px] text-muted">Filters</p>
+        <button type="button" onClick={onClear} className="text-xs font-medium text-muted underline">
           Clear all
         </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="filter-stage" className="text-xs text-dash-muted">
+          <label htmlFor="filter-stage" className="text-xs text-muted">
             Stage
           </label>
           <Select
@@ -100,7 +100,7 @@ export function LeadsFilterPanel({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="filter-temperature" className="text-xs text-dash-muted">
+          <label htmlFor="filter-temperature" className="text-xs text-muted">
             Temperature
           </label>
           <Select
@@ -113,7 +113,7 @@ export function LeadsFilterPanel({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="filter-category" className="text-xs text-dash-muted">
+          <label htmlFor="filter-category" className="text-xs text-muted">
             Category
           </label>
           <Select
@@ -125,7 +125,7 @@ export function LeadsFilterPanel({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="filter-interest" className="text-xs text-dash-muted">
+          <label htmlFor="filter-interest" className="text-xs text-muted">
             Interest
           </label>
           <Select
@@ -138,7 +138,7 @@ export function LeadsFilterPanel({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="filter-source" className="text-xs text-dash-muted">
+          <label htmlFor="filter-source" className="text-xs text-muted">
             Source
           </label>
           <Select
@@ -151,7 +151,7 @@ export function LeadsFilterPanel({
         </div>
         {showAssignee && (
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="filter-assignee" className="text-xs text-dash-muted">
+            <label htmlFor="filter-assignee" className="text-xs text-muted">
               Assigned to
             </label>
             <Select
@@ -165,7 +165,7 @@ export function LeadsFilterPanel({
         )}
 
         <div className="col-span-2 flex flex-col gap-1.5">
-          <p className="text-xs text-dash-muted">Budget (PKR)</p>
+          <p className="text-xs text-muted">Budget (PKR)</p>
           <div className="grid grid-cols-2 gap-3">
             <input
               type="number"
@@ -191,7 +191,7 @@ export function LeadsFilterPanel({
         <button
           type="button"
           onClick={() => onApply(draft)}
-          className="w-full rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white sm:w-auto"
+          className="w-full rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white sm:w-auto"
         >
           Apply filters
         </button>

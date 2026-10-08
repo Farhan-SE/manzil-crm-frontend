@@ -40,7 +40,7 @@ type Filters = { projectId: string; unitType: string; search: string };
 const COLUMN_COUNT = 11;
 
 const headerActionClass =
-  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-dash-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar disabled:cursor-not-allowed disabled:opacity-50";
+  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function InventoryPage() {
   return (
@@ -198,6 +198,7 @@ function Inventory() {
   return (
     <ViewTransition>
       <div className="flex w-full flex-col">
+        <h1 className="sr-only">Inventory</h1>
         <FilterBar
           onSearch={() => {
             setFilters(draft);
@@ -293,7 +294,7 @@ function Inventory() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className="hidden w-8 lg:table-cell">
+                <th scope="col" className="hidden w-8 lg:table-cell">
                   <input
                     type="checkbox"
                     aria-label="Select all units"
@@ -302,16 +303,16 @@ function Inventory() {
                     className={checkboxClass}
                   />
                 </th>
-                <th className={`${headCellClass} w-[30%] lg:w-[12%]`}>Unit</th>
-                <th className={headCellClass}>Project</th>
-                <th className={`${headCellClass} hidden w-[5%] lg:table-cell`}>Feat</th>
-                <th className={`${headCellClass} hidden w-[11%] lg:table-cell`}>Type</th>
-                <th className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Location</th>
-                <th className={`${headCellClass} hidden w-[6%] lg:table-cell`}>Beds</th>
-                <th className={`${headCellClass} hidden w-[11%] sm:table-cell`}>Price (PKR)</th>
-                <th className={`${headCellClass} hidden w-[9%] lg:table-cell`}>Area (sqft)</th>
-                <th className={`${headCellClass} w-[96px] lg:w-[13%]`}>Status</th>
-                <th className="w-[40px] lg:w-[8%]" />
+                <th scope="col" className={`${headCellClass} w-[30%] lg:w-[12%]`}>Unit</th>
+                <th scope="col" className={headCellClass}>Project</th>
+                <th scope="col" className={`${headCellClass} hidden w-[5%] lg:table-cell`}>Feat</th>
+                <th scope="col" className={`${headCellClass} hidden w-[11%] lg:table-cell`}>Type</th>
+                <th scope="col" className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Location</th>
+                <th scope="col" className={`${headCellClass} hidden w-[6%] lg:table-cell`}>Beds</th>
+                <th scope="col" className={`${headCellClass} hidden w-[11%] sm:table-cell`}>Price (PKR)</th>
+                <th scope="col" className={`${headCellClass} hidden w-[9%] lg:table-cell`}>Area (sqft)</th>
+                <th scope="col" className={`${headCellClass} w-[96px] lg:w-[13%]`}>Status</th>
+                <th scope="col" className="w-[40px] lg:w-[8%]" />
               </tr>
             </thead>
             <tbody>
@@ -329,7 +330,7 @@ function Inventory() {
 
               {!isLoading && units.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered
                       ? "No units match those filters."
                       : "No units yet. Add a unit, or filter by a project and import a CSV."}

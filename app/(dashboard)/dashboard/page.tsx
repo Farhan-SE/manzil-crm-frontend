@@ -80,7 +80,7 @@ function Hint({ text }: { text: string }) {
   return (
     <span
       title={text}
-      className="flex size-3.5 shrink-0 cursor-help items-center justify-center rounded-full bg-border text-[9px] font-bold leading-none text-white"
+      className="flex size-3.5 shrink-0 cursor-help items-center justify-center rounded-full bg-muted text-[11px] font-bold leading-none text-white"
     >
       i
     </span>
@@ -126,7 +126,7 @@ function FunnelChart({ funnel, labels }: { funnel: Funnel; labels: [keyof Funnel
   return (
     <div>
       <div className="flex gap-2">
-        <div className="flex flex-col justify-between text-right text-[10px] leading-none text-muted" style={{ height: CHART_HEIGHT }}>
+        <div className="flex flex-col justify-between text-right text-[11px] leading-none text-muted" style={{ height: CHART_HEIGHT }}>
           {ticks.map((tick) => (
             <span key={tick} className="-translate-y-1/2 first:translate-y-0 last:translate-y-0">
               {tick}
@@ -150,26 +150,26 @@ function FunnelChart({ funnel, labels }: { funnel: Funnel; labels: [keyof Funnel
                   title={`${label}: ${unique + repeat} (${unique} unique, ${repeat} repeat)`}
                   className="flex w-5 flex-col-reverse gap-px"
                 >
-                  <div className="bg-indigo-600" style={{ height: height(unique) }} />
-                  <div className="bg-indigo-300" style={{ height: height(repeat) }} />
+                  <div className="bg-cold" style={{ height: height(unique) }} />
+                  <div className="bg-cold/40" style={{ height: height(repeat) }} />
                 </div>
               );
             })}
           </div>
         </div>
       </div>
-      <div className="ml-6 mt-2 flex justify-around text-[10px] leading-[1.4] text-muted">
+      <div className="ml-6 mt-2 flex justify-around text-[11px] leading-[1.4] text-muted">
         {labels.map(([key, label]) => (
           <span key={key}>{label}</span>
         ))}
       </div>
-      <div className="mt-2 flex justify-center gap-10 text-[10px] leading-[1.4] text-muted">
+      <div className="mt-2 flex justify-center gap-10 text-[11px] leading-[1.4] text-muted">
         <span className="flex items-center gap-2">
-          <span className="size-2 rounded-full bg-indigo-300" />
+          <span className="size-2 rounded-full bg-cold/40" />
           Repeat
         </span>
         <span className="flex items-center gap-2">
-          <span className="size-2 rounded-full bg-indigo-600" />
+          <span className="size-2 rounded-full bg-cold" />
           Unique
         </span>
       </div>
@@ -291,7 +291,7 @@ export default function DashboardPage() {
                     <Link
                       href={todosHref(taskTab, task.task_type, date)}
                       className={`flex h-[29px] items-center justify-between gap-3 text-xs uppercase leading-[1.4] ${
-                        task.count ? "text-cold hover:underline" : "text-cold/60"
+                        task.count ? "text-cold hover:underline" : "text-muted"
                       }`}
                     >
                       <span className="flex min-w-0 items-center gap-2">
@@ -337,12 +337,12 @@ export default function DashboardPage() {
               <table className="w-full text-left text-xs text-ink">
                 <thead className="sticky top-0 bg-cream text-[11px] uppercase text-muted">
                   <tr className="h-9">
-                    <th className="pl-5 font-bold">Time</th>
-                    <th className="font-bold" title="Unique qualified calls">
+                    <th scope="col" className="pl-5 font-bold">Time</th>
+                    <th scope="col" className="font-bold" title="Unique qualified calls">
                       UQC
                     </th>
-                    <th className="font-bold">Calls</th>
-                    <th className="font-bold" title="Unique meetings">
+                    <th scope="col" className="font-bold">Calls</th>
+                    <th scope="col" className="font-bold" title="Unique meetings">
                       U.Met
                     </th>
                   </tr>
@@ -372,13 +372,13 @@ export default function DashboardPage() {
           <section className={`${cardClass} flex flex-col pb-2`}>
             <h2 className="px-5 py-5 text-sm font-bold text-ink">Payments</h2>
             {[
-              { label: "Expected", hint: "Everything still owed on open payments", value: data?.payments.expected, tone: "border-emerald-500 bg-emerald-50" },
-              { label: "Overdue", hint: "The part of that already past its due date", value: data?.payments.overdue, tone: "border-orange-400 bg-orange-50" },
+              { label: "Expected", hint: "Everything still owed on open payments", value: data?.payments.expected, tone: "border-success bg-success/10" },
+              { label: "Overdue", hint: "The part of that already past its due date", value: data?.payments.overdue, tone: "border-attention bg-attention/10" },
               { label: "Received", hint: "Collected this month to date", value: data?.payments.received, tone: "border-cold bg-cold/5" },
             ].map((row) => (
               <div key={row.label} className={`mb-2 flex items-center justify-between gap-3 border-l-2 px-5 py-3 ${row.tone}`}>
                 <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
-                  <Icon name="receipt" className="size-4 text-emerald-600" />
+                  <Icon name="receipt" className="size-4 text-success" />
                   {row.label}
                   <Hint text={row.hint} />
                 </p>
@@ -400,13 +400,13 @@ export default function DashboardPage() {
               <table className="w-full min-w-[640px] text-left text-xs text-ink">
                 <thead className="bg-cream text-[11px] uppercase text-muted">
                   <tr className="h-9">
-                    <th className="pl-5 font-bold">Expected date</th>
-                    <th className="font-bold">Client</th>
-                    <th className="font-bold">Project</th>
-                    <th className="font-bold">Unit</th>
-                    <th className="font-bold">Payments (PKR)</th>
-                    <th className="font-bold">Expiry</th>
-                    <th className="font-bold">User</th>
+                    <th scope="col" className="pl-5 font-bold">Expected date</th>
+                    <th scope="col" className="font-bold">Client</th>
+                    <th scope="col" className="font-bold">Project</th>
+                    <th scope="col" className="font-bold">Unit</th>
+                    <th scope="col" className="font-bold">Payments (PKR)</th>
+                    <th scope="col" className="font-bold">Expiry</th>
+                    <th scope="col" className="font-bold">User</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -431,7 +431,7 @@ export default function DashboardPage() {
                 </tbody>
               </table>
               {pending?.rows.length === 0 && (
-                <p className="py-8 text-center text-xs text-dash-placeholder">Nothing outstanding here. 🎉</p>
+                <p className="py-8 text-center text-xs text-placeholder">Nothing outstanding here. 🎉</p>
               )}
               {!data && <Skeleton className="mt-2 h-24 w-full" />}
             </div>

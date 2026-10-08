@@ -43,10 +43,10 @@ const COLUMN_COUNT = 8;
 
 const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
-const panelClass = "rounded-[4px] border border-dash-border bg-white p-4";
+const panelClass = "rounded-[4px] border border-border bg-white p-4";
 
 const headerActionClass =
-  "flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-dash-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60";
+  "flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60";
 
 function submittedAt(approval: Approval) {
   const at = new Date(approval.created_at);
@@ -182,10 +182,10 @@ export default function ManagementPage() {
       <div className="flex w-full flex-col pb-8">
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-8">
           <div className="flex flex-col gap-[3px] leading-[1.4]">
-            <h1 className="font-serif text-xl font-bold text-dash-ink" style={headingStyle}>
+            <h1 className="font-serif text-xl font-bold text-ink" style={headingStyle}>
               Management overview
             </h1>
-            <p className="text-[10px] text-dash-muted">
+            <p className="text-[11px] text-muted">
               {admin ? "Operations" : "Your approval requests"} ·{" "}
               {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </p>
@@ -219,11 +219,11 @@ export default function ManagementPage() {
               ))}
             {metrics?.map((metric) => (
               <div key={metric.label} className={`flex min-w-0 flex-col gap-1.5 leading-[1.4] ${panelClass}`}>
-                <p className="text-[11px] text-dash-muted">{metric.label}</p>
-                <p className="font-serif text-[26px] font-bold text-dash-ink" style={headingStyle}>
+                <p className="text-[11px] text-muted">{metric.label}</p>
+                <p className="font-serif text-[26px] font-bold text-ink" style={headingStyle}>
                   {metric.value}
                 </p>
-                <p className="truncate text-[10px] text-primary">{metric.note}</p>
+                <p className="truncate text-[11px] text-primary">{metric.note}</p>
               </div>
             ))}
           </div>
@@ -250,7 +250,7 @@ export default function ManagementPage() {
               setSort(sort === "asc" ? "desc" : "asc");
               setPage(1);
             }}
-            className="flex shrink-0 items-center gap-1.5 text-xs leading-[1.4] text-nav-idle transition-colors hover:text-dash-ink"
+            className="flex shrink-0 items-center gap-1.5 text-xs leading-[1.4] text-nav-idle transition-colors hover:text-ink"
           >
             {sort === "asc" ? "Oldest first" : "Newest first"}
             <Icon name="sort" className={`size-4 text-ink ${sort === "asc" ? "" : "-scale-y-100"}`} />
@@ -263,7 +263,7 @@ export default function ManagementPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className="hidden w-8 lg:table-cell">
+                <th scope="col" className="hidden w-8 lg:table-cell">
                   <input
                     type="checkbox"
                     aria-label="Select all requests"
@@ -274,13 +274,13 @@ export default function ManagementPage() {
                     className={checkboxClass}
                   />
                 </th>
-                <th className={headCellClass}>Request</th>
-                <th className={`${headCellClass} hidden w-[21%] lg:table-cell`}>Project / Client</th>
-                <th className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Submitted by</th>
-                <th className={`${headCellClass} hidden w-[13%] sm:table-cell`}>Submitted</th>
-                <th className={`${headCellClass} w-[84px] lg:w-[11%]`}>Priority</th>
-                <th className={`${headCellClass} w-[76px] lg:w-[10%]`}>Review</th>
-                <th className={`${headCellClass} w-[40px] text-[9px] lg:w-[5%]`}>Actions</th>
+                <th scope="col" className={headCellClass}>Request</th>
+                <th scope="col" className={`${headCellClass} hidden w-[21%] lg:table-cell`}>Project / Client</th>
+                <th scope="col" className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Submitted by</th>
+                <th scope="col" className={`${headCellClass} hidden w-[13%] sm:table-cell`}>Submitted</th>
+                <th scope="col" className={`${headCellClass} w-[84px] lg:w-[11%]`}>Priority</th>
+                <th scope="col" className={`${headCellClass} w-[76px] lg:w-[10%]`}>Review</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -295,7 +295,7 @@ export default function ManagementPage() {
 
               {!isLoading && approvals.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {tab === "pending" ? "Nothing is waiting for approval." : "No requests here."}
                   </td>
                 </tr>
@@ -372,21 +372,21 @@ export default function ManagementPage() {
           <div className="flex flex-col gap-6 px-4 sm:px-8 lg:flex-row lg:items-start">
             <div className={`flex min-w-0 flex-col gap-4 lg:flex-1 ${panelClass}`}>
               <div className="flex items-center justify-between leading-[1.4]">
-                <h2 className="font-serif text-sm font-bold text-dash-ink" style={headingStyle}>
+                <h2 className="font-serif text-sm font-bold text-ink" style={headingStyle}>
                   Staff workload
                 </h2>
-                <p className="text-[10px] text-dash-muted">Open tasks</p>
+                <p className="text-[11px] text-muted">Open tasks</p>
               </div>
               {overview.staff_workload.length === 0 && (
-                <p className="text-xs text-dash-placeholder">No open tasks.</p>
+                <p className="text-xs text-placeholder">No open tasks.</p>
               )}
               {overview.staff_workload.map((member) => (
                 <div key={member.id} className="flex flex-col gap-2 leading-[1.4]">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-xs text-dash-ink">
+                    <p className="truncate text-xs text-ink">
                       {member.first_name} {member.last_name}
                     </p>
-                    <p className="shrink-0 text-[11px] text-dash-muted">
+                    <p className="shrink-0 text-[11px] text-muted">
                       {member.open_tasks} open · {member.overdue_tasks} overdue
                     </p>
                   </div>
@@ -402,15 +402,15 @@ export default function ManagementPage() {
 
             <div className={`flex min-w-0 flex-col gap-4 lg:flex-1 ${panelClass}`}>
               <div className="flex items-center justify-between leading-[1.4]">
-                <h2 className="font-serif text-sm font-bold text-dash-ink" style={headingStyle}>
+                <h2 className="font-serif text-sm font-bold text-ink" style={headingStyle}>
                   Operational reminders
                 </h2>
-                <p className="text-[10px] text-dash-muted">Right now</p>
+                <p className="text-[11px] text-muted">Right now</p>
               </div>
               {reminders?.map((reminder) => (
                 <div key={reminder.title} className="leading-[1.4]">
-                  <p className="text-xs text-dash-ink">{reminder.title}</p>
-                  <p className="mt-[5px] text-[10px] text-dash-muted">{reminder.note}</p>
+                  <p className="text-xs text-ink">{reminder.title}</p>
+                  <p className="mt-[5px] text-[11px] text-muted">{reminder.note}</p>
                 </div>
               ))}
             </div>

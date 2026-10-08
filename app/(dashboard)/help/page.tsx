@@ -21,7 +21,7 @@ function ArticleRow({ article }: { article: HelpArticleSummary }) {
         <Icon name="file" className="size-4" />
         <span className="truncate group-hover:underline">{article.title}</span>
       </span>
-      <span className="shrink-0 text-[10px] leading-[1.4] text-muted">{article.read_minutes} min read →</span>
+      <span className="shrink-0 text-[11px] leading-[1.4] text-muted">{article.read_minutes} min read →</span>
     </Link>
   );
 }
@@ -64,7 +64,7 @@ export default function HelpCenterPage() {
             <h1 className="font-serif text-xl font-bold text-ink" style={headingStyle}>
               Help Center
             </h1>
-            <p className="text-[10px] text-muted">Practical guides for your Sales workspace</p>
+            <p className="text-[11px] text-muted">Practical guides for your Sales workspace</p>
           </div>
           <Link href="/help/support" className={outlineButtonClass}>
             <Icon name="message" className="size-4" />
@@ -127,7 +127,7 @@ export default function HelpCenterPage() {
                     setDraft("");
                     setQuery({ search: "", topic: "" });
                   }}
-                  className="text-[10px] leading-[1.4] text-muted hover:text-ink hover:underline"
+                  className="text-[11px] leading-[1.4] text-muted hover:text-ink hover:underline"
                 >
                   Clear
                 </button>
@@ -176,7 +176,7 @@ export default function HelpCenterPage() {
                     <span className="text-xs font-bold leading-[1.4]">{topic.name}</span>
                   </span>
                   <span className="text-[11px] leading-[1.4] text-muted">{topic.description}</span>
-                  <span className="text-[10px] leading-[1.4] text-primary">
+                  <span className="text-[11px] leading-[1.4] text-primary">
                     {count == null ? "…" : `${count} ${count === 1 ? "article" : "articles"} →`}
                   </span>
                 </button>
@@ -213,7 +213,7 @@ export default function HelpCenterPage() {
               <Icon name="message" className="size-4" />
               Start a support request
             </Link>
-            <p className="text-[10px] leading-[1.4] text-muted">Support hours: {SUPPORT_HOURS}</p>
+            <p className="text-[11px] leading-[1.4] text-muted">Support hours: {SUPPORT_HOURS}</p>
           </section>
         </div>
       </div>

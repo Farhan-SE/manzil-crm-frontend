@@ -16,7 +16,7 @@ import {
 import { useIsAdmin, useSessionFullName } from "@/lib/session";
 
 const inputClass =
-  "w-full min-w-0 rounded-xl border border-dash-border bg-white px-4 py-2.5 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full min-w-0 rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 type TaxonomyItem = { id: string; name: string };
 
@@ -33,7 +33,7 @@ function Field({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-sm text-dash-muted">
+      <label htmlFor={htmlFor} className="text-sm text-muted">
         {label}
         {required && <span className="text-hot"> *</span>}
       </label>
@@ -44,8 +44,8 @@ function Field({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:p-6">
-      <h2 className="text-xs font-bold uppercase tracking-[1px] text-dash-muted">{title}</h2>
+    <section className="flex flex-col gap-4 rounded-lg border border-border bg-white p-4 shadow-sm sm:p-6">
+      <h2 className="text-xs font-bold uppercase tracking-[1px] text-muted">{title}</h2>
       {children}
     </section>
   );
@@ -53,9 +53,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function InfoRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-dash-border py-3 last:border-b-0 last:pb-0 sm:gap-6">
-      <p className="shrink-0 text-sm text-dash-muted">{label}</p>
-      <div className="min-w-0 text-right text-sm text-dash-ink">{children}</div>
+    <div className="flex items-start justify-between gap-4 border-b border-border py-3 last:border-b-0 last:pb-0 sm:gap-6">
+      <p className="shrink-0 text-sm text-muted">{label}</p>
+      <div className="min-w-0 text-right text-sm text-ink">{children}</div>
     </div>
   );
 }
@@ -95,33 +95,33 @@ function TaxonomySummary({
   }, [kind, refreshKey]);
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:p-6">
+    <section className="flex flex-col gap-4 rounded-lg border border-border bg-white p-4 shadow-sm sm:p-6">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-xs font-bold uppercase tracking-[1px] text-dash-muted">{title}</h2>
-        {!isLoading && <span className="text-xs text-dash-muted">{items.length}</span>}
+        <h2 className="text-xs font-bold uppercase tracking-[1px] text-muted">{title}</h2>
+        {!isLoading && <span className="text-xs text-muted">{items.length}</span>}
       </div>
 
-      <p className="text-xs text-dash-muted">{hint}</p>
+      <p className="text-xs text-muted">{hint}</p>
 
       <div className="flex min-h-[60px] flex-wrap content-start gap-1.5">
         {isLoading && <Skeleton className="h-6 w-full" />}
 
         {!isLoading && items.length === 0 && (
-          <p className="text-sm text-dash-placeholder">Nothing here yet.</p>
+          <p className="text-sm text-placeholder">Nothing here yet.</p>
         )}
 
         {!isLoading &&
           items.slice(0, 6).map((item) => (
             <span
               key={item.id}
-              className="rounded bg-badge-neutral px-2 py-0.5 text-[11px] text-dash-ink"
+              className="rounded bg-badge-neutral px-2 py-0.5 text-[11px] text-ink"
             >
               {item.name}
             </span>
           ))}
 
         {!isLoading && items.length > 6 && (
-          <span className="px-1 py-0.5 text-[11px] text-dash-muted">
+          <span className="px-1 py-0.5 text-[11px] text-muted">
             +{items.length - 6} more
           </span>
         )}
@@ -130,7 +130,7 @@ function TaxonomySummary({
       <button
         type="button"
         onClick={onManage}
-        className="w-full rounded-lg border border-dash-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
+        className="w-full rounded-lg border border-border px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-dash-bg"
       >
         Manage
       </button>
@@ -201,7 +201,7 @@ export default function SettingsPage() {
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <div>
         <h1
-          className="font-serif text-[28px] font-semibold text-dash-ink sm:text-[34px]"
+          className="font-serif text-[28px] font-semibold text-ink sm:text-[34px]"
           style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
         >
           Settings
@@ -259,7 +259,7 @@ export default function SettingsPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  className="w-full rounded-lg bg-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                   {isSubmitting ? "Saving..." : "Change password"}
                 </button>
@@ -285,12 +285,12 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-4">
           <div>
             <h2
-              className="font-serif text-xl font-semibold text-dash-ink"
+              className="font-serif text-xl font-semibold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               Lead options
             </h2>
-            <p className="mt-1 text-sm text-dash-muted">
+            <p className="mt-1 text-sm text-muted">
               The dropdown choices your team picks from. Click a name to rename it.
             </p>
           </div>

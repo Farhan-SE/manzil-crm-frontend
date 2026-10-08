@@ -14,7 +14,7 @@ import {
   getAgents,
   getCategories,
   getInterests,
-  getPartnerProjects,
+  getProjectOptions,
   getSources,
   type DueWindow,
   type LeadsQuery,
@@ -105,7 +105,7 @@ export function LeadFiltersBar({
         setSources(sourceList);
       })
       .catch(() => {});
-    getPartnerProjects({ limit: 500 })
+    getProjectOptions()
       .then((list) => setProjects(list.map((project) => ({ id: project.id, name: project.project_name }))))
       .catch(() => {});
   }, []);

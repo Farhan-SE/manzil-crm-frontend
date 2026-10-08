@@ -70,17 +70,17 @@ export function ImportCsvModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
-              className="font-serif text-2xl font-bold text-dash-ink"
+              className="font-serif text-2xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               Import {kind}
             </h2>
-            <p className="mt-0.5 text-xs text-dash-muted">
+            <p className="mt-0.5 text-xs text-muted">
               Columns can be in any order. Recognised headers: {headers}.{" "}
               {note}
             </p>
@@ -89,7 +89,7 @@ export function ImportCsvModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 text-dash-muted transition-colors hover:text-dash-ink"
+            className="shrink-0 text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -97,11 +97,11 @@ export function ImportCsvModal({
 
         <div className="flex flex-col gap-4 px-4 py-5 sm:px-6">
           {!result && (
-            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-dash-border py-12 text-center transition-colors hover:border-dash-muted/50 hover:bg-white/50">
-              <span className="text-sm font-semibold text-dash-ink">
+            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border py-12 text-center transition-colors hover:border-muted/50 hover:bg-white/50">
+              <span className="text-sm font-semibold text-ink">
                 {file ? file.name : "Choose a file"}
               </span>
-              <span className="text-xs text-dash-muted">.csv — up to 5 MB</span>
+              <span className="text-xs text-muted">.csv — up to 5 MB</span>
               <input
                 type="file"
                 accept=".csv,text/csv"
@@ -111,14 +111,14 @@ export function ImportCsvModal({
             </label>
           )}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-hot">{error}</p>}
 
           {file && !result && (
             <div className="flex items-center justify-end gap-4">
               <button
                 type="button"
                 onClick={() => setFile(null)}
-                className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+                className="text-sm font-medium text-muted transition-colors hover:text-ink"
               >
                 Choose another
               </button>
@@ -126,7 +126,7 @@ export function ImportCsvModal({
                 type="button"
                 onClick={handleImport}
                 disabled={isImporting}
-                className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isImporting ? "Importing..." : "Import"}
               </button>
@@ -141,16 +141,16 @@ export function ImportCsvModal({
               </p>
 
               {result.errors.length > 0 && (
-                <div className="max-h-56 overflow-y-auto rounded-lg border border-dash-border">
+                <div className="max-h-56 overflow-y-auto rounded-lg border border-border">
                   {result.errors.map((issue, i) => (
                     <div
                       key={`${issue.row}-${i}`}
                       className={`flex gap-3 bg-white px-4 py-2 text-[13px] ${
-                        i > 0 ? "border-t border-dash-border" : ""
+                        i > 0 ? "border-t border-border" : ""
                       }`}
                     >
-                      <span className="shrink-0 font-medium text-dash-muted">Row {issue.row}</span>
-                      <span className="min-w-0 text-dash-ink">{issue.reason}</span>
+                      <span className="shrink-0 font-medium text-muted">Row {issue.row}</span>
+                      <span className="min-w-0 text-ink">{issue.reason}</span>
                     </div>
                   ))}
                 </div>
@@ -160,7 +160,7 @@ export function ImportCsvModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
+                  className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90"
                 >
                   Done
                 </button>

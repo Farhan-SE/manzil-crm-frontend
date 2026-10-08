@@ -32,7 +32,7 @@ function RailItem({ item, pathname }: { item: NavItem; pathname: string }) {
       className={`${itemClass} ${
         isActive
           ? "bg-nav-active font-bold text-nav-active-fg"
-          : "text-nav-idle hover:bg-dash-border/40 hover:text-dash-ink"
+          : "text-nav-idle hover:bg-border/40 hover:text-ink"
       }`}
     >
       {content}

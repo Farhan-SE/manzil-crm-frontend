@@ -20,12 +20,12 @@ import {
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
-  getPartnerProjects,
+  getProjectOptions,
   getPayments,
   getPaymentsSummary,
   setPaymentStarred,
   verifyPayment,
-  type PartnerProject,
+  type ProjectOption,
   type Payment,
   type PaymentsQuery,
   type PaymentsSummary,
@@ -55,10 +55,10 @@ const COLUMN_COUNT = 9;
 
 const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
-const panelClass = "rounded-[4px] border border-dash-border bg-white p-4";
+const panelClass = "rounded-[4px] border border-border bg-white p-4";
 
 const headerActionClass =
-  "flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-dash-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60";
+  "flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60";
 
 function plural(count: number, noun: string) {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
@@ -110,13 +110,13 @@ export default function AccountsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const [projects, setProjects] = useState<PartnerProject[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [months] = useState(recentMonths);
   const [recording, setRecording] = useState<Payment | null>(null);
   const [isNewOpen, setIsNewOpen] = useState(false);
 
   useEffect(() => {
-    getPartnerProjects({ limit: 500 }).then(setProjects).catch(() => {});
+    getProjectOptions().then(setProjects).catch(() => {});
   }, []);
 
   const buildQuery = useCallback(
@@ -206,10 +206,10 @@ export default function AccountsPage() {
       <div className="flex w-full flex-col">
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-8">
           <div className="flex flex-col gap-[3px] leading-[1.4]">
-            <h1 className="font-serif text-xl font-bold text-dash-ink" style={headingStyle}>
+            <h1 className="font-serif text-xl font-bold text-ink" style={headingStyle}>
               Accounts
             </h1>
-            <p className="text-[10px] text-dash-muted">
+            <p className="text-[11px] text-muted">
               All amounts in PKR · {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </p>
           </div>
@@ -244,11 +244,11 @@ export default function AccountsPage() {
           {summary &&
             buildMetrics(summary).map((metric) => (
               <div key={metric.label} className={`flex min-w-0 flex-col gap-1.5 leading-[1.4] ${panelClass}`}>
-                <p className="text-[11px] text-dash-muted">{metric.label}</p>
-                <p className="font-serif text-[26px] font-bold text-dash-ink" style={headingStyle}>
+                <p className="text-[11px] text-muted">{metric.label}</p>
+                <p className="font-serif text-[26px] font-bold text-ink" style={headingStyle}>
                   {metric.value}
                 </p>
-                <p className="truncate text-[10px] text-primary">{metric.note}</p>
+                <p className="truncate text-[11px] text-primary">{metric.note}</p>
               </div>
             ))}
         </div>
@@ -337,7 +337,7 @@ export default function AccountsPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className="hidden w-8 lg:table-cell">
+                <th scope="col" className="hidden w-8 lg:table-cell">
                   <input
                     type="checkbox"
                     aria-label="Select all transactions"
@@ -348,14 +348,14 @@ export default function AccountsPage() {
                     className={checkboxClass}
                   />
                 </th>
-                <th className={`${headCellClass} w-[104px] lg:w-[14%]`}>Reference / Type</th>
-                <th className={headCellClass}>Client / Project</th>
-                <th className={`${headCellClass} hidden w-[11%] lg:table-cell`}>Due date</th>
-                <th className={`${headCellClass} hidden w-[12%] sm:table-cell`}>Amount (PKR)</th>
-                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Received (PKR)</th>
-                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Balance (PKR)</th>
-                <th className={`${headCellClass} w-[96px] lg:w-[10%]`}>Status</th>
-                <th className={`${headCellClass} w-[40px] text-[9px] lg:w-[5%]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[104px] lg:w-[14%]`}>Reference / Type</th>
+                <th scope="col" className={headCellClass}>Client / Project</th>
+                <th scope="col" className={`${headCellClass} hidden w-[11%] lg:table-cell`}>Due date</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] sm:table-cell`}>Amount (PKR)</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Received (PKR)</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Balance (PKR)</th>
+                <th scope="col" className={`${headCellClass} w-[96px] lg:w-[10%]`}>Status</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -370,7 +370,7 @@ export default function AccountsPage() {
 
               {!isLoading && payments.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? "No transactions match those filters." : "No transactions yet."}
                   </td>
                 </tr>

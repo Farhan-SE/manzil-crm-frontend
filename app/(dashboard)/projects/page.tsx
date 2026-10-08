@@ -33,7 +33,7 @@ const EMPTY_FILTERS: Filters = { search: "", city: "", location: "", unitType: "
 const COLUMN_COUNT = 7;
 
 const headerActionClass =
-  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-dash-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
+  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
 
 /** The range across the project's units; falls back to its starting price until units exist. */
 function priceRange(project: PartnerProject) {
@@ -174,6 +174,7 @@ export default function ProjectsPage() {
   return (
     <ViewTransition>
       <div className="flex w-full flex-col">
+        <h1 className="sr-only">Projects</h1>
         <FilterBar
           onSearch={() => {
             setFilters(draft);
@@ -255,13 +256,13 @@ export default function ProjectsPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className="w-8" />
-                <th className={headCellClass}>Project</th>
-                <th className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Type</th>
-                <th className={`${headCellClass} hidden w-[18%] lg:table-cell`}>Unit types</th>
-                <th className={`${headCellClass} hidden w-[13%] lg:table-cell`}>Booking info</th>
-                <th className={`${headCellClass} w-[34%] lg:w-[15%]`}>Price range</th>
-                <th className="w-[40px] lg:w-[4%]" />
+                <th scope="col" className="w-8" />
+                <th scope="col" className={headCellClass}>Project</th>
+                <th scope="col" className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Type</th>
+                <th scope="col" className={`${headCellClass} hidden w-[18%] lg:table-cell`}>Unit types</th>
+                <th scope="col" className={`${headCellClass} hidden w-[13%] lg:table-cell`}>Booking info</th>
+                <th scope="col" className={`${headCellClass} w-[34%] lg:w-[15%]`}>Price range</th>
+                <th scope="col" className="w-[40px] lg:w-[4%]" />
               </tr>
             </thead>
             <tbody>
@@ -279,7 +280,7 @@ export default function ProjectsPage() {
 
               {!isLoading && visible.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? `No ${tab} projects match those filters.` : `No ${tab} projects yet.`}
                   </td>
                 </tr>
@@ -304,7 +305,7 @@ export default function ProjectsPage() {
                           }}
                           aria-label={project.is_starred ? "Remove from favourites" : "Add to favourites"}
                           aria-pressed={project.is_starred}
-                          className="block text-warm"
+                          className="block text-warm-ink"
                         >
                           <StarIcon className="size-4" filled={project.is_starred} />
                         </button>
@@ -313,7 +314,7 @@ export default function ProjectsPage() {
                         <p className="truncate">
                           {project.project_name}
                           {isNewProject(project.created_at) && (
-                            <span className="ml-2.5 text-[10px] text-primary">New</span>
+                            <span className="ml-2.5 text-[11px] text-primary">New</span>
                           )}
                         </p>
                       </td>
@@ -332,7 +333,7 @@ export default function ProjectsPage() {
                             <p className={subTextClass}>Available units: {project.available_units}</p>
                           </>
                         ) : (
-                          <p className="text-[10px] text-muted">Available Units: 0</p>
+                          <p className="text-[11px] text-muted">Available Units: 0</p>
                         )}
                       </td>
                       <td className="hidden pr-3 lg:table-cell">

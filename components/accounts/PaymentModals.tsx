@@ -1,23 +1,24 @@
 "use client";
 
-import { useEffect, useState, type ReactNode, type SubmitEvent } from "react";
-import { Select, type SelectOption } from "@/components/ui/Select";
-import { createPayment, getLeads, recordPayment, type Payment } from "@/lib/api";
+import { useState, type ReactNode, type SubmitEvent } from "react";
+import { Select } from "@/components/ui/Select";
+import { LeadPicker } from "@/components/ui/LeadPicker";
+import { createPayment, recordPayment, type Payment } from "@/lib/api";
 import { PAYMENT_METHODS, PAYMENT_TYPES, paymentCode, paymentTypeLabel } from "@/lib/payments";
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6">
           <h2
-            className="font-serif text-2xl font-bold text-dash-ink"
+            className="font-serif text-2xl font-bold text-ink"
             style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
           >
             {title}
@@ -26,7 +27,7 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-dash-muted transition-colors hover:text-dash-ink"
+            className="text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -43,14 +44,14 @@ function FormActions({ onClose, isSubmitting, label }: { onClose: () => void; is
       <button
         type="button"
         onClick={onClose}
-        className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+        className="text-sm font-medium text-muted transition-colors hover:text-ink"
       >
         Cancel
       </button>
       <button
         type="submit"
         disabled={isSubmitting}
-        className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isSubmitting ? "Saving..." : label}
       </button>
@@ -64,22 +65,8 @@ export function NewPaymentModal({ onClose, onCreated }: { onClose: () => void; o
   const [paymentType, setPaymentType] = useState(PAYMENT_TYPES[0].id);
   const [dueDate, setDueDate] = useState(() => new Date().toLocaleDateString("en-CA"));
   const [amount, setAmount] = useState("");
-  const [leads, setLeads] = useState<SelectOption[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getLeads({ limit: 200 })
-      .then((res) =>
-        setLeads(
-          res.data.map((lead) => ({
-            id: lead.id,
-            name: `Lead ${lead.lead_no} — ${lead.client_name}${lead.project ? ` · ${lead.project.name}` : ""}`,
-          })),
-        ),
-      )
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load leads."));
-  }, []);
 
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -103,21 +90,21 @@ export function NewPaymentModal({ onClose, onCreated }: { onClose: () => void; o
     <ModalShell title="Add payment due" onClose={onClose}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 py-5 sm:px-6">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="payment-lead" className="text-sm text-dash-muted">
+          <label htmlFor="payment-lead" className="text-sm text-muted">
             Client / sale
             <span className="text-hot"> *</span>
           </label>
-          <Select id="payment-lead" value={leadId} onChange={setLeadId} options={leads} placeholder="Select a lead" />
+          <LeadPicker id="payment-lead" value={leadId} onChange={setLeadId} onError={setError} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="payment-type" className="text-sm text-dash-muted">
+          <label htmlFor="payment-type" className="text-sm text-muted">
             Payment type
           </label>
           <Select id="payment-type" value={paymentType} onChange={setPaymentType} options={PAYMENT_TYPES} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="payment-due" className="text-sm text-dash-muted">
+            <label htmlFor="payment-due" className="text-sm text-muted">
               Due date
               <span className="text-hot"> *</span>
             </label>
@@ -131,7 +118,7 @@ export function NewPaymentModal({ onClose, onCreated }: { onClose: () => void; o
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="payment-amount" className="text-sm text-dash-muted">
+            <label htmlFor="payment-amount" className="text-sm text-muted">
               Amount (PKR)
               <span className="text-hot"> *</span>
             </label>
@@ -201,24 +188,24 @@ export function RecordPaymentModal({
     <ModalShell title="Record payment" onClose={onClose}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 py-5 sm:px-6">
         <div>
-          <p className="text-sm font-semibold text-dash-ink">
+          <p className="text-sm font-semibold text-ink">
             {paymentCode(payment)} · {paymentTypeLabel(payment.payment_type)}
           </p>
-          <p className="text-xs text-dash-muted">
+          <p className="text-xs text-muted">
             {payment.lead.client_name} · Lead {payment.lead.lead_no}
           </p>
         </div>
         <dl className="flex flex-col gap-1.5 text-sm">
           {summary.map(([label, value]) => (
             <div key={label} className="flex gap-2">
-              <dt className="w-40 shrink-0 text-dash-muted">{label}</dt>
-              <dd className="text-dash-ink">PKR {Number(value).toLocaleString()}</dd>
+              <dt className="w-40 shrink-0 text-muted">{label}</dt>
+              <dd className="text-ink">PKR {Number(value).toLocaleString()}</dd>
             </div>
           ))}
         </dl>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="record-amount" className="text-sm text-dash-muted">
+            <label htmlFor="record-amount" className="text-sm text-muted">
               Amount (PKR)
               <span className="text-hot"> *</span>
             </label>
@@ -234,14 +221,14 @@ export function RecordPaymentModal({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="record-method" className="text-sm text-dash-muted">
+            <label htmlFor="record-method" className="text-sm text-muted">
               Payment method
             </label>
             <Select id="record-method" value={method} onChange={setMethod} options={PAYMENT_METHODS} />
           </div>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="record-reference" className="text-sm text-dash-muted">
+          <label htmlFor="record-reference" className="text-sm text-muted">
             Bank / transaction reference
           </label>
           <input
@@ -254,7 +241,7 @@ export function RecordPaymentModal({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="record-note" className="text-sm text-dash-muted">
+          <label htmlFor="record-note" className="text-sm text-muted">
             Payment note
           </label>
           <textarea
@@ -265,7 +252,7 @@ export function RecordPaymentModal({
             className={inputClass}
           />
         </div>
-        <p className="text-xs text-dash-muted">
+        <p className="text-xs text-muted">
           Recorded payments remain unverified until Accounts confirms the receipt.
         </p>
 

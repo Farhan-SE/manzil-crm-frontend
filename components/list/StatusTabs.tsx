@@ -31,7 +31,7 @@ export function StatusTabs<T extends string>({
               type="button"
               onClick={() => onChange(tab.id)}
               aria-pressed={tab.id === active}
-              className={`-mb-px flex shrink-0 items-center gap-1 whitespace-nowrap border-b-2 px-3 text-xs font-bold leading-[1.4] transition-colors ${
+              className={`-mb-px flex min-h-10 shrink-0 items-center gap-1 whitespace-nowrap border-b-2 px-3 text-xs font-bold leading-[1.4] transition-colors ${
                 tab.id === active ? "border-cold text-cold" : "border-transparent text-ink hover:text-cold"
               }`}
             >
@@ -57,7 +57,7 @@ export function StatusTabs<T extends string>({
             className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-[5px] text-sm leading-[1.4] transition-colors ${
               tab.id === active
                 ? "mx-2.5 bg-nav-active font-bold text-nav-active-fg"
-                : "text-nav-idle hover:text-dash-ink"
+                : "text-nav-idle hover:text-ink"
             }`}
           >
             {tab.label}
@@ -76,7 +76,7 @@ export function FavouritesButton({ active, onChange }: { active: boolean; onChan
       type="button"
       onClick={() => onChange(!active)}
       aria-pressed={active}
-      className={`shrink-0 text-xs leading-[1.4] transition-colors hover:text-dash-ink ${
+      className={`-my-2 shrink-0 py-2 text-xs leading-[1.4] transition-colors hover:text-ink ${
         active ? "font-bold text-nav-active-fg" : "text-nav-idle"
       }`}
     >
@@ -97,7 +97,7 @@ export function SortButton({
       type="button"
       onClick={() => onChange(sort === "desc" ? "asc" : "desc")}
       aria-label={`Sort by ID, currently ${sort === "desc" ? "newest first" : "oldest first"}`}
-      className="flex shrink-0 items-center gap-1.5 text-xs leading-[1.4] text-nav-idle transition-colors hover:text-dash-ink"
+      className="-my-2 flex shrink-0 items-center gap-1.5 py-2 text-xs leading-[1.4] text-nav-idle transition-colors hover:text-ink"
     >
       Sort By
       <Icon name="sort" className={`size-4 text-ink transition-transform ${sort === "asc" ? "-scale-y-100" : ""}`} />

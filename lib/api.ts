@@ -699,6 +699,24 @@ export type PartnerProjectInput = {
 export const getPartnerProjects = (params: InventoryQuery = {}) =>
   apiFetch<PartnerProject[]>(`/partner-projects${buildQueryString(params)}`);
 
+export type ProjectOption = { id: string; project_name: string };
+
+const PROJECT_OPTIONS_TTL = 5 * 60_000;
+let projectOptions: { at: number; request: Promise<ProjectOption[]> } | null = null;
+
+/** Project names for filter dropdowns. Shared between pages for a few minutes, since every list has one. */
+export function getProjectOptions() {
+  if (!projectOptions || Date.now() - projectOptions.at > PROJECT_OPTIONS_TTL) {
+    const request = apiFetch<ProjectOption[]>("/partner-projects/options");
+    projectOptions = { at: Date.now(), request };
+    // A failed load must not be remembered.
+    request.catch(() => {
+      if (projectOptions?.request === request) projectOptions = null;
+    });
+  }
+  return projectOptions.request;
+}
+
 export const createPartnerProject = (dto: PartnerProjectInput) =>
   apiFetch<PartnerProject>("/partner-projects", { method: "POST", body: JSON.stringify(dto) });
 

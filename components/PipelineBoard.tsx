@@ -61,12 +61,12 @@ function DealCard({ lead, menu }: { lead: PipelineLead; menu?: React.ReactNode }
       </div>
       <p className="truncate text-xs text-primary">{lead.project?.name ?? "—"}</p>
       <p className="text-xs font-bold text-ink">{lead.budget != null ? formatMoney(lead.budget) : "—"}</p>
-      <p className="truncate text-[10px] text-muted">
+      <p className="truncate text-[11px] text-muted">
         Lead {lead.lead_no} · {agent}
       </p>
       <div className="flex items-center gap-1.5 text-ink">
         <Icon name={step.icon} className="size-4" />
-        <p className="truncate text-[10px]">{step.text}</p>
+        <p className="truncate text-[11px]">{step.text}</p>
       </div>
     </div>
   );
@@ -141,7 +141,7 @@ function StageHeading({ meta, count, total }: { meta: StageMeta; count?: number;
       <div className="flex items-start justify-between">
         <p className="text-xs font-bold">{meta.label}</p>
         {count !== undefined && (
-          <span className="rounded-[20px] bg-badge-neutral px-3 py-1 text-[10px]">{count}</span>
+          <span className="rounded-[20px] bg-badge-neutral px-3 py-1 text-[11px]">{count}</span>
         )}
       </div>
       <p className="text-[11px] text-muted">{total !== undefined ? formatMoney(total) : " "}</p>

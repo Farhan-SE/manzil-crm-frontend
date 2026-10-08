@@ -52,6 +52,8 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = "" }: Forg
     >
       <div
         className="relative w-full max-w-md rounded-lg bg-white p-8"
+        role="dialog"
+        aria-modal="true"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -101,7 +103,7 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = "" }: Forg
               />
             </div>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-hot">{error}</p>}
 
             <button
               type="submit"

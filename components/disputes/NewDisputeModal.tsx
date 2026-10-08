@@ -2,11 +2,12 @@
 
 import { useEffect, useState, type SubmitEvent } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
-import { createSalesDispute, getLeads, getUsers } from "@/lib/api";
+import { LeadPicker } from "@/components/ui/LeadPicker";
+import { createSalesDispute, getUsers } from "@/lib/api";
 import { DISPUTE_CATEGORIES } from "@/lib/disputes";
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 export function NewDisputeModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [leadId, setLeadId] = useState("");
@@ -17,22 +18,11 @@ export function NewDisputeModal({ onClose, onCreated }: { onClose: () => void; o
   const [reviewOwnerId, setReviewOwnerId] = useState("");
   const [resolutionDue, setResolutionDue] = useState("");
 
-  const [leads, setLeads] = useState<SelectOption[]>([]);
   const [owners, setOwners] = useState<SelectOption[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getLeads({ limit: 200 })
-      .then((res) =>
-        setLeads(
-          res.data.map((lead) => ({
-            id: lead.id,
-            name: `Lead ${lead.lead_no} — ${lead.client_name}${lead.project ? ` · ${lead.project.name}` : ""}`,
-          })),
-        ),
-      )
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load leads."));
     getUsers()
       .then((users) =>
         setOwners(users.map((user) => ({ id: String(user.id), name: `${user.first_name} ${user.last_name}` }))),
@@ -70,11 +60,11 @@ export function NewDisputeModal({ onClose, onCreated }: { onClose: () => void; o
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6">
           <h2
-            className="font-serif text-2xl font-bold text-dash-ink"
+            className="font-serif text-2xl font-bold text-ink"
             style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
           >
             Create sales dispute
@@ -83,7 +73,7 @@ export function NewDisputeModal({ onClose, onCreated }: { onClose: () => void; o
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-dash-muted transition-colors hover:text-dash-ink"
+            className="text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -91,23 +81,23 @@ export function NewDisputeModal({ onClose, onCreated }: { onClose: () => void; o
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 py-5 sm:px-6">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="dispute-lead" className="text-sm text-dash-muted">
+            <label htmlFor="dispute-lead" className="text-sm text-muted">
               Sale / booking reference
               <span className="text-hot"> *</span>
             </label>
-            <Select id="dispute-lead" value={leadId} onChange={setLeadId} options={leads} placeholder="Select a lead" />
+            <LeadPicker id="dispute-lead" value={leadId} onChange={setLeadId} onError={setError} />
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="dispute-category" className="text-sm text-dash-muted">
+              <label htmlFor="dispute-category" className="text-sm text-muted">
                 Category
                 <span className="text-hot"> *</span>
               </label>
               <Select id="dispute-category" value={category} onChange={setCategory} options={DISPUTE_CATEGORIES} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="dispute-owner" className="text-sm text-dash-muted">
+              <label htmlFor="dispute-owner" className="text-sm text-muted">
                 Review owner
               </label>
               <Select
@@ -118,7 +108,7 @@ export function NewDisputeModal({ onClose, onCreated }: { onClose: () => void; o
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="dispute-subject" className="text-sm text-dash-muted">
+              <label htmlFor="dispute-subject" className="text-sm text-muted">
                 Subject
                 <span className="text-hot"> *</span>
               </label>
@@ -133,7 +123,7 @@ export function NewDisputeModal({ onClose, onCreated }: { onClose: () => void; o
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="dispute-due" className="text-sm text-dash-muted">
+              <label htmlFor="dispute-due" className="text-sm text-muted">
                 Resolution due
               </label>
               <input
@@ -147,7 +137,7 @@ export function NewDisputeModal({ onClose, onCreated }: { onClose: () => void; o
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="dispute-description" className="text-sm text-dash-muted">
+            <label htmlFor="dispute-description" className="text-sm text-muted">
               Description
             </label>
             <textarea
@@ -161,7 +151,7 @@ export function NewDisputeModal({ onClose, onCreated }: { onClose: () => void; o
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="dispute-resolution" className="text-sm text-dash-muted">
+            <label htmlFor="dispute-resolution" className="text-sm text-muted">
               Requested resolution
             </label>
             <textarea
@@ -180,14 +170,14 @@ export function NewDisputeModal({ onClose, onCreated }: { onClose: () => void; o
             <button
               type="button"
               onClick={onClose}
-              className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+              className="text-sm font-medium text-muted transition-colors hover:text-ink"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? "Creating..." : "Create dispute"}
             </button>

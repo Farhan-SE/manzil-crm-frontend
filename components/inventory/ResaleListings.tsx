@@ -23,7 +23,7 @@ const cardClass =
   "flex cursor-pointer flex-col gap-3 rounded-[4px] border border-border bg-white p-4 text-left transition-colors hover:bg-sidebar";
 
 const headerActionClass =
-  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-dash-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
+  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
 
 function formatPrice(price: number | null) {
   return price == null ? "—" : `PKR ${price.toLocaleString()}`;
@@ -165,7 +165,7 @@ export function ResaleListings({ onBack }: { onBack: () => void }) {
             ))}
           </div>
         ) : listings.length === 0 ? (
-          <p className="py-10 text-center text-xs text-dash-placeholder">
+          <p className="py-10 text-center text-xs text-placeholder">
             {search ? "No listings match that search." : "No client listings yet."}
           </p>
         ) : (
@@ -174,7 +174,7 @@ export function ResaleListings({ onBack }: { onBack: () => void }) {
               <button key={listing.id} type="button" onClick={() => setOpenListing(listing)} className={cardClass}>
                 <div className="flex items-start justify-between gap-2">
                   <p className="min-w-0 flex-1 truncate text-xs font-bold text-ink">{listing.area_name}</p>
-                  <span className="shrink-0 rounded-[20px] bg-badge-neutral px-2.5 py-0.5 text-[10px] text-primary">
+                  <span className="shrink-0 rounded-[20px] bg-badge-neutral px-2.5 py-0.5 text-[11px] text-primary">
                     {categoryNameFor(listing.category_id)}
                   </span>
                 </div>
@@ -190,7 +190,7 @@ export function ResaleListings({ onBack }: { onBack: () => void }) {
 
                 <p className="text-xs font-bold text-ink">{formatPrice(listing.price)}</p>
 
-                <p className="flex items-center gap-1.5 border-t border-border pt-3 text-[10px] text-muted">
+                <p className="flex items-center gap-1.5 border-t border-border pt-3 text-[11px] text-muted">
                   {listing.can_see_contact ? (
                     <span className="truncate">{listing.client_name}</span>
                   ) : (

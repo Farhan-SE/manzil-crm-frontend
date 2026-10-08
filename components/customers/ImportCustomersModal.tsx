@@ -169,17 +169,17 @@ export function ImportCustomersModal({ onClose, onImport }: ImportCustomersModal
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-dash-border px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
           <div className="min-w-0">
             <h2
-              className="font-serif text-2xl font-bold text-dash-ink"
+              className="font-serif text-2xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               Import customers
             </h2>
-            <p className="mt-0.5 text-xs text-dash-muted">
+            <p className="mt-0.5 text-xs text-muted">
               Columns can be in any order. Recognised headers: Name, CNIC, Phone, Email, Address,
               City, Type, Source, Notes. Duplicate phone numbers are skipped.
             </p>
@@ -188,7 +188,7 @@ export function ImportCustomersModal({ onClose, onImport }: ImportCustomersModal
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 text-dash-muted transition-colors hover:text-dash-ink"
+            className="shrink-0 text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -196,9 +196,9 @@ export function ImportCustomersModal({ onClose, onImport }: ImportCustomersModal
 
         <div className="flex flex-col gap-4 px-6 py-5">
           {!rows && !imported && (
-            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-dash-border py-12 text-center transition-colors hover:border-dash-muted/50 hover:bg-white/50">
-              <span className="text-sm font-semibold text-dash-ink">Choose a file</span>
-              <span className="text-xs text-dash-muted">.csv — up to a few thousand rows</span>
+            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border py-12 text-center transition-colors hover:border-muted/50 hover:bg-white/50">
+              <span className="text-sm font-semibold text-ink">Choose a file</span>
+              <span className="text-xs text-muted">.csv — up to a few thousand rows</span>
               <input
                 type="file"
                 accept=".csv,.xlsx,.xls"
@@ -208,35 +208,35 @@ export function ImportCustomersModal({ onClose, onImport }: ImportCustomersModal
             </label>
           )}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-hot">{error}</p>}
 
           {rows && (
             <>
-              <p className="text-sm text-dash-ink">
+              <p className="text-sm text-ink">
                 <span className="font-semibold">{fileName}</span> — {rows.length} row
                 {rows.length === 1 ? "" : "s"} ready.
               </p>
 
-              <div className="max-h-64 overflow-y-auto rounded-lg border border-dash-border">
+              <div className="max-h-64 overflow-y-auto rounded-lg border border-border">
                 {rows.slice(0, 20).map((row, i) => (
                   <div
                     key={i}
                     className={`grid grid-cols-4 gap-3 bg-white px-4 py-2.5 text-[13px] ${
-                      i > 0 ? "border-t border-dash-border" : ""
+                      i > 0 ? "border-t border-border" : ""
                     }`}
                   >
-                    <span className="truncate font-medium text-dash-ink">
-                      {row.full_name || <em className="text-dash-placeholder">no name</em>}
+                    <span className="truncate font-medium text-ink">
+                      {row.full_name || <em className="text-placeholder">no name</em>}
                     </span>
-                    <span className="truncate text-dash-muted">
-                      {row.phone || <em className="text-dash-placeholder">no phone</em>}
+                    <span className="truncate text-muted">
+                      {row.phone || <em className="text-placeholder">no phone</em>}
                     </span>
-                    <span className="truncate text-dash-muted">{row.city}</span>
-                    <span className="truncate capitalize text-dash-muted">{row.type}</span>
+                    <span className="truncate text-muted">{row.city}</span>
+                    <span className="truncate capitalize text-muted">{row.type}</span>
                   </div>
                 ))}
                 {rows.length > 20 && (
-                  <p className="bg-white px-4 py-2.5 text-xs text-dash-muted">
+                  <p className="bg-white px-4 py-2.5 text-xs text-muted">
                     + {rows.length - 20} more…
                   </p>
                 )}
@@ -249,14 +249,14 @@ export function ImportCustomersModal({ onClose, onImport }: ImportCustomersModal
                     setRows(null);
                     setFileName("");
                   }}
-                  className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+                  className="text-sm font-medium text-muted transition-colors hover:text-ink"
                 >
                   Choose another
                 </button>
                 <button
                   type="button"
                   onClick={confirmImport}
-                  className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
+                  className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90"
                 >
                   Import {rows.length}
                 </button>
@@ -276,7 +276,7 @@ export function ImportCustomersModal({ onClose, onImport }: ImportCustomersModal
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
+                  className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90"
                 >
                   Done
                 </button>
