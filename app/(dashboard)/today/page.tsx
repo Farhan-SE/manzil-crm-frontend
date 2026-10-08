@@ -1,335 +1,355 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
-import { FilterIcon, PhoneIcon, SearchIcon } from "@/components/icons/DashboardIcons";
+import { FilterBar, FilterDate, FilterField, FilterInput, FilterSelect } from "@/components/list/FilterBar";
+import { RowMenu } from "@/components/list/RowMenu";
+import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
+import { TablePagination } from "@/components/list/TablePagination";
 import {
-  countActiveFilters,
-  EMPTY_FILTERS,
-  LeadsFilterPanel,
-  type LeadFilters,
-} from "@/components/LeadsFilterPanel";
+  checkboxClass,
+  headCellClass,
+  headRowClass,
+  rowClass,
+  subTextClass,
+  tableClass,
+} from "@/components/list/tableStyles";
+import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { SelectOption } from "@/components/ui/Select";
 import {
   getAgents,
-  getCategories,
-  getInterests,
-  getSources,
-  getTodayFollowUps,
-  setFollowUpCompleted,
+  getTodos,
+  setFollowUpStarred,
+  setTaskStatus,
+  type Agent,
   type FollowUp,
+  type TodosQuery,
+  type TodoWindow,
 } from "@/lib/api";
+import { whatsappUrl } from "@/lib/customers";
 import { useIsAdmin } from "@/lib/session";
+import { NEXT_TASKS, TASK_TYPES, taskLabel } from "@/lib/tasks";
+import { formatClock, formatDay, genderLabel, timeAgo } from "@/lib/time";
 
-const STAGE_BADGES: Record<string, { label: string; className: string }> = {
-  inquiry: { label: "Inquiry", className: "bg-stage-inquiry/10 text-stage-inquiry" },
-  contacted: { label: "Contacted", className: "bg-stage-contacted/10 text-stage-contacted" },
-  site_visit: { label: "Site Visit", className: "bg-stage-site-visit/10 text-stage-site-visit" },
-  negotiation: { label: "Negotiation", className: "bg-stage-negotiation/10 text-stage-negotiation" },
-  booked: { label: "Booked", className: "bg-stage-booked/10 text-stage-booked" },
-  sold: { label: "Sold", className: "bg-stage-sold/10 text-stage-sold" },
-  lost: { label: "Lost", className: "bg-stage-lost/10 text-stage-lost" },
+type SearchField = NonNullable<TodosQuery["search_by"]>;
+
+type Filters = { search: string; searchBy: SearchField; assignedToId: string; taskType: string; dueDate: string };
+
+const EMPTY_FILTERS: Filters = { search: "", searchBy: "lead_id", assignedToId: "", taskType: "", dueDate: "" };
+
+const SEARCH_FIELDS: { id: SearchField; name: string }[] = [
+  { id: "lead_id", name: "Lead ID" },
+  { id: "client", name: "Client" },
+  { id: "todo", name: "Todo" },
+];
+
+const TABS: { id: TodoWindow; label: string }[] = [
+  { id: "overdue", label: "Overdue" },
+  { id: "today", label: "Today" },
+  { id: "tomorrow", label: "Tomorrow" },
+  { id: "week", label: "Week" },
+  { id: "all", label: "All" },
+];
+
+const NOUNS: Record<TodoWindow, string> = {
+  overdue: "overdue tasks",
+  today: "tasks due today",
+  tomorrow: "tasks due tomorrow",
+  week: "tasks due this week",
+  all: "tasks",
 };
 
-function formatTime(due: string) {
-  const [hours, minutes] = due.split(":");
-  const hour = Number(hours);
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  return `${String(displayHour).padStart(2, "0")}:${minutes} ${suffix}`;
-}
+// Next tasks reuse some task-type ids; keep the first label for each.
+const TODO_TYPES = [...NEXT_TASKS, ...TASK_TYPES].filter(
+  (option, i, all) => option.id !== "do_nothing" && all.findIndex((other) => other.id === option.id) === i,
+);
 
-function isUpcoming(followUp: FollowUp) {
-  return new Date(`${followUp.due_date}T${followUp.due_time}`) >= new Date();
-}
+const COLUMN_COUNT = 8;
 
-export default function TodayPage() {
+export default function TodosPage() {
   const admin = useIsAdmin();
-  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  const [todos, setTodos] = useState<FollowUp[]>([]);
+  const [total, setTotal] = useState(0);
+  const [windowCounts, setWindowCounts] = useState<Record<TodoWindow, number> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState<LeadFilters>(EMPTY_FILTERS);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const filterRef = useRef<HTMLDivElement>(null);
-
-  const [interests, setInterests] = useState<SelectOption[]>([]);
-  const [categories, setCategories] = useState<SelectOption[]>([]);
-  const [sources, setSources] = useState<SelectOption[]>([]);
-  const [agents, setAgents] = useState<SelectOption[]>([]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setIsFilterOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    Promise.all([getInterests(), getCategories(), getSources()])
-      .then(([interestList, categoryList, sourceList]) => {
-        setInterests(interestList);
-        setCategories(categoryList);
-        setSources(sourceList);
-      })
-      .catch(() => {});
-  }, []);
+  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [tab, setTab] = useState<TodoWindow>("overdue");
+  const [favouritesOnly, setFavouritesOnly] = useState(false);
+  const [sort, setSort] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [agents, setAgents] = useState<Agent[]>([]);
 
   useEffect(() => {
     if (!admin) return;
-    getAgents()
-      .then((list) =>
-        setAgents(list.map((a) => ({ id: String(a.id), name: `${a.first_name} ${a.last_name}` }))),
-      )
-      .catch(() => {});
+    getAgents().then(setAgents).catch(() => {});
   }, [admin]);
 
-  const load = useCallback(() => {
-    getTodayFollowUps({
-      search: debouncedSearch || undefined,
-      stage: filters.stage || undefined,
-      temperature: filters.temperature || undefined,
-      category_id: filters.category_id || undefined,
-      interest_id: filters.interest_id || undefined,
-      source_id: filters.source_id || undefined,
-      assigned_to_id: filters.assigned_to_id ? Number(filters.assigned_to_id) : undefined,
-      budget_min: filters.budget_min ? Number(filters.budget_min) : undefined,
-      budget_max: filters.budget_max ? Number(filters.budget_max) : undefined,
-    })
-      .then(setFollowUps)
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, [debouncedSearch, filters]);
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const search = filters.search.trim();
+      const res = await getTodos({
+        window: tab,
+        search: search || undefined,
+        search_by: search ? filters.searchBy : undefined,
+        assigned_to_id: filters.assignedToId ? Number(filters.assignedToId) : undefined,
+        task_type: filters.taskType || undefined,
+        due_date: filters.dueDate || undefined,
+        starred: favouritesOnly ? "true" : undefined,
+        sort,
+        page,
+        limit: pageSize,
+      });
+      setTodos(res.data);
+      setTotal(res.total);
+      setWindowCounts(res.window_counts);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load todos.");
+      setTodos([]);
+      setTotal(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tab, filters, favouritesOnly, sort, page, pageSize]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
-  async function handleToggle(followUp: FollowUp) {
-    setFollowUps((prev) =>
-      prev.map((f) => (f.id === followUp.id ? { ...f, completed: !f.completed } : f)),
-    );
+  async function run(action: Promise<unknown>) {
     try {
-      await setFollowUpCompleted(followUp.id, !followUp.completed);
-    } catch {
-      setFollowUps((prev) =>
-        prev.map((f) => (f.id === followUp.id ? { ...f, completed: followUp.completed } : f)),
-      );
+      await action;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't update that todo.");
     }
+    void load();
   }
 
-  const activeFilterCount = countActiveFilters(filters);
-  const doneCount = followUps.filter((f) => f.completed).length;
+  const isFiltered = Object.values({ ...filters, searchBy: "" }).some(Boolean) || favouritesOnly;
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:gap-8 sm:px-8 sm:py-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1
-            className="font-serif text-[28px] font-semibold leading-none text-dash-ink sm:text-[34px]"
-            style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
-          >
-            Today
-          </h1>
-          {!isLoading && followUps.length > 0 && (
-            <p className="text-sm text-dash-muted">
-              {doneCount} of {followUps.length} done
-            </p>
-          )}
-        </div>
-        <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
-          <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
-            <SearchIcon className="absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-muted" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search tasks or clients..."
-              className="w-full rounded-lg border border-dash-border bg-sidebar py-2.5 pl-10 pr-4 text-sm text-dash-ink placeholder:text-dash-muted focus:outline-none"
+      <div className="flex w-full flex-col">
+        <FilterBar
+          onSearch={() => {
+            setFilters(draft);
+            setPage(1);
+          }}
+        >
+          <FilterField label="Search by">
+            <FilterInput
+              value={draft.search}
+              onChange={(e) => setDraft({ ...draft, search: e.target.value })}
+              placeholder="Search by Lead"
+              aria-label="Search todos"
             />
-          </div>
-          <div ref={filterRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setIsFilterOpen((v) => !v)}
-              aria-expanded={isFilterOpen}
-              className="flex shrink-0 items-center gap-2 rounded-lg border border-dash-border px-4 py-2.5 text-sm font-semibold text-dash-ink"
+            <FilterSelect
+              value={draft.searchBy}
+              onChange={(e) => setDraft({ ...draft, searchBy: e.target.value as SearchField })}
+              aria-label="Search field"
+              className="w-[72px] shrink-0"
             >
-              <FilterIcon className="h-[9px] w-[13.5px]" />
-              Filter
-              {activeFilterCount > 0 && (
-                <span className="flex size-4 items-center justify-center rounded-full bg-dash-ink text-[10px] font-bold text-white">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-
-            {isFilterOpen && (
-              <LeadsFilterPanel
-                value={filters}
-                onApply={(next) => {
-                  setFilters(next);
-                  setIsFilterOpen(false);
-                }}
-                onClear={() => {
-                  setFilters(EMPTY_FILTERS);
-                  setIsFilterOpen(false);
-                }}
-                interests={interests}
-                categories={categories}
-                sources={sources}
-                agents={agents}
-                showAssignee={admin}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-lg border border-dash-border bg-sidebar shadow-sm">
-        <div className="hidden gap-4 border-b border-dash-border bg-dash-bg px-6 py-4 md:flex">
-          <span className="w-10 shrink-0" />
-          <p className="w-[100px] shrink-0 text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">
-            Time
-          </p>
-          <p className="flex-1 text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">Task</p>
-          <p className="w-[120px] shrink-0 text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">
-            Status
-          </p>
-          <p className="w-[100px] shrink-0 text-right text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">
-            Actions
-          </p>
-        </div>
-
-        <div className="bg-white">
-          {isLoading &&
-            Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-3 px-4 py-3 md:gap-4 md:px-6 ${i > 0 ? "border-t border-dash-border" : ""}`}
+              {SEARCH_FIELDS.map((field) => (
+                <option key={field.id} value={field.id}>
+                  {field.name}
+                </option>
+              ))}
+            </FilterSelect>
+          </FilterField>
+          {admin && (
+            <FilterField label="Assigned Staff">
+              <FilterSelect
+                value={draft.assignedToId}
+                onChange={(e) => setDraft({ ...draft, assignedToId: e.target.value })}
+                placeholder="Search by Task Added By"
               >
-                <div className="flex w-6 shrink-0 justify-center md:w-10">
-                  <Skeleton className="size-4" />
-                </div>
-                <Skeleton className="hidden h-3 w-[70px] shrink-0 md:block" />
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <Skeleton className="h-4 w-full max-w-64" />
-                  <Skeleton className="h-3 w-40" />
-                </div>
-                <div className="hidden w-[120px] shrink-0 md:block">
-                  <Skeleton className="h-5 w-20" />
-                </div>
-                <div className="flex w-9 shrink-0 justify-end md:w-[100px]">
-                  <Skeleton className="size-4" />
-                </div>
-              </div>
-            ))}
-
-          {!isLoading && followUps.length === 0 && (
-            <p className="px-4 py-10 text-center text-sm text-dash-placeholder md:px-6">
-              {debouncedSearch || activeFilterCount > 0
-                ? "No follow-ups match those filters."
-                : "Nothing scheduled for today."}
-            </p>
+                {agents.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.first_name} {agent.last_name}
+                  </option>
+                ))}
+              </FilterSelect>
+            </FilterField>
           )}
+          <FilterField label="Todo Type">
+            <FilterSelect
+              value={draft.taskType}
+              onChange={(e) => setDraft({ ...draft, taskType: e.target.value })}
+              placeholder="Search by Todo Type"
+            >
+              {TODO_TYPES.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </FilterSelect>
+          </FilterField>
+          <FilterField label="Show Todos By">
+            <FilterDate
+              value={draft.dueDate}
+              onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })}
+              placeholder="Search by Due Date"
+            />
+          </FilterField>
+        </FilterBar>
 
-          {followUps.map((followUp, i) => {
-            const stage = STAGE_BADGES[followUp.lead.stage];
-            const location = [followUp.lead.area, followUp.lead.city].filter(Boolean).join(", ");
-            const timeTone =
-              !followUp.completed && isUpcoming(followUp) ? "text-status-negotiation" : "text-dash-muted";
-            return (
-              <div
-                key={followUp.id}
-                className={`flex items-start gap-3 px-4 py-3 md:items-center md:gap-4 md:px-6 ${i > 0 ? "border-t border-dash-border" : ""} ${
-                  followUp.completed ? "opacity-60" : ""
-                }`}
-              >
-                <div className="flex w-6 shrink-0 items-center justify-center pt-1 md:w-10 md:pt-0">
-                  <input
-                    type="checkbox"
-                    checked={followUp.completed}
-                    onChange={() => handleToggle(followUp)}
-                    aria-label={`Mark "${followUp.text}" done`}
-                    className="size-4 accent-warm"
-                  />
-                </div>
-                <p className={`hidden w-[100px] shrink-0 text-[11.5px] md:block ${timeTone}`}>
-                  {formatTime(followUp.due_time)}
-                </p>
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="flex flex-wrap items-baseline gap-x-2">
-                    <span
-                      className="font-serif text-base font-semibold text-dash-ink"
-                      style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
-                    >
-                      {followUp.lead.client_name}
-                    </span>
-                    <span
-                      className={`text-sm text-dash-muted ${followUp.completed ? "line-through" : ""}`}
-                    >
-                      — {followUp.text}
-                    </span>
-                  </p>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-dash-muted">
-                    {/* Time and stage get their own columns from md up; below that they ride in this line. */}
-                    <span className={`font-medium md:hidden ${timeTone}`}>{formatTime(followUp.due_time)}</span>
-                    <span className="md:hidden">·</span>
-                    <span>{location || followUp.lead.client_number}</span>
-                    {admin && (
-                      <>
-                        <span>·</span>
-                        <span className="rounded bg-badge-neutral px-1.5 py-0.5 text-[11px] text-dash-ink">
-                          {followUp.lead.assigned_to
-                            ? `${followUp.lead.assigned_to.first_name} ${followUp.lead.assigned_to.last_name}`
-                            : "Unassigned"}
-                        </span>
-                      </>
-                    )}
-                    <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.315px] md:hidden ${
-                        stage?.className ?? "bg-badge-neutral text-dash-muted"
-                      }`}
-                    >
-                      {stage?.label ?? followUp.lead.stage}
-                    </span>
-                  </div>
-                </div>
-                <div className="hidden w-[120px] shrink-0 md:block">
-                  <span
-                    className={`rounded px-2 py-1 text-[10.5px] font-bold uppercase tracking-[0.315px] ${
-                      stage?.className ?? "bg-badge-neutral text-dash-muted"
-                    }`}
-                  >
-                    {stage?.label ?? followUp.lead.stage}
-                  </span>
-                </div>
-                <div className="flex w-9 shrink-0 items-center justify-end gap-3 pt-0.5 md:w-[100px] md:pt-0">
-                  <a
-                    href={`tel:${followUp.lead.client_number}`}
-                    className="text-muted"
-                    aria-label={`Call ${followUp.lead.client_name}`}
-                  >
-                    <PhoneIcon className="size-[15px]" />
-                  </a>
-                </div>
-              </div>
-            );
-          })}
+        <StatusTabs
+          tabs={TABS.map((entry) => ({ ...entry, count: windowCounts?.[entry.id] ?? null }))}
+          active={tab}
+          onChange={(next) => {
+            setTab(next);
+            setPage(1);
+          }}
+        >
+          <FavouritesButton
+            active={favouritesOnly}
+            onChange={(next) => {
+              setFavouritesOnly(next);
+              setPage(1);
+            }}
+          />
+          <SortButton
+            sort={sort}
+            onChange={(next) => {
+              setSort(next);
+              setPage(1);
+            }}
+          />
+        </StatusTabs>
+
+        {error && <p className="mx-4 mt-4 rounded-[4px] bg-hot/10 px-4 py-3 text-xs text-hot sm:mx-8">{error}</p>}
+
+        <div className="px-4 sm:px-8">
+          <table className={tableClass}>
+            <thead>
+              <tr className={headRowClass}>
+                <th className="w-8" />
+                <th className={headCellClass}>Todo</th>
+                <th className={`${headCellClass} hidden w-[13%] lg:table-cell`}>Last task</th>
+                <th className={`${headCellClass} hidden w-[15%] lg:table-cell`}>Staff (Assignee)</th>
+                <th className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Lead ID</th>
+                <th className={`${headCellClass} w-[34%] lg:w-[13%]`}>Client</th>
+                <th className={`${headCellClass} hidden w-[15%] sm:table-cell`}>Interest</th>
+                <th className="w-[60px] lg:w-[11%]" />
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading &&
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className={rowClass}>
+                    <td colSpan={COLUMN_COUNT}>
+                      <div className="flex flex-col gap-2">
+                        <Skeleton className="h-3 w-1/3" />
+                        <Skeleton className="h-2.5 w-1/5" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+              {!isLoading && todos.length === 0 && (
+                <tr>
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                    {isFiltered ? "No todos match those filters." : "Nothing here. All caught up."}
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading &&
+                todos.map((todo) => {
+                  const agent = todo.lead.assigned_to;
+                  return (
+                    <tr key={todo.id} className={rowClass}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={todo.completed}
+                          onChange={() => void run(setTaskStatus(todo.id, "completed"))}
+                          aria-label={`Mark "${todo.text}" done`}
+                          className={checkboxClass}
+                        />
+                      </td>
+                      <td className="pr-3">
+                        <p className="line-clamp-2">{todo.text}</p>
+                        <p className={`${subTextClass} ${todo.overdue ? "text-hot" : ""}`}>
+                          ▣&nbsp; {formatDay(`${todo.due_date}T00:00:00`)} {formatClock(todo.due_time)}
+                        </p>
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        {todo.last_task ? (
+                          <>
+                            <p className="line-clamp-2">{taskLabel(todo.last_task)}</p>
+                            {todo.last_task.at && <p className={subTextClass}>{timeAgo(todo.last_task.at)}</p>}
+                          </>
+                        ) : (
+                          <p className="text-muted">—</p>
+                        )}
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        <p className="truncate">
+                          {agent ? `${agent.first_name} ${agent.last_name}` : "Unassigned"}
+                        </p>
+                        {agent?.team && <p className={subTextClass}>{agent.team}</p>}
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        <p>{todo.lead.lead_no}</p>
+                        <p className={subTextClass}>▣&nbsp; {formatDay(todo.lead.created_at)}</p>
+                      </td>
+                      <td className="pr-3">
+                        <p className="truncate">{todo.lead.client_name}</p>
+                        <p className={subTextClass}>▣&nbsp; {genderLabel(todo.lead.gender)}</p>
+                      </td>
+                      <td className="hidden pr-3 sm:table-cell">
+                        <p className="truncate">{todo.lead.project?.name ?? "—"}</p>
+                        {todo.lead.interest && <p className={subTextClass}>{todo.lead.interest.name}</p>}
+                      </td>
+                      <td>
+                        <div className="flex items-center justify-end gap-2 text-primary lg:justify-start lg:gap-[19px]">
+                          <a
+                            href={`tel:${todo.lead.client_number}`}
+                            aria-label={`Call ${todo.lead.client_name}`}
+                          >
+                            <Icon name="phone" className="block size-4" />
+                          </a>
+                          <RowMenu
+                            label={`More actions for "${todo.text}"`}
+                            items={[
+                              { label: "Mark done", onClick: () => void run(setTaskStatus(todo.id, "completed")) },
+                              {
+                                label: todo.is_starred ? "Remove from favourites" : "Add to favourites",
+                                onClick: () => void run(setFollowUpStarred(todo.id, !todo.is_starred)),
+                              },
+                              {
+                                label: "WhatsApp client",
+                                href: whatsappUrl(todo.lead.client_number),
+                                external: true,
+                              },
+                            ]}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
         </div>
+
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          noun={NOUNS[tab]}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </div>
-    </div>
     </ViewTransition>
   );
 }

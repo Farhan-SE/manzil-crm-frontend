@@ -2,22 +2,35 @@
 
 import { useState, type SubmitEvent } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
-import { setUserTeam, type Team, type TeamMember } from "@/lib/api";
+import { setUserTeam, updateStaffProfile, type Team, type TeamMember } from "@/lib/api";
 
 const NO_TEAM: SelectOption = { id: "", name: "No team" };
+const NO_MANAGER: SelectOption = { id: "", name: "No line manager" };
+
+const inputClass =
+  "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
 
 export function EditTeamMemberModal({
   member,
   teams,
+  managers,
   onClose,
   onUpdated,
 }: {
   member: TeamMember;
   teams: Team[];
+  /** Everyone who could be this member's line manager. */
+  managers: TeamMember[];
   onClose: () => void;
   onUpdated: (member: TeamMember) => void;
 }) {
   const [teamId, setTeamId] = useState(member.team_id ?? "");
+  const [designation, setDesignation] = useState(member.designation ?? "");
+  const [department, setDepartment] = useState(member.department ?? "");
+  const [region, setRegion] = useState(member.region ?? "");
+  const [office, setOffice] = useState(member.office ?? "");
+  const [managerId, setManagerId] = useState(member.manager_id != null ? String(member.manager_id) : "");
+  const [joinedOn, setJoinedOn] = useState(member.joined_on ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,6 +39,15 @@ export function EditTeamMemberModal({
     setError(null);
     setIsSubmitting(true);
     try {
+      await updateStaffProfile(member.id, {
+        designation,
+        department,
+        region,
+        office,
+        manager_id: managerId ? Number(managerId) : null,
+        joined_on: joinedOn || null,
+      });
+      // The team call runs last so the member it returns carries the profile changes too.
       onUpdated(await setUserTeam(member.id, teamId || null));
       onClose();
     } catch (err) {
@@ -34,10 +56,17 @@ export function EditTeamMemberModal({
     }
   }
 
+  const textFields = [
+    { id: "designation", label: "Designation", value: designation, set: setDesignation, placeholder: "e.g. AMBD" },
+    { id: "department", label: "Department", value: department, set: setDepartment, placeholder: "e.g. Sales - Primary" },
+    { id: "region", label: "Region", value: region, set: setRegion, placeholder: "e.g. Central 1" },
+    { id: "office", label: "Office", value: office, set: setOffice, placeholder: "e.g. Lahore" },
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-xl bg-sidebar shadow-lg"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-sidebar shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-dash-border px-4 py-4 sm:px-6">
@@ -62,7 +91,58 @@ export function EditTeamMemberModal({
             <p className="text-sm font-semibold text-dash-ink">
               {member.first_name} {member.last_name}
             </p>
-            <p className="text-xs text-dash-muted">{member.email}</p>
+            <p className="text-xs text-dash-muted">
+              E.ID: {member.id} · {member.email}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {textFields.map((field) => (
+              <div key={field.id} className="flex flex-col gap-1.5">
+                <label htmlFor={`edit-member-${field.id}`} className="text-sm text-dash-muted">
+                  {field.label}
+                </label>
+                <input
+                  id={`edit-member-${field.id}`}
+                  type="text"
+                  value={field.value}
+                  onChange={(e) => field.set(e.target.value)}
+                  placeholder={field.placeholder}
+                  className={inputClass}
+                />
+              </div>
+            ))}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="edit-member-manager" className="text-sm text-dash-muted">
+                Line manager
+              </label>
+              <Select
+                id="edit-member-manager"
+                value={managerId}
+                onChange={setManagerId}
+                options={[
+                  NO_MANAGER,
+                  ...managers
+                    .filter((manager) => manager.id !== member.id)
+                    .map((manager) => ({
+                      id: String(manager.id),
+                      name: `${manager.first_name} ${manager.last_name}`,
+                    })),
+                ]}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="edit-member-joined" className="text-sm text-dash-muted">
+                Joined on
+              </label>
+              <input
+                id="edit-member-joined"
+                type="date"
+                value={joinedOn}
+                onChange={(e) => setJoinedOn(e.target.value)}
+                className={inputClass}
+              />
+            </div>
           </div>
 
           <div className="flex flex-col gap-1.5">

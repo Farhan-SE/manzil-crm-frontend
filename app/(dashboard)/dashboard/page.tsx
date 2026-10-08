@@ -1,117 +1,130 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ViewTransition } from "react";
-import { ArrowRightIcon, PhoneIcon, SearchIcon } from "@/components/icons/DashboardIcons";
 import { LeadDetailModal } from "@/components/LeadDetailModal";
+import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
-  getActiveLeads,
   getDashboardStats,
   getFollowUps,
-  getLeads,
+  getLead,
+  getRecentActivity,
+  getSalesPerformance,
+  type Activity,
   type DashboardStats,
   type FollowUp,
   type Lead,
+  type SalesMonth,
 } from "@/lib/api";
-import { useSessionFullName } from "@/lib/session";
+import { downloadCsv } from "@/lib/csv";
+import { formatMillions, formatMoney } from "@/lib/money";
+import { taskLabel } from "@/lib/tasks";
 
-/** PKR amounts get abbreviated — a raw 8450000 is unreadable in a stat tile. */
-function formatMoney(value: number) {
-  if (value >= 10_000_000) return `PKR ${(value / 10_000_000).toFixed(2)}Cr`;
-  if (value >= 100_000) return `PKR ${(value / 100_000).toFixed(2)}L`;
-  if (value >= 1_000) return `PKR ${(value / 1_000).toFixed(1)}K`;
-  return `PKR ${value.toLocaleString()}`;
+const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
+
+const panelClass = "rounded-[4px] border border-dash-border bg-white p-4";
+
+const BAR_MAX_HEIGHT = 97;
+
+function monthLabel(month: string, withYear = false) {
+  return new Date(`${month}-01T00:00:00`).toLocaleDateString("en-US", {
+    month: "short",
+    year: withYear ? "numeric" : undefined,
+  });
 }
 
-function buildStats(stats: DashboardStats) {
-  const isSystem = stats.scope === "system";
+function buildMetrics(stats: DashboardStats) {
+  const change = stats.new_inquiries_change;
   return [
-    { label: isSystem ? "OPEN LEADS" : "MY OPEN LEADS", value: String(stats.open_leads) },
-    { label: "PIPELINE VALUE", value: formatMoney(stats.pipeline_value) },
-    { label: "CLOSED VOLUME", value: formatMoney(stats.closed_volume) },
     {
-      label: "OVERDUE FOLLOW-UPS",
-      value: String(stats.overdue_follow_ups),
-      tone: stats.overdue_follow_ups > 0 ? ("hot" as const) : undefined,
+      label: "New inquiries",
+      value: String(stats.new_inquiries),
+      note: `${change >= 0 ? "+" : "−"}${Math.abs(change)} compared with last month`,
+    },
+    {
+      label: "Active opportunities",
+      value: String(stats.open_leads),
+      note: `${formatMoney(stats.pipeline_value)} pipeline value`,
+    },
+    {
+      label: "Closed sales",
+      value: String(stats.closed_sales_month),
+      note: `${formatMoney(stats.closed_value_month)} booked this month`,
+    },
+    {
+      label: "Tasks due today",
+      value: String(stats.tasks_due_today),
+      note: `${stats.overdue_follow_ups} follow-ups need attention`,
     },
   ];
 }
 
-const STAGE_LABELS: Record<string, string> = {
-  inquiry: "Inquiry",
-  contacted: "Contacted",
-  site_visit: "Site Visit",
-  negotiation: "Negotiation",
-  booked: "Booked",
-  sold: "Sold",
-  lost: "Lost",
-};
-
-function isDueToday(followUp: FollowUp) {
-  return followUp.due_date === new Date().toLocaleDateString("en-CA");
+function activityIcon(taskType: string | null) {
+  const type = (taskType ?? "").toLowerCase();
+  if (type.includes("call") || type.includes("contact") || type.includes("follow")) return "phone";
+  if (type.includes("visit") || type.includes("meet")) return "calendar";
+  if (type.includes("payment")) return "receipt";
+  return "check-circle";
 }
 
-function formatDueAt(followUp: FollowUp) {
+function activityTitle(activity: Activity) {
+  const label = activity.task_type ? taskLabel(activity) : activity.text;
+  return activity.kind === "scheduled" ? `${label} scheduled` : label;
+}
+
+function formatActivityTime(at: string) {
+  const date = new Date(at);
+  if (date.toDateString() === new Date().toDateString()) {
+    return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }).toLowerCase();
+  }
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+const PRIORITY_LABELS = { low: "Low priority", normal: "Normal priority", high: "High priority" };
+
+function formatDue(followUp: FollowUp) {
   const date = new Date(`${followUp.due_date}T${followUp.due_time}`);
-  return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${followUp.due_time}`;
+  const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+  if (date.toDateString() === new Date().toDateString()) return `Today, ${time}`;
+  return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${time}`;
+}
+
+function assigneeName(followUp: FollowUp) {
+  const agent = followUp.lead.assigned_to;
+  return agent ? `${agent.first_name} ${agent.last_name}`.trim() : "Unassigned";
+}
+
+function downloadSummary(stats: DashboardStats, sales: SalesMonth[]) {
+  const rows = [
+    ["Metric", "Value", "Detail"],
+    ...buildMetrics(stats).map((metric) => [metric.label, metric.value, metric.note]),
+    [""],
+    ["Month", "Closed sales (PKR)", "Deals"],
+    ...sales.map((entry) => [entry.month, String(entry.total), String(entry.count)]),
+  ];
+  downloadCsv(`sales-overview-${new Date().toLocaleDateString("en-CA")}.csv`, rows);
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const fullName = useSessionFullName();
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [isLoadingLeads, setIsLoadingLeads] = useState(true);
-  const [isLoadingFollowUps, setIsLoadingFollowUps] = useState(true);
   const [stats, setStats] = useState<DashboardStats | null>(null);
-
-  const [search, setSearch] = useState("");
-  const [results, setResults] = useState<Lead[]>([]);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setIsSearchOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const term = search.trim();
-    // Nothing to clear on an empty box — the dropdown only renders when there's a term.
-    if (!term) return;
-    const timer = setTimeout(() => {
-      getLeads({ search: term, limit: 5 })
-        .then((res) => setResults(res.data))
-        .catch(() => {});
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  function openLeadsFor(lead: Lead) {
-    setIsSearchOpen(false);
-    setSearch("");
-    router.push(`/leads?search=${encodeURIComponent(lead.client_name)}`);
-  }
+  const [sales, setSales] = useState<SalesMonth[] | null>(null);
+  const [activity, setActivity] = useState<Activity[] | null>(null);
+  const [followUps, setFollowUps] = useState<FollowUp[] | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   function refresh() {
-    getActiveLeads(5)
-      .then(setLeads)
-      .catch(() => {})
-      .finally(() => setIsLoadingLeads(false));
+    getDashboardStats().then(setStats).catch(() => {});
+    getSalesPerformance()
+      .then(setSales)
+      .catch(() => setSales([]));
+    getRecentActivity()
+      .then(setActivity)
+      .catch(() => setActivity([]));
     getFollowUps({ limit: 5 })
       .then(setFollowUps)
-      .catch(() => {})
-      .finally(() => setIsLoadingFollowUps(false));
-    getDashboardStats().then(setStats).catch(() => {});
+      .catch(() => setFollowUps([]));
   }
 
   useEffect(() => {
@@ -120,276 +133,236 @@ export default function DashboardPage() {
     return () => window.removeEventListener("leads:changed", refresh);
   }, []);
 
+  function openLead(followUp: FollowUp) {
+    getLead(followUp.lead.id)
+      .then(setSelectedLead)
+      .catch(() => {});
+  }
+
+  const salesPeak = Math.max(...(sales ?? []).map((entry) => entry.total), 0);
+
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-6 lg:py-12">
-      <div className="flex flex-col gap-4 border-b border-dash-border pb-5 sm:flex-row sm:items-end sm:justify-between sm:pb-[25px]">
-        <h1
-          className="font-serif text-2xl font-bold tracking-[-0.64px] text-dash-ink sm:text-[32px]"
-          style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
-        >
-          Welcome back,{fullName && <span className="ml-2 capitalize">{fullName}</span>}
-        </h1>
-        <div ref={searchRef} className="relative w-full sm:w-64">
-          <SearchIcon className="absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-dash-placeholder" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setIsSearchOpen(true);
-            }}
-            onFocus={() => setIsSearchOpen(true)}
-            placeholder="Search leads by name, number, city..."
-            className="w-full rounded-md border border-dash-border bg-white py-2 pl-10 pr-3 text-sm text-dash-ink shadow-sm placeholder:text-dash-placeholder focus:outline-none"
-          />
-
-          {isSearchOpen && search.trim() && (
-            <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 overflow-hidden rounded-lg border border-dash-border bg-white py-1 shadow-lg">
-              {results.length === 0 && (
-                <p className="px-4 py-2 text-sm text-dash-placeholder">No matching leads.</p>
-              )}
-              {results.map((lead) => (
-                <button
-                  key={lead.id}
-                  type="button"
-                  onClick={() => openLeadsFor(lead)}
-                  className="block w-full px-4 py-2 text-left transition-colors hover:bg-dash-bg"
-                >
-                  <span className="block text-sm text-dash-ink">{lead.client_name}</span>
-                  <span className="block text-xs text-dash-muted">
-                    {[lead.area, lead.city].filter(Boolean).join(", ") || lead.client_number}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {!stats &&
-          Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex min-w-0 flex-col gap-2 rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:gap-3 sm:p-[21px]"
-            >
-              <Skeleton className="h-3 w-28" />
-              <Skeleton className="h-6 w-20" />
-            </div>
-          ))}
-
-        {stats &&
-          buildStats(stats).map((stat) => (
-            <div
-              key={stat.label}
-              className="flex min-w-0 flex-col gap-2 rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:gap-3 sm:p-[21px]"
-            >
-              <p className="text-[10px] font-bold uppercase tracking-[0.6px] text-dash-muted sm:text-xs">
-                {stat.label}
-              </p>
-              <p
-                className={`truncate text-lg font-bold tracking-[-0.525px] sm:text-xl ${
-                  stat.tone === "hot" ? "text-hot" : "text-dash-ink"
-                }`}
-              >
-                {stat.value}
-              </p>
-            </div>
-          ))}
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="flex min-w-0 flex-col gap-3 lg:col-span-8">
-          <div className="flex items-center justify-between pb-2">
-            <h2 className="border-b-2 border-dash-ink pb-1.5 text-xs font-bold uppercase tracking-[1.2px] text-dash-ink">
-              Active Leads
-            </h2>
-            <Link href="/leads" className="flex items-center gap-1 text-sm text-dash-muted">
-              View all
-              <ArrowRightIcon className="size-[10.667px]" />
-            </Link>
+      <div className="flex w-full flex-col pb-8">
+        <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-8">
+          <div className="flex flex-col gap-[3px] leading-[1.4]">
+            <h1 className="font-serif text-xl font-bold text-dash-ink" style={headingStyle}>
+              Sales overview
+            </h1>
+            <p className="text-[10px] text-dash-muted">
+              {stats?.scope === "own" ? "Your assigned leads" : "All leads"} ·{" "}
+              {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            </p>
           </div>
-
-          <div className="overflow-x-auto rounded-lg border border-dash-border bg-sidebar shadow-sm">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-dash-border bg-dash-bg">
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.55px] text-dash-muted">
-                    Client
-                  </th>
-                  <th className="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.55px] text-dash-muted sm:table-cell">
-                    Location
-                  </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.55px] text-dash-muted">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.55px] text-dash-muted">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white">
-                {isLoadingLeads &&
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <tr key={i} className={i > 0 ? "border-t border-dash-border" : ""}>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="size-2 rounded-full" />
-                          <Skeleton className="h-3.5 w-32" />
-                        </div>
-                      </td>
-                      <td className="hidden px-4 py-4 sm:table-cell">
-                        <Skeleton className="h-3.5 w-28" />
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex gap-2">
-                          <Skeleton className="h-4 w-12" />
-                          <Skeleton className="h-4 w-16" />
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex justify-end">
-                          <Skeleton className="size-4" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-
-                {!isLoadingLeads && leads.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-sm text-dash-placeholder">
-                      No active leads.
-                    </td>
-                  </tr>
-                )}
-                {leads.map((lead, i) => (
-                  <tr
-                    key={lead.id}
-                    onClick={() => setSelectedLead(lead)}
-                    className={`cursor-pointer hover:bg-dash-bg ${i > 0 ? "border-t border-dash-border" : ""}`}
-                  >
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`size-2 rounded-full ${
-                            lead.temperature === "HOT"
-                              ? "bg-hot"
-                              : lead.temperature === "WARM"
-                                ? "bg-warm"
-                                : "bg-cold"
-                          }`}
-                        />
-                        <span className="min-w-0">
-                          <span className="block text-sm text-dash-ink sm:text-base">{lead.client_name}</span>
-                          {/* Location has no column of its own below sm, so it rides under the name. */}
-                          <span className="block text-xs text-dash-muted sm:hidden">
-                            {[lead.area, lead.city].filter(Boolean).join(", ") || "—"}
-                          </span>
-                        </span>
-                      </div>
-                    </td>
-                    <td className="hidden px-4 py-4 text-base text-dash-muted sm:table-cell">
-                      {[lead.area, lead.city].filter(Boolean).join(", ") || "—"}
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                        <span
-                          className={`rounded-sm border px-[9px] py-[3px] text-[10px] uppercase tracking-[0.5px] ${
-                            lead.temperature === "HOT"
-                              ? "border-hot/20 bg-hot/10 text-hot"
-                              : lead.temperature === "WARM"
-                                ? "border-warm/30 bg-warm/20 text-warm"
-                                : "border-cold/30 bg-cold/20 text-cold"
-                          }`}
-                        >
-                          {lead.temperature}
-                        </span>
-                        <span className="rounded-sm bg-badge-neutral px-2 py-[2px] text-[10px] uppercase tracking-[0.5px] text-dash-muted">
-                          {STAGE_LABELS[lead.stage] ?? lead.stage}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-end gap-3">
-                        <a
-                          href={`tel:${lead.client_number}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-muted"
-                          aria-label={`Call ${lead.client_name}`}
-                        >
-                          <PhoneIcon className="size-[15px]" />
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <button
+            type="button"
+            disabled={!stats}
+            onClick={() => stats && downloadSummary(stats, sales ?? [])}
+            className="flex h-9 items-center gap-[7px] rounded-[4px] border border-dash-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60"
+          >
+            <Icon name="download" className="size-4" />
+            Export summary
+          </button>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-3 lg:col-span-4">
-          <div className="pb-2">
-            <h2 className="border-b-2 border-dash-ink pb-1.5 text-xs font-bold uppercase tracking-[1.2px] text-dash-ink">
-               Follow-ups
-            </h2>
-          </div>
+        <div className="grid grid-cols-2 gap-3 px-4 py-4 sm:gap-5 sm:px-8 lg:grid-cols-4">
+          {!stats &&
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className={`flex min-w-0 flex-col gap-2.5 ${panelClass}`}>
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-2.5 w-32" />
+              </div>
+            ))}
 
-          <div className="flex flex-col gap-6 rounded-lg border-l-2 border-dash-border bg-sidebar py-3 pl-[18px] pr-3">
-            {isLoadingFollowUps &&
-              Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="grid grid-cols-[64px_16px_1fr] items-start">
-                  <div className="flex justify-end pt-0.5">
-                    <Skeleton className="h-3 w-14" />
-                  </div>
-                  <div className="flex justify-center pt-1.5">
-                    <Skeleton className="size-2 rounded-full" />
-                  </div>
-                  <div className="flex flex-col gap-2 border-b border-dashed border-dash-border pb-4">
-                    <Skeleton className="h-3.5 w-40" />
-                    <Skeleton className="h-2.5 w-24" />
-                  </div>
-                </div>
-              ))}
-
-            {!isLoadingFollowUps && followUps.length === 0 && (
-              <p className="text-sm text-dash-placeholder">No follow-ups due.</p>
-            )}
-            {followUps.map((followUp) => (
-              <div key={followUp.id} className="grid grid-cols-[64px_16px_1fr] items-start">
-                <p
-                  className={`pt-0.5 text-right text-xs font-medium ${
-                    isDueToday(followUp) ? "text-hot" : "text-dash-muted"
-                  }`}
-                >
-                  {formatDueAt(followUp)}
+          {stats &&
+            buildMetrics(stats).map((metric) => (
+              <div key={metric.label} className={`flex min-w-0 flex-col gap-1.5 leading-[1.4] ${panelClass}`}>
+                <p className="text-[11px] text-dash-muted">{metric.label}</p>
+                <p className="font-serif text-[26px] font-bold text-dash-ink" style={headingStyle}>
+                  {metric.value}
                 </p>
-                <div className="flex justify-center pt-1.5">
-                  <span
-                    className={`size-2 rounded-full border-2 border-sidebar ${
-                      isDueToday(followUp) ? "bg-hot" : "bg-dash-muted"
-                    }`}
-                  />
+                <p className="truncate text-[10px] text-primary">{metric.note}</p>
+              </div>
+            ))}
+        </div>
+
+        <div className="flex flex-col gap-6 px-4 pb-6 sm:px-8 lg:flex-row lg:items-start">
+          <div className={`flex min-w-0 flex-col gap-4 lg:flex-[2] ${panelClass}`}>
+            <div className="flex items-center justify-between leading-[1.4]">
+              <h2 className="font-serif text-sm font-bold text-dash-ink" style={headingStyle}>
+                Sales performance
+              </h2>
+              {sales && sales.length > 0 && (
+                <p className="text-[10px] text-dash-muted">
+                  {monthLabel(sales[0].month)} – {monthLabel(sales[sales.length - 1].month, true)}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-4 text-[10px] leading-[1.4]">
+                <p className="text-primary">■ Closed sales</p>
+                <p className="text-dash-muted">PKR million</p>
+              </div>
+
+              {!sales && <Skeleton className="h-[160px] w-full" />}
+
+              {sales && sales.length === 0 && (
+                <p className="flex h-[160px] items-center justify-center text-xs text-dash-placeholder">
+                  Sales data is unavailable.
+                </p>
+              )}
+
+              {sales && sales.length > 0 && (
+                <>
+                  <div className="flex h-[132px] items-end gap-3 border-b border-dash-border px-3 sm:gap-[26px]">
+                    {sales.map((entry) => (
+                      <div key={entry.month} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+                        <p className="whitespace-nowrap text-[10px] leading-[1.4] text-dash-muted">
+                          {formatMillions(entry.total)}
+                        </p>
+                        <div
+                          className="w-full max-w-11 rounded-t-[3px] bg-warm"
+                          style={{ height: salesPeak ? (entry.total / salesPeak) * BAR_MAX_HEIGHT : 0 }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3 px-3 text-center text-[10px] text-dash-muted sm:gap-[26px]">
+                    {sales.map((entry) => (
+                      <p key={entry.month} className="min-w-0 flex-1">
+                        {monthLabel(entry.month)}
+                      </p>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className={`flex min-w-0 flex-col gap-4 lg:flex-1 ${panelClass}`}>
+            <div className="flex items-center justify-between leading-[1.4]">
+              <h2 className="font-serif text-sm font-bold text-dash-ink" style={headingStyle}>
+                Recent activity
+              </h2>
+              <p className="text-[10px] text-dash-muted">Latest</p>
+            </div>
+
+            {!activity &&
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="size-4" />
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <Skeleton className="h-3 w-40" />
+                    <Skeleton className="h-2.5 w-28" />
+                  </div>
                 </div>
-                <div className="border-b border-dashed border-dash-border pb-4">
-                  <p className="text-sm font-semibold tracking-[-0.14px] text-dash-ink">
-                    {followUp.text}
+              ))}
+
+            {activity && activity.length === 0 && (
+              <p className="text-xs text-dash-placeholder">No activity yet.</p>
+            )}
+
+            {activity?.map((entry) => (
+              <div key={`${entry.id}-${entry.kind}`} className="flex items-center gap-3 text-primary">
+                <Icon name={activityIcon(entry.task_type)} className="size-4" />
+                <div className="flex min-w-0 flex-1 flex-col gap-[3px] leading-[1.4]">
+                  <p className="truncate text-xs text-dash-ink">{activityTitle(entry)}</p>
+                  <p className="truncate text-[10px] text-dash-muted">
+                    {[entry.project, entry.client_name].filter(Boolean).join(" · ")}
                   </p>
-                  <p className="mt-1 text-xs text-dash-muted">{followUp.lead.client_name}</p>
                 </div>
+                <p className="whitespace-nowrap text-[10px] leading-[1.4] text-dash-muted">
+                  {formatActivityTime(entry.at)}
+                </p>
               </div>
             ))}
           </div>
         </div>
+
+        <div className="flex items-start justify-between px-4 leading-[1.4] sm:px-8">
+          <h2 className="font-serif text-sm font-bold text-dash-ink" style={headingStyle}>
+            Priority follow-ups
+          </h2>
+          <Link href="/tasks" className="text-[11px] text-primary hover:underline">
+            View all tasks →
+          </Link>
+        </div>
+
+        <div className="overflow-x-auto px-4 sm:px-8">
+          <table className="w-full min-w-[720px] table-fixed text-left">
+            <thead>
+              <tr className="h-[54px] border-b border-dash-border text-[10px] font-normal uppercase text-dash-ink">
+                <th className="w-[26%] font-normal">Task</th>
+                <th className="w-[18%] font-normal">Client / Lead</th>
+                <th className="w-[22%] font-normal">Project</th>
+                <th className="w-[17%] font-normal">Assignee</th>
+                <th className="w-[13%] font-normal">Due</th>
+                <th className="w-12 text-[9px] font-normal">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!followUps &&
+                Array.from({ length: 3 }).map((_, i) => (
+                  <tr key={i} className="h-[62px] border-b border-dash-border">
+                    {Array.from({ length: 6 }).map((_, j) => (
+                      <td key={j} className="pr-3">
+                        <Skeleton className="h-3 w-3/4" />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+
+              {followUps && followUps.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-xs text-dash-placeholder">
+                    No follow-ups due.
+                  </td>
+                </tr>
+              )}
+
+              {followUps?.map((followUp) => (
+                <tr
+                  key={followUp.id}
+                  onClick={() => openLead(followUp)}
+                  className="h-[62px] cursor-pointer border-b border-dash-border text-xs leading-[1.4] text-dash-ink hover:bg-white/60"
+                >
+                  <td className="pr-3">
+                    <p className="truncate">{followUp.text}</p>
+                    <p className="mt-[5px] truncate text-[10px] text-dash-muted">
+                      {followUp.task_type ? taskLabel(followUp) : "Follow-up"} ·{" "}
+                      {PRIORITY_LABELS[followUp.priority]}
+                    </p>
+                  </td>
+                  <td className="pr-3">
+                    <p className="truncate">{followUp.lead.client_name}</p>
+                    <p className="mt-[5px] truncate text-[10px] text-dash-muted">Lead {followUp.lead.lead_no}</p>
+                  </td>
+                  <td className="truncate pr-3">{followUp.lead.project?.name ?? "—"}</td>
+                  <td className="truncate pr-3">{assigneeName(followUp)}</td>
+                  <td className={`truncate pr-3 ${followUp.overdue ? "text-hot" : ""}`}>{formatDue(followUp)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      aria-label={`Open lead for ${followUp.lead.client_name}`}
+                      className="flex size-6 items-center text-primary"
+                    >
+                      <Icon name="ellipsis" className="size-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-    <LeadDetailModal
-      key={selectedLead?.id}
-      lead={selectedLead}
-      onClose={() => setSelectedLead(null)}
-      onChanged={refresh}
-    />
+      <LeadDetailModal
+        key={selectedLead?.id}
+        lead={selectedLead}
+        onClose={() => setSelectedLead(null)}
+        onChanged={refresh}
+      />
     </ViewTransition>
   );
 }

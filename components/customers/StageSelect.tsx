@@ -58,7 +58,7 @@ export function StageSelect({
         aria-haspopup="listbox"
         aria-expanded={position !== null}
         aria-label={label}
-        className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-bold ${
+        className={`flex items-center gap-1.5 whitespace-nowrap rounded-[20px] px-4 py-[5px] text-[11px] leading-[1.4] ${
           current?.className ?? "bg-badge-neutral text-dash-muted"
         }`}
       >

@@ -34,3 +34,11 @@ export function useSessionFullName() {
     () => "",
   );
 }
+
+export function useSessionEmail() {
+  return useSyncExternalStore(
+    subscribe,
+    () => getSessionUser()?.email ?? "",
+    () => "",
+  );
+}

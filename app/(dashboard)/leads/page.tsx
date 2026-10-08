@@ -1,97 +1,49 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ViewTransition } from "react";
-import {
-  FilterIcon,
-  PhoneIcon,
-  PlusIcon,
-  SearchIcon,
-  StarIcon,
-  TasksIcon,
-  WhatsAppIcon,
-} from "@/components/icons/DashboardIcons";
+import { PlusIcon, StarIcon } from "@/components/icons/DashboardIcons";
 import { LeadDetailModal } from "@/components/LeadDetailModal";
 import { LogTaskModal } from "@/components/LogTaskModal";
-import {
-  countActiveFilters,
-  EMPTY_FILTERS,
-  LeadsFilterPanel,
-  type LeadFilters,
-} from "@/components/LeadsFilterPanel";
 import { ImportCsvModal } from "@/components/ImportCsvModal";
-import { NewLeadModal } from "@/components/NewLeadModal";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { Select, type SelectOption } from "@/components/ui/Select";
 import {
-  getAgents,
-  getCategories,
-  getInterests,
-  getLeads,
-  getSessionUser,
-  getSources,
-  setLeadStarred,
-  type Lead,
-  type LeadTab,
-} from "@/lib/api";
+  hasLeadListFilters,
+  initialLeadListFilters,
+  LeadFiltersBar,
+  type LeadListFilters,
+} from "@/components/list/LeadFiltersBar";
+import { RowMenu } from "@/components/list/RowMenu";
+import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
+import { TablePagination } from "@/components/list/TablePagination";
+import {
+  checkboxClass,
+  headCellClass,
+  headRowClass,
+  rowClass,
+  subTextClass,
+  tableClass,
+} from "@/components/list/tableStyles";
+import { NewLeadModal } from "@/components/NewLeadModal";
+import { Icon } from "@/components/ui/Icon";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { getLeads, getSessionUser, setLeadStarred, type Lead, type LeadTab } from "@/lib/api";
 import { whatsappUrl } from "@/lib/customers";
 import { useIsAdmin } from "@/lib/session";
 import { taskLabel } from "@/lib/tasks";
-
-const PAGE_SIZE = 10;
-
-const STAGE_LABELS: Record<string, string> = {
-  inquiry: "Inquiry",
-  contacted: "Contacted",
-  site_visit: "Site Visit",
-  negotiation: "Negotiation",
-  booked: "Booked",
-  sold: "Sold",
-  lost: "Lost",
-};
-
-const TEMP_BADGES: Record<string, string> = {
-  HOT: "bg-hot/10 text-hot",
-  WARM: "bg-warm/20 text-warm",
-  COLD: "bg-cold/15 text-cold",
-};
+import { formatDay, genderLabel, timeAgo } from "@/lib/time";
 
 const TABS: { id: LeadTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "new", label: "New" },
+  { id: "recommended", label: "Recommended" },
   { id: "watchlist", label: "Watchlist" },
 ];
 
-const SORT_OPTIONS: SelectOption[] = [
-  { id: "desc", name: "Lead ID descending" },
-  { id: "asc", name: "Lead ID ascending" },
-];
+const COLUMN_COUNT = 8;
 
-const headerCell = "text-xs font-bold uppercase tracking-[0.6px] text-dash-muted";
-
-const actionButton =
-  "flex size-8 items-center justify-center rounded-lg border border-dash-border transition-colors hover:bg-dash-bg";
-
-function formatCreated(date: string) {
-  return new Date(date).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
-}
-
-function formatDue(date: string) {
-  return formatCreated(`${date}T00:00:00`);
-}
-
-function formatCount(count: number) {
-  return count >= 1000 ? `${(count / 1000).toFixed(1)} K` : String(count);
-}
-
-/** Page numbers around the current page, with an ellipsis before the last one when it's far. */
-function pageNumbers(current: number, totalPages: number) {
-  if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
-  const start = Math.min(Math.max(current - 1, 1), totalPages - 3);
-  const window = [start, start + 1, start + 2];
-  return window[2] === totalPages - 1 ? [...window, totalPages] : [...window, "...", totalPages];
-}
+const headerActionClass =
+  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-dash-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
 
 export default function LeadsPage() {
   return (
@@ -105,70 +57,34 @@ function LeadsDirectory() {
   const admin = useIsAdmin();
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isNewLeadOpen, setIsNewLeadOpen] = useState(false);
-  // Seeded from ?search= so the dashboard's quick search can land here on a lead.
+  // Seeded from ?search= so other screens can land here on a lead.
   const initialSearch = useSearchParams().get("search") ?? "";
   const [leads, setLeads] = useState<Lead[]>([]);
   const [total, setTotal] = useState(0);
   const [tabCounts, setTabCounts] = useState<Record<LeadTab, number> | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [tab, setTab] = useState<LeadTab>("all");
   const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [search, setSearch] = useState(initialSearch);
-  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const [favouritesOnly, setFavouritesOnly] = useState(false);
+  const [filters, setFilters] = useState<LeadListFilters>(() => initialLeadListFilters(initialSearch));
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [taskLead, setTaskLead] = useState<Lead | null>(null);
-
-  const [filters, setFilters] = useState<LeadFilters>(EMPTY_FILTERS);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const filterRef = useRef<HTMLDivElement>(null);
-
-  const [interests, setInterests] = useState<SelectOption[]>([]);
-  const [categories, setCategories] = useState<SelectOption[]>([]);
-  const [sources, setSources] = useState<SelectOption[]>([]);
-  const [agents, setAgents] = useState<SelectOption[]>([]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setIsFilterOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    Promise.all([getInterests(), getCategories(), getSources()])
-      .then(([interestList, categoryList, sourceList]) => {
-        setInterests(interestList);
-        setCategories(categoryList);
-        setSources(sourceList);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!admin) return;
-    getAgents()
-      .then((list) =>
-        setAgents(list.map((a) => ({ id: String(a.id), name: `${a.first_name} ${a.last_name}` }))),
-      )
-      .catch(() => {});
-  }, [admin]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = useCallback(() => {
     getLeads({
       page,
-      limit: PAGE_SIZE,
+      limit: pageSize,
       tab,
       sort,
-      search: debouncedSearch,
+      starred: favouritesOnly ? "true" : undefined,
+      search: filters.search || undefined,
+      search_by: filters.search ? filters.search_by : undefined,
+      project_id: filters.project_id || undefined,
+      task_due: filters.task_due || undefined,
+      last_task: filters.last_task || undefined,
       stage: filters.stage || undefined,
       temperature: filters.temperature || undefined,
       category_id: filters.category_id || undefined,
@@ -187,7 +103,7 @@ function LeadsDirectory() {
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
-  }, [page, tab, sort, debouncedSearch, filters]);
+  }, [page, pageSize, tab, sort, favouritesOnly, filters]);
 
   useEffect(() => {
     load();
@@ -209,378 +125,238 @@ function LeadsDirectory() {
     }
   }
 
+  function resetPaging() {
+    setPage(1);
+    setSelected(new Set());
+  }
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }
+
   const sessionUserId = getSessionUser()?.id;
-  const activeFilterCount = countActiveFilters(filters);
-  const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
-  const firstRow = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const lastRow = Math.min(page * PAGE_SIZE, total);
+  const allSelected = leads.length > 0 && leads.every((lead) => selected.has(lead.id));
+  const isFiltered = hasLeadListFilters(filters) || favouritesOnly || tab !== "all";
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-6 lg:py-12">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <h1
-          className="font-serif text-[28px] font-semibold text-dash-ink sm:text-[34px]"
-          style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
+      <div className="flex w-full flex-col">
+        <LeadFiltersBar
+          initialSearch={initialSearch}
+          onApply={(next) => {
+            setFilters(next);
+            resetPaging();
+          }}
+        />
+
+        <StatusTabs
+          tabs={TABS.map((entry) => ({ ...entry, count: tabCounts?.[entry.id] ?? null }))}
+          active={tab}
+          onChange={(next) => {
+            setTab(next);
+            resetPaging();
+          }}
         >
-          Leads Directory
-        </h1>
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap sm:gap-3">
-          <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
-            <SearchIcon className="absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-muted" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search name, ID, number, city..."
-              className="w-full rounded-lg border border-dash-border bg-sidebar py-2.5 pl-10 pr-3 text-sm text-dash-ink placeholder:text-muted focus:outline-none"
-            />
-          </div>
-          <div ref={filterRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setIsFilterOpen((v) => !v)}
-              aria-expanded={isFilterOpen}
-              className="flex shrink-0 items-center gap-2 rounded-lg border border-dash-border bg-sidebar px-3 py-2.5"
-              aria-label="Filter leads"
-            >
-              <FilterIcon className="h-3 w-[18px] text-dash-ink" />
-              {activeFilterCount > 0 && (
-                <span className="flex size-4 items-center justify-center rounded-full bg-dash-ink text-[10px] font-bold text-white">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-
-            {isFilterOpen && (
-              <LeadsFilterPanel
-                value={filters}
-                onApply={(next) => {
-                  setFilters(next);
-                  setPage(1);
-                  setIsFilterOpen(false);
-                }}
-                onClear={() => {
-                  setFilters(EMPTY_FILTERS);
-                  setPage(1);
-                  setIsFilterOpen(false);
-                }}
-                interests={interests}
-                categories={categories}
-                sources={sources}
-                agents={agents}
-                showAssignee={admin}
-              />
-            )}
-          </div>
-
           {admin && (
             <>
-              <button
-                type="button"
-                onClick={() => setIsImportOpen(true)}
-                className="shrink-0 rounded-lg border border-dash-border px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
-              >
+              <button type="button" onClick={() => setIsImportOpen(true)} className={headerActionClass}>
                 Import
               </button>
-              <button
-                type="button"
-                onClick={() => setIsNewLeadOpen(true)}
-                className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
-              >
-                <PlusIcon className="size-3" />
-                Add new lead
+              <button type="button" onClick={() => setIsNewLeadOpen(true)} className={headerActionClass}>
+                <PlusIcon className="size-2.5" />
+                Add lead
               </button>
             </>
           )}
-        </div>
-      </div>
+          <FavouritesButton
+            active={favouritesOnly}
+            onChange={(next) => {
+              setFavouritesOnly(next);
+              resetPaging();
+            }}
+          />
+          <SortButton
+            sort={sort}
+            onChange={(next) => {
+              setSort(next);
+              setPage(1);
+            }}
+          />
+        </StatusTabs>
 
-      <div className="flex flex-col gap-3 border-b border-dash-border md:flex-row md:items-end md:justify-between">
-        <div className="-mb-px flex gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {TABS.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              onClick={() => {
-                setTab(entry.id);
-                setPage(1);
-              }}
-              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition-colors ${
-                tab === entry.id
-                  ? "border-dash-ink font-semibold text-dash-ink"
-                  : "border-transparent text-dash-muted hover:text-dash-ink"
-              }`}
-            >
-              {entry.label}
-              {tabCounts && (
-                <span className="ml-1 text-xs font-normal text-dash-muted">
-                  ({formatCount(tabCounts[entry.id])})
-                </span>
+        <div className="px-4 sm:px-8">
+          <table className={tableClass}>
+            <thead>
+              <tr className={headRowClass}>
+                <th className="hidden w-8 lg:table-cell">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all leads"
+                    checked={allSelected}
+                    onChange={() => setSelected(allSelected ? new Set() : new Set(leads.map((lead) => lead.id)))}
+                    className={checkboxClass}
+                  />
+                </th>
+                <th className={`${headCellClass} w-[112px] pl-10 lg:w-[12%]`}>Lead ID</th>
+                <th className={headCellClass}>Client</th>
+                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Last task</th>
+                <th className={`${headCellClass} hidden w-[19%] lg:table-cell`}>Interest</th>
+                <th className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Source</th>
+                <th className={`${headCellClass} hidden w-[16%] lg:table-cell`}>Allocated to</th>
+                <th className={`${headCellClass} w-[44px] lg:w-[14%]`}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading &&
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className={rowClass}>
+                    <td colSpan={COLUMN_COUNT}>
+                      <div className="flex flex-col gap-2">
+                        <Skeleton className="h-3 w-1/3" />
+                        <Skeleton className="h-2.5 w-1/5" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+              {!isLoading && leads.length === 0 && (
+                <tr>
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                    {isFiltered ? "No leads match those filters." : "No leads yet."}
+                  </td>
+                </tr>
               )}
-            </button>
-          ))}
+
+              {!isLoading &&
+                leads.map((lead) => {
+                  const interestLine = [lead.interest?.name, lead.category?.name].filter(Boolean).join(" · ");
+                  const location = [lead.area, lead.city].filter(Boolean).join(", ");
+                  const agentName = lead.assigned_to
+                    ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}`
+                    : "Unassigned";
+                  // Mirrors the server rule: admins for any lead, agents only for their own.
+                  const canAddTask = admin || lead.assigned_to?.id === sessionUserId;
+
+                  return (
+                    <tr
+                      key={lead.id}
+                      onClick={() => setSelectedLead(lead)}
+                      className={`${rowClass} cursor-pointer hover:bg-white/60`}
+                    >
+                      <td className="hidden lg:table-cell" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select lead ${lead.lead_no}`}
+                          checked={selected.has(lead.id)}
+                          onChange={() => toggleSelected(lead.id)}
+                          className={checkboxClass}
+                        />
+                      </td>
+                      <td className="pr-3">
+                        <div className="flex items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleStarToggle(lead);
+                            }}
+                            aria-label={lead.is_starred ? "Remove from watchlist" : "Add to watchlist"}
+                            aria-pressed={lead.is_starred}
+                            className="shrink-0 text-warm"
+                          >
+                            <StarIcon className="size-4" filled={lead.is_starred} />
+                          </button>
+                          <div className="min-w-0">
+                            <p className="text-primary">{lead.lead_no}</p>
+                            <p className={subTextClass}>▣&nbsp; {formatDay(lead.created_at)}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="pr-3">
+                        <p className="truncate">{lead.client_name}</p>
+                        <p className={subTextClass}>▣&nbsp; {genderLabel(lead.customer?.gender)}</p>
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        {lead.last_task ? (
+                          <>
+                            <p className="line-clamp-2" title={taskLabel(lead.last_task)}>
+                              {taskLabel(lead.last_task)}
+                            </p>
+                            <p className={subTextClass}>{timeAgo(lead.last_task.at)}</p>
+                          </>
+                        ) : (
+                          <p className="text-muted">—</p>
+                        )}
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        <p className="truncate">{lead.project?.name ?? "—"}</p>
+                        <p className={`${subTextClass} line-clamp-2 whitespace-normal`}>
+                          {interestLine || location || "—"}
+                        </p>
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        <p className="truncate">{lead.source?.name ?? "—"}</p>
+                        {lead.sub_source && <p className={subTextClass}>{lead.sub_source}</p>}
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        <p className="truncate">{agentName}</p>
+                        {lead.assigned_to?.team && <p className={subTextClass}>{lead.assigned_to.team}</p>}
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2 text-primary lg:gap-[19px]">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedLead(lead)}
+                            aria-label={`Open lead ${lead.lead_no}`}
+                            className="hidden lg:block"
+                          >
+                            <Icon name="link" className="block size-4" />
+                          </button>
+                          <RowMenu
+                            label={`More actions for lead ${lead.lead_no}`}
+                            items={[
+                              { label: "View lead", onClick: () => setSelectedLead(lead) },
+                              ...(canAddTask ? [{ label: "Add task", onClick: () => setTaskLead(lead) }] : []),
+                              { label: "WhatsApp client", href: whatsappUrl(lead.client_number), external: true },
+                              { label: "Call client", href: `tel:${lead.client_number}`, external: true },
+                            ]}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
         </div>
 
-        <div className="flex items-center gap-2 pb-2">
-          <label htmlFor="lead-sort" className="shrink-0 text-xs text-dash-muted">
-            Sort by
-          </label>
-          <div className="w-52">
-            <Select
-              id="lead-sort"
-              value={sort}
-              onChange={(v) => {
-                setSort(v as "asc" | "desc");
-                setPage(1);
-              }}
-              options={SORT_OPTIONS}
-            />
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          noun="leads"
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </div>
-
-      <div className="overflow-hidden rounded-lg border border-dash-border">
-        <div className="hidden gap-4 border-b border-dash-border bg-dash-bg/50 px-6 py-4 lg:grid lg:grid-cols-8">
-          <p className={`${headerCell} pl-7`}>Lead ID</p>
-          <p className={headerCell}>Client</p>
-          <p className={headerCell}>Last task</p>
-          <p className={headerCell}>Interest</p>
-          <p className={headerCell}>Source</p>
-          <p className={headerCell}>Allocated to</p>
-          <p className={headerCell}>Status</p>
-          <p className={headerCell}>Actions</p>
-        </div>
-
-        {isLoading &&
-          Array.from({ length: PAGE_SIZE }).map((_, i) => (
-            <div
-              key={i}
-              className={`flex flex-wrap items-center gap-3 bg-white px-4 py-4 sm:px-6 lg:grid lg:grid-cols-8 lg:gap-4 ${
-                i > 0 ? "border-t border-dash-border" : ""
-              }`}
-            >
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="hidden h-4 w-24 lg:block" />
-              <Skeleton className="hidden h-4 w-24 lg:block" />
-              <Skeleton className="hidden h-4 w-20 lg:block" />
-              <Skeleton className="hidden h-4 w-24 lg:block" />
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="hidden h-8 w-16 lg:block" />
-            </div>
-          ))}
-
-        {!isLoading && leads.length === 0 && (
-          <p className="bg-white px-6 py-8 text-center text-sm text-dash-placeholder">
-            {debouncedSearch || activeFilterCount > 0 || tab !== "all"
-              ? "No leads match those filters."
-              : "No leads yet."}
-          </p>
-        )}
-
-        {leads.map((lead, i) => {
-          const location = [lead.area, lead.city].filter(Boolean).join(", ");
-          const interestLine = [lead.interest?.name, lead.category?.name].filter(Boolean).join(" · ");
-          const agentName = lead.assigned_to
-            ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}`
-            : "Unassigned";
-
-          return (
-            <div
-              key={lead.id}
-              onClick={() => setSelectedLead(lead)}
-              className={`flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-2 bg-white px-4 py-4 hover:bg-dash-bg/40 sm:px-6 lg:grid lg:grid-cols-8 lg:gap-4 ${
-                i > 0 ? "border-t border-dash-border" : ""
-              }`}
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleStarToggle(lead);
-                  }}
-                  aria-label={lead.is_starred ? "Remove from watchlist" : "Add to watchlist"}
-                  aria-pressed={lead.is_starred}
-                  className={`shrink-0 transition-colors ${
-                    lead.is_starred ? "text-warm" : "text-dash-muted hover:text-dash-ink"
-                  }`}
-                >
-                  <StarIcon className="size-4" filled={lead.is_starred} />
-                </button>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-stage-inquiry">{lead.lead_no}</p>
-                  <p className="hidden truncate text-[11px] text-dash-muted lg:block">
-                    {formatCreated(lead.created_at)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="min-w-0 flex-1 lg:flex-none">
-                <p className="truncate text-sm font-semibold text-dash-ink">{lead.client_name}</p>
-                <p className="truncate text-[11px] text-dash-muted">
-                  {lead.customer ? `Customer #${lead.customer.customer_no} · ` : ""}
-                  {lead.client_lead_count} Lead{lead.client_lead_count === 1 ? "" : "s"}
-                </p>
-              </div>
-
-              <div className="hidden min-w-0 lg:block">
-                {lead.last_task ? (
-                  <>
-                    <p className="truncate text-sm text-dash-ink" title={taskLabel(lead.last_task)}>
-                      {taskLabel(lead.last_task)}
-                    </p>
-                    <p className="truncate text-[11px] text-dash-muted">
-                      {formatDue(lead.last_task.due_date)}
-                      {lead.last_task.completed ? " · Done" : ""}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-dash-muted">—</p>
-                )}
-              </div>
-
-              <div className="hidden min-w-0 lg:block">
-                <p className="truncate text-sm text-dash-ink">{location || "—"}</p>
-                {interestLine && <p className="truncate text-[11px] text-dash-muted">{interestLine}</p>}
-              </div>
-
-              <div className="hidden min-w-0 lg:block">
-                <p className="truncate text-sm text-dash-ink">{lead.source?.name ?? "—"}</p>
-                {lead.sub_source && (
-                  <p className="truncate text-[11px] text-dash-muted">{lead.sub_source}</p>
-                )}
-              </div>
-
-              <div className="hidden min-w-0 lg:block">
-                <p className="truncate text-sm text-dash-ink">{agentName}</p>
-                {lead.assigned_to?.team && (
-                  <p className="truncate text-[11px] text-dash-muted">{lead.assigned_to.team}</p>
-                )}
-              </div>
-
-              {/* Below lg the desktop-only columns fold into one summary line. */}
-              <p className="w-full truncate text-xs text-dash-muted lg:hidden">
-                {[interestLine, location, lead.source?.name, agentName].filter(Boolean).join(" · ")}
-              </p>
-
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span
-                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.45px] ${
-                    TEMP_BADGES[lead.temperature] ?? "bg-badge-neutral text-dash-muted"
-                  }`}
-                >
-                  {lead.temperature}
-                </span>
-                <span className="rounded bg-badge-neutral px-1.5 py-0.5 text-[9px] uppercase tracking-[0.45px] text-dash-muted">
-                  {STAGE_LABELS[lead.stage] ?? lead.stage}
-                </span>
-              </div>
-
-              <div className="ml-auto flex items-center gap-1.5 lg:ml-0">
-                {/* Mirrors the server rule: admins for any lead, agents only for their own. */}
-                {(admin || lead.assigned_to?.id === sessionUserId) && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setTaskLead(lead);
-                    }}
-                    aria-label={`Add task for ${lead.client_name}`}
-                    title="Add task"
-                    className={`${actionButton} text-stage-inquiry`}
-                  >
-                    <TasksIcon className="size-4" />
-                  </button>
-                )}
-                <a
-                  href={whatsappUrl(lead.client_number)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label={`WhatsApp ${lead.client_name}`}
-                  className={`${actionButton} text-stage-sold`}
-                >
-                  <WhatsAppIcon className="size-4" />
-                </a>
-                <a
-                  href={`tel:${lead.client_number}`}
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label={`Call ${lead.client_name}`}
-                  className={`${actionButton} text-dash-muted`}
-                >
-                  <PhoneIcon className="size-3.5" />
-                </a>
-              </div>
-            </div>
-          );
-        })}
-
-        <div className="flex flex-col items-center gap-3 border-t border-dash-border bg-white px-4 py-4 sm:flex-row sm:justify-between sm:px-6">
-          <p className="text-xs text-dash-muted">
-            Showing {firstRow}–{lastRow} of {total} leads
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(p - 1, 1))}
-              disabled={page === 1}
-              className="rounded-md px-3 py-1.5 text-sm text-dash-ink disabled:opacity-50"
-            >
-              Prev
-            </button>
-            <span className="px-1 text-sm text-dash-muted sm:hidden">
-              {page} / {totalPages}
-            </span>
-            <div className="hidden items-center gap-1 sm:flex">
-              {pageNumbers(page, totalPages).map((entry, i) =>
-                typeof entry === "number" ? (
-                  <button
-                    key={entry}
-                    type="button"
-                    onClick={() => setPage(entry)}
-                    className={`flex size-8 items-center justify-center rounded-md text-sm text-dash-ink ${
-                      entry === page ? "bg-badge-neutral" : ""
-                    }`}
-                  >
-                    {entry}
-                  </button>
-                ) : (
-                  <span key={`gap-${i}`} className="px-1 text-base text-dash-muted">
-                    …
-                  </span>
-                ),
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-              disabled={page >= totalPages}
-              className="rounded-md px-3 py-1.5 text-sm text-dash-ink disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <LeadDetailModal
-      key={selectedLead?.id}
-      lead={selectedLead}
-      onClose={() => setSelectedLead(null)}
-      onChanged={load}
-    />
-    {isImportOpen && (
-      <ImportCsvModal kind="leads" onClose={() => setIsImportOpen(false)} onImported={load} />
-    )}
-    <NewLeadModal isOpen={isNewLeadOpen} onClose={() => setIsNewLeadOpen(false)} />
-    {taskLead && (
-      <LogTaskModal key={taskLead.id} lead={taskLead} onClose={() => setTaskLead(null)} onSaved={load} />
-    )}
+      <LeadDetailModal
+        key={selectedLead?.id}
+        lead={selectedLead}
+        onClose={() => setSelectedLead(null)}
+        onChanged={load}
+      />
+      {isImportOpen && <ImportCsvModal kind="leads" onClose={() => setIsImportOpen(false)} onImported={load} />}
+      <NewLeadModal isOpen={isNewLeadOpen} onClose={() => setIsNewLeadOpen(false)} />
+      {taskLead && (
+        <LogTaskModal key={taskLead.id} lead={taskLead} onClose={() => setTaskLead(null)} onSaved={load} />
+      )}
     </ViewTransition>
   );
 }
