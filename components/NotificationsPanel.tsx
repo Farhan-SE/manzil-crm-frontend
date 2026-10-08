@@ -46,7 +46,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
   return (
     <div className="absolute right-0 top-[calc(100%+8px)] z-40 flex h-[390px] w-[380px] max-w-[calc(100vw-2rem)] flex-col border border-border bg-white shadow-lg">
       <div className="flex h-[62px] shrink-0 items-center justify-between border-b border-border px-5">
-        <h2 className="font-serif text-base font-bold text-dash-ink" style={headingStyle}>
+        <h2 className="font-serif text-base font-bold text-ink" style={headingStyle}>
           Notifications
         </h2>
         <button type="button" onClick={onClose} aria-label="Close notifications" className="text-ink">
@@ -90,8 +90,8 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
             const content = (
               <>
                 <p className={`text-xs text-ink ${notification.is_read ? "" : "font-bold"}`}>{notification.title}</p>
-                {notification.body && <p className="mt-1 text-[10px] text-muted">{notification.body}</p>}
-                <p className="mt-1 text-[10px] text-nav-idle">{timeAgo(notification.created_at)}</p>
+                {notification.body && <p className="mt-1 text-[11px] text-muted">{notification.body}</p>}
+                <p className="mt-1 text-[11px] text-nav-idle">{timeAgo(notification.created_at)}</p>
               </>
             );
             const itemClass = "block w-full border-b border-border px-5 py-3 text-left leading-[1.4] hover:bg-sidebar";

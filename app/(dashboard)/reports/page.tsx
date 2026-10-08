@@ -11,13 +11,13 @@ import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   generateReport,
-  getPartnerProjects,
+  getProjectOptions,
   getPipeline,
   getReports,
   getSalesPerformance,
   getTargets,
   setTarget,
-  type PartnerProject,
+  type ProjectOption,
   type Report,
   type ReportCategory,
   type SalesMonth,
@@ -54,10 +54,10 @@ const COLUMN_COUNT = 7;
 
 const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
-const panelClass = "rounded-[4px] border border-dash-border bg-white p-4";
+const panelClass = "rounded-[4px] border border-border bg-white p-4";
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 function monthLabel(period: string, style: "short" | "long" = "short") {
   return new Date(`${period}-01T00:00:00`).toLocaleDateString("en-US", {
@@ -114,16 +114,16 @@ function TargetsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-xl bg-sidebar shadow-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-dash-border px-4 py-4 sm:px-6">
-          <h2 className="font-serif text-2xl font-bold text-dash-ink" style={headingStyle}>
+      <div className="w-full max-w-md rounded-xl bg-sidebar shadow-lg" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6">
+          <h2 className="font-serif text-2xl font-bold text-ink" style={headingStyle}>
             Targets · {monthLabel(period, "long")}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-dash-muted transition-colors hover:text-dash-ink"
+            className="text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -131,7 +131,7 @@ function TargetsModal({
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 py-5 sm:px-6">
           {targets.map((entry) => (
             <div key={entry.metric} className="flex flex-col gap-1.5">
-              <label htmlFor={`target-${entry.metric}`} className="text-sm text-dash-muted">
+              <label htmlFor={`target-${entry.metric}`} className="text-sm text-muted">
                 {TARGETS[entry.metric].label} ({TARGETS[entry.metric].unit})
               </label>
               <input
@@ -151,14 +151,14 @@ function TargetsModal({
             <button
               type="button"
               onClick={onClose}
-              className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+              className="text-sm font-medium text-muted transition-colors hover:text-ink"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? "Saving..." : "Save targets"}
             </button>
@@ -186,7 +186,7 @@ export default function ReportsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const [projects, setProjects] = useState<PartnerProject[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [isTargetsOpen, setIsTargetsOpen] = useState(false);
@@ -205,7 +205,7 @@ export default function ReportsPage() {
     getSalesPerformance()
       .then(setSales)
       .catch(() => setSales([]));
-    getPartnerProjects({ limit: 500 }).then(setProjects).catch(() => {});
+    getProjectOptions().then(setProjects).catch(() => {});
     // The pipeline response carries every region staff are assigned to.
     getPipeline({ per_stage: 1 })
       .then((res) => setRegions(res.regions))
@@ -266,16 +266,16 @@ export default function ReportsPage() {
       <div className="flex w-full flex-col">
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-8">
           <div className="flex flex-col gap-[3px] leading-[1.4]">
-            <h1 className="font-serif text-xl font-bold text-dash-ink" style={headingStyle}>
+            <h1 className="font-serif text-xl font-bold text-ink" style={headingStyle}>
               Reports
             </h1>
-            <p className="text-[10px] text-dash-muted">Performance data · Sales, inventory and collections</p>
+            <p className="text-[11px] text-muted">Performance data · Sales, inventory and collections</p>
           </div>
           <button
             type="button"
             onClick={exportSummary}
             disabled={!sales || !targets}
-            className="flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-dash-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60"
+            className="flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60"
           >
             <Icon name="download" className="size-4" />
             Export summary
@@ -339,31 +339,31 @@ export default function ReportsPage() {
         <div className="flex flex-col gap-6 px-4 py-4 sm:px-8 lg:flex-row lg:items-start">
           <div className={`flex min-w-0 flex-col gap-4 lg:flex-[5] ${panelClass}`}>
             <div className="flex items-center justify-between leading-[1.4]">
-              <h2 className="font-serif text-sm font-bold text-dash-ink" style={headingStyle}>
+              <h2 className="font-serif text-sm font-bold text-ink" style={headingStyle}>
                 Monthly sales performance
               </h2>
               {latestSales && (
-                <p className="text-[10px] text-dash-muted">
+                <p className="text-[11px] text-muted">
                   {formatMoney(latestSales.total)} · {monthLabel(latestSales.month, "long")}
                 </p>
               )}
             </div>
-            <div className="flex gap-4 text-[10px] leading-[1.4]">
+            <div className="flex gap-4 text-[11px] leading-[1.4]">
               <p className="text-primary">■ Closed sales</p>
-              <p className="text-dash-muted">PKR million</p>
+              <p className="text-muted">PKR million</p>
             </div>
             {!sales && <Skeleton className="h-[160px] w-full" />}
             {sales && sales.length === 0 && (
-              <p className="flex h-[160px] items-center justify-center text-xs text-dash-placeholder">
+              <p className="flex h-[160px] items-center justify-center text-xs text-placeholder">
                 Sales data is unavailable.
               </p>
             )}
             {sales && sales.length > 0 && (
               <>
-                <div className="flex h-[132px] items-end gap-3 border-b border-dash-border px-3 sm:gap-[26px]">
+                <div className="flex h-[132px] items-end gap-3 border-b border-border px-3 sm:gap-[26px]">
                   {sales.map((entry) => (
                     <div key={entry.month} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-                      <p className="whitespace-nowrap text-[10px] leading-[1.4] text-dash-muted">
+                      <p className="whitespace-nowrap text-[11px] leading-[1.4] text-muted">
                         {formatMillions(entry.total)}
                       </p>
                       <div
@@ -373,7 +373,7 @@ export default function ReportsPage() {
                     </div>
                   ))}
                 </div>
-                <div className="flex gap-3 px-3 text-center text-[10px] text-dash-muted sm:gap-[26px]">
+                <div className="flex gap-3 px-3 text-center text-[11px] text-muted sm:gap-[26px]">
                   {sales.map((entry) => (
                     <p key={entry.month} className="min-w-0 flex-1">
                       {monthLabel(entry.month)}
@@ -386,10 +386,10 @@ export default function ReportsPage() {
 
           <div className={`flex min-w-0 flex-col gap-4 lg:flex-[3] ${panelClass}`}>
             <div className="flex items-center justify-between gap-3 leading-[1.4]">
-              <h2 className="font-serif text-sm font-bold text-dash-ink" style={headingStyle}>
+              <h2 className="font-serif text-sm font-bold text-ink" style={headingStyle}>
                 Target achievement
               </h2>
-              <p className="shrink-0 text-[10px] text-dash-muted">{monthLabel(filters.period, "long")}</p>
+              <p className="shrink-0 text-[11px] text-muted">{monthLabel(filters.period, "long")}</p>
             </div>
             {!targets && <Skeleton className="h-24 w-full" />}
             {targets?.map((entry) => {
@@ -399,8 +399,8 @@ export default function ReportsPage() {
               return (
                 <div key={entry.metric} className="flex flex-col gap-2 leading-[1.4]">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs text-dash-ink">{meta.label}</p>
-                    <p className="shrink-0 text-[11px] text-dash-muted">
+                    <p className="text-xs text-ink">{meta.label}</p>
+                    <p className="shrink-0 text-[11px] text-muted">
                       {show(entry.actual)} / {entry.target == null ? "no target" : show(entry.target)} {meta.unit}
                     </p>
                   </div>
@@ -446,13 +446,13 @@ export default function ReportsPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className={headCellClass}>Report name</th>
-                <th className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Category</th>
-                <th className={`${headCellClass} hidden w-[16%] sm:table-cell`}>Period</th>
-                <th className={`${headCellClass} hidden w-[18%] lg:table-cell`}>Last generated</th>
-                <th className={`${headCellClass} hidden w-[8%] lg:table-cell`}>Format</th>
-                <th className={`${headCellClass} w-[110px] lg:w-[11%]`}>Download</th>
-                <th className={`${headCellClass} w-[40px] text-[9px] lg:w-[4%]`}>Actions</th>
+                <th scope="col" className={headCellClass}>Report name</th>
+                <th scope="col" className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Category</th>
+                <th scope="col" className={`${headCellClass} hidden w-[16%] sm:table-cell`}>Period</th>
+                <th scope="col" className={`${headCellClass} hidden w-[18%] lg:table-cell`}>Last generated</th>
+                <th scope="col" className={`${headCellClass} hidden w-[8%] lg:table-cell`}>Format</th>
+                <th scope="col" className={`${headCellClass} w-[110px] lg:w-[11%]`}>Download</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[4%]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -467,7 +467,7 @@ export default function ReportsPage() {
 
               {reports && visible.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     No reports in this category.
                   </td>
                 </tr>

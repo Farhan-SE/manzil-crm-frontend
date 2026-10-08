@@ -7,23 +7,23 @@
   --ink: #1a1d20;
   --primary: #1c222a;
   --primary-foreground: #ffffff;
-  --muted: #737a7f;
+  --muted: #62696e;
   --border-color: #d1d5db;
-  --placeholder: #9ca3af;
+  --placeholder: #666d78;
   --dash-bg: #f4fcf3;
   --sidebar-bg: #f8f9f6;
-  --dash-border: #dddfd8;
-  --dash-ink: #0b1116;
-  --dash-muted: #44474a;
-  --dash-placeholder: #6b7280;
   --hot: #a3453d;
   --warm: #feb565;
+  /* The warm accent deep enough to read as text or an icon on light surfaces. */
+  --warm-ink: #885205;
+  --success: #047857;
+  --attention: #c2410c;
   --nav-active: #ffdcbc;
   --nav-active-fg: #2c1700;
-  --nav-idle: #7a7f83;
+  --nav-idle: #636a6f;
   --badge-neutral: #dde5dc;
   --avatar-bg: #ffb86c;
-  --status-inquiry: #6b7a8f;
+  --status-inquiry: #62718a;
   --status-visit: #3f7d6b;
   --status-negotiation: #885205;
   --cold: #3b6c9e;
@@ -49,12 +49,11 @@
   --color-placeholder: var(--placeholder);
   --color-dash-bg: var(--dash-bg);
   --color-sidebar: var(--sidebar-bg);
-  --color-dash-border: var(--dash-border);
-  --color-dash-ink: var(--dash-ink);
-  --color-dash-muted: var(--dash-muted);
-  --color-dash-placeholder: var(--dash-placeholder);
   --color-hot: var(--hot);
   --color-warm: var(--warm);
+  --color-warm-ink: var(--warm-ink);
+  --color-success: var(--success);
+  --color-attention: var(--attention);
   --color-nav-active: var(--nav-active);
   --color-nav-active-fg: var(--nav-active-fg);
   --color-nav-idle: var(--nav-idle);
@@ -82,6 +81,30 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Unlayered on purpose: it has to outrank the `focus:outline-none` utilities on form controls. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Fields sit flush inside bordered boxes, where an offset ring would be clipped. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--nav-active);
+  color: var(--nav-active-fg);
+}
+
+input,
+textarea {
+  caret-color: var(--primary);
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -92,7 +115,7 @@ body {
 }
 
 .kanban-scroll {
-  scrollbar-color: var(--dash-muted) transparent;
+  scrollbar-color: var(--muted) transparent;
   scrollbar-width: thin;
 }
 
@@ -105,7 +128,7 @@ body {
 }
 
 .kanban-scroll::-webkit-scrollbar-thumb {
-  background-color: var(--dash-muted);
+  background-color: var(--muted);
   border-radius: 9999px;
 }
 

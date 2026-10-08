@@ -53,7 +53,7 @@ const COLUMN_COUNT = 9;
 const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
 const headerActionClass =
-  "flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-dash-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60";
+  "flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60";
 
 function teamCode(team: Team) {
   return `TEAM-${String(team.team_no).padStart(2, "0")}`;
@@ -212,10 +212,10 @@ export default function TeamsPage() {
       <div className="flex w-full flex-col pb-8">
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-8">
           <div className="flex flex-col gap-[3px] leading-[1.4]">
-            <h1 className="font-serif text-xl font-bold text-dash-ink" style={headingStyle}>
+            <h1 className="font-serif text-xl font-bold text-ink" style={headingStyle}>
               Teams
             </h1>
-            <p className="text-[10px] text-dash-muted">Team groupings · Staff assignments and coverage</p>
+            <p className="text-[11px] text-muted">Team groupings · Staff assignments and coverage</p>
           </div>
           <div className="flex items-center gap-3">
             {admin && (
@@ -316,7 +316,7 @@ export default function TeamsPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className="hidden w-8 lg:table-cell">
+                <th scope="col" className="hidden w-8 lg:table-cell">
                   <input
                     type="checkbox"
                     aria-label="Select all teams"
@@ -325,14 +325,14 @@ export default function TeamsPage() {
                     className={checkboxClass}
                   />
                 </th>
-                <th className={headCellClass}>Team</th>
-                <th className={`${headCellClass} hidden w-[15%] sm:table-cell`}>Team lead</th>
-                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Region</th>
-                <th className={`${headCellClass} w-[20%] lg:w-[8%]`}>Members</th>
-                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Allocated leads</th>
-                <th className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Project assignments</th>
-                <th className={`${headCellClass} w-[84px] lg:w-[9%]`}>Status</th>
-                <th className={`${headCellClass} w-[40px] text-[9px] lg:w-[5%]`}>Actions</th>
+                <th scope="col" className={headCellClass}>Team</th>
+                <th scope="col" className={`${headCellClass} hidden w-[15%] sm:table-cell`}>Team lead</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Region</th>
+                <th scope="col" className={`${headCellClass} w-[20%] lg:w-[8%]`}>Members</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Allocated leads</th>
+                <th scope="col" className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Project assignments</th>
+                <th scope="col" className={`${headCellClass} w-[84px] lg:w-[9%]`}>Status</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -350,7 +350,7 @@ export default function TeamsPage() {
 
               {!isLoading && teams.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? `No ${tabNoun} match those filters.` : `No ${tabNoun} yet.`}
                   </td>
                 </tr>
@@ -433,15 +433,15 @@ export default function TeamsPage() {
         />
 
         {summaryTeam && (
-          <div className="mx-4 rounded-[4px] border border-dash-border bg-white p-4 leading-[1.4] sm:mx-8">
+          <div className="mx-4 rounded-[4px] border border-border bg-white p-4 leading-[1.4] sm:mx-8">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="font-serif text-sm font-bold text-dash-ink" style={headingStyle}>
+              <h2 className="font-serif text-sm font-bold text-ink" style={headingStyle}>
                 {summaryTeam.name} — assignment summary
               </h2>
-              <p className="shrink-0 text-[10px] text-dash-muted">Staff reference values</p>
+              <p className="shrink-0 text-[11px] text-muted">Staff reference values</p>
             </div>
             {summaryMembers.length === 0 ? (
-              <p className="mt-4 text-xs text-dash-placeholder">This team has no members yet.</p>
+              <p className="mt-4 text-xs text-placeholder">This team has no members yet.</p>
             ) : (
               <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
                 {summaryMembers.map((member) => (

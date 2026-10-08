@@ -14,7 +14,7 @@ import { COUNTRIES, CUSTOMER_STAGES } from "@/lib/customers";
 const CUSTOMER_TYPES = [
   { id: "buyer", label: "Buyer", className: "bg-cold/15 text-cold" },
   { id: "seller", label: "Seller", className: "bg-stage-site-visit/10 text-stage-site-visit" },
-  { id: "investor", label: "Investor", className: "bg-warm/20 text-warm" },
+  { id: "investor", label: "Investor", className: "bg-warm/20 text-warm-ink" },
 ];
 
 function formatDate(date: string | null) {
@@ -38,8 +38,8 @@ function initials(name: string) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:p-6">
-      <h2 className="pb-4 text-xs font-bold uppercase tracking-[1px] text-dash-muted">{title}</h2>
+    <section className="rounded-lg border border-border bg-white p-4 shadow-sm sm:p-6">
+      <h2 className="pb-4 text-xs font-bold uppercase tracking-[1px] text-muted">{title}</h2>
       {children}
     </section>
   );
@@ -47,9 +47,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-dash-border py-3 last:border-b-0 last:pb-0 sm:gap-6">
-      <p className="shrink-0 text-sm text-dash-muted">{label}</p>
-      <div className="min-w-0 text-right text-sm text-dash-ink">{children}</div>
+    <div className="flex items-start justify-between gap-4 border-b border-border py-3 last:border-b-0 last:pb-0 sm:gap-6">
+      <p className="shrink-0 text-sm text-muted">{label}</p>
+      <div className="min-w-0 text-right text-sm text-ink">{children}</div>
     </div>
   );
 }
@@ -119,10 +119,10 @@ export default function CustomerDetailPage() {
   if (!customer) {
     return (
       <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
-        <Link href="/customers" className="text-sm text-dash-muted transition-colors hover:text-dash-ink">
+        <Link href="/customers" className="text-sm text-muted transition-colors hover:text-ink">
           ← Customers
         </Link>
-        <p className="rounded-lg border border-dashed border-dash-border py-16 text-center text-sm text-dash-placeholder">
+        <p className="rounded-lg border border-dashed border-border py-16 text-center text-sm text-placeholder">
           {error ?? "That customer doesn't exist."}
         </p>
       </div>
@@ -143,33 +143,33 @@ export default function CustomerDetailPage() {
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <Link
         href="/customers"
-        className="w-fit text-sm text-dash-muted transition-colors hover:text-dash-ink"
+        className="w-fit text-sm text-muted transition-colors hover:text-ink"
       >
         ← Customers
       </Link>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="flex min-w-0 items-center gap-4">
-          <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-avatar/30 text-lg font-bold text-dash-ink">
+          <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-avatar/30 text-lg font-bold text-ink">
             {initials(customer.customer_name)}
           </span>
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <h1
-                className="truncate font-serif text-2xl font-semibold text-dash-ink sm:text-[34px]"
+                className="truncate font-serif text-2xl font-semibold text-ink sm:text-[34px]"
                 style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
               >
                 {customer.customer_name}
               </h1>
               {type && (
                 <span
-                  className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.45px] ${type.className}`}
+                  className={`shrink-0 rounded px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.45px] ${type.className}`}
                 >
                   {type.label}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-sm text-dash-muted">
+            <p className="mt-1 text-sm text-muted">
               Customer ID {customer.customer_no} · Customer since {formatDate(customer.customer_since)}
               {customer.source ? ` · via ${customer.source.name}` : ""}
             </p>
@@ -180,7 +180,7 @@ export default function CustomerDetailPage() {
           {canEdit && (
             <Link
               href={`/customers/${customer.id}/edit`}
-              className="rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
+              className="rounded-lg bg-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-ink/90"
             >
               Edit customer
             </Link>
@@ -190,7 +190,7 @@ export default function CustomerDetailPage() {
               type="button"
               onClick={handleDelete}
               disabled={isDeleting}
-              className="flex w-fit items-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-fit items-center gap-2 rounded-lg border border-hot/30 px-4 py-2.5 text-sm font-semibold text-hot transition-colors hover:bg-hot/10 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <TrashIcon className="size-3.5" />
               {isDeleting ? "Deleting..." : "Delete customer"}
@@ -209,7 +209,7 @@ export default function CustomerDetailPage() {
             <InfoRow label="Type">
               {type ? (
                 <span
-                  className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.45px] ${type.className}`}
+                  className={`rounded px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.45px] ${type.className}`}
                 >
                   {type.label}
                 </span>
@@ -223,7 +223,7 @@ export default function CustomerDetailPage() {
             <InfoRow label="Phone">
               <a
                 href={`tel:${customer.contact_number}`}
-                className="transition-colors hover:text-warm hover:underline"
+                className="transition-colors hover:text-warm-ink hover:underline"
               >
                 {customer.contact_number || "—"}
               </a>
@@ -232,7 +232,7 @@ export default function CustomerDetailPage() {
               {customer.alternate_contact_number ? (
                 <a
                   href={`tel:${customer.alternate_contact_number}`}
-                  className="transition-colors hover:text-warm hover:underline"
+                  className="transition-colors hover:text-warm-ink hover:underline"
                 >
                   {customer.alternate_contact_number}
                 </a>
@@ -244,7 +244,7 @@ export default function CustomerDetailPage() {
               {customer.email ? (
                 <a
                   href={`mailto:${customer.email}`}
-                  className="flex items-center justify-end gap-1.5 transition-colors hover:text-warm hover:underline"
+                  className="flex items-center justify-end gap-1.5 transition-colors hover:text-warm-ink hover:underline"
                 >
                   <EmailIcon className="size-3 shrink-0" />
                   <span className="truncate">{customer.email}</span>
@@ -268,8 +268,8 @@ export default function CustomerDetailPage() {
           </Section>
 
           <Section title="Notes">
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-dash-ink">
-              {customer.notes || <span className="text-dash-placeholder">No notes yet.</span>}
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
+              {customer.notes || <span className="text-placeholder">No notes yet.</span>}
             </p>
           </Section>
         </div>
@@ -280,7 +280,7 @@ export default function CustomerDetailPage() {
             <InfoRow label="Stage">
               <span
                 className={`rounded-full px-3 py-1 text-[11px] font-bold ${
-                  stage?.className ?? "bg-badge-neutral text-dash-muted"
+                  stage?.className ?? "bg-badge-neutral text-muted"
                 }`}
               >
                 {stage?.label ?? customer.stage}
@@ -295,23 +295,23 @@ export default function CustomerDetailPage() {
           <Section title="Ownership">
             {agentName ? (
               <div className="flex items-center gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-avatar/30 text-xs font-bold text-dash-ink">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-avatar/30 text-xs font-bold text-ink">
                   {initials(agentName)}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-dash-ink">{agentName}</p>
-                  <p className="text-[11px] text-dash-muted">
+                  <p className="truncate text-sm font-semibold text-ink">{agentName}</p>
+                  <p className="text-[11px] text-muted">
                     {customer.assigned_to?.team || "Assigned agent"}
                   </p>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col items-start gap-3">
-                <p className="text-sm text-dash-placeholder">No agent assigned yet.</p>
+                <p className="text-sm text-placeholder">No agent assigned yet.</p>
                 {admin && (
                   <Link
                     href={`/customers/${customer.id}/edit`}
-                    className="rounded-lg border border-dash-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-dash-bg"
                   >
                     Assign an agent
                   </Link>

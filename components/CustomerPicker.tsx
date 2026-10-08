@@ -6,7 +6,7 @@ import { SearchIcon } from "@/components/icons/DashboardIcons";
 import { getCustomers, type Customer } from "@/lib/api";
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white py-2 pl-10 pr-4 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white py-2 pl-10 pr-4 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 export function CustomerPicker({
   value,
@@ -36,13 +36,13 @@ export function CustomerPicker({
 
   if (value) {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-dash-border bg-white px-4 py-2.5">
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-white px-4 py-2.5">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-dash-ink">
+          <p className="truncate text-sm font-semibold text-ink">
             {value.customer_name}
             <span className="ml-2 font-normal text-stage-inquiry">#{value.customer_no}</span>
           </p>
-          <p className="truncate text-xs text-dash-muted">
+          <p className="truncate text-xs text-muted">
             {[value.contact_number, value.alternate_contact_number, value.city].filter(Boolean).join(" · ")}
           </p>
         </div>
@@ -53,7 +53,7 @@ export function CustomerPicker({
             setSearch("");
             setResults(null);
           }}
-          className="shrink-0 text-xs font-semibold text-dash-muted transition-colors hover:text-dash-ink"
+          className="shrink-0 text-xs font-semibold text-muted transition-colors hover:text-ink"
         >
           Change
         </button>
@@ -79,12 +79,12 @@ export function CustomerPicker({
       {showResults && (
         <div
           role="listbox"
-          className="absolute left-0 right-0 top-[calc(100%+6px)] z-10 max-h-56 overflow-auto rounded-xl border border-dash-border bg-white py-1 shadow-lg"
+          className="absolute left-0 right-0 top-[calc(100%+6px)] z-10 max-h-56 overflow-auto rounded-xl border border-border bg-white py-1 shadow-lg"
         >
           {results.length === 0 && (
-            <p className="px-4 py-2 text-sm text-dash-placeholder">
+            <p className="px-4 py-2 text-sm text-placeholder">
               No customer found.{" "}
-              <Link href="/customers/new" className="font-semibold text-dash-ink underline">
+              <Link href="/customers/new" className="font-semibold text-ink underline">
                 Add a customer
               </Link>{" "}
               first.
@@ -99,11 +99,11 @@ export function CustomerPicker({
               onClick={() => onChange(customer)}
               className="block w-full px-4 py-2 text-left hover:bg-dash-bg"
             >
-              <p className="truncate text-sm text-dash-ink">
+              <p className="truncate text-sm text-ink">
                 <span className="mr-2 font-semibold text-stage-inquiry">#{customer.customer_no}</span>
                 {customer.customer_name}
               </p>
-              <p className="truncate text-xs text-dash-muted">
+              <p className="truncate text-xs text-muted">
                 {[customer.contact_number, customer.city].filter(Boolean).join(" · ")}
               </p>
             </button>

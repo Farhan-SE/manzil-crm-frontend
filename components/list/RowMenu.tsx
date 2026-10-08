@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { moveMenuFocus } from "@/components/ui/Listbox";
 
 export type RowMenuItem = { label: string; href?: string; external?: boolean; onClick?: () => void };
 
 const MENU_WIDTH = 176;
 
-const itemClass = "block w-full px-4 py-2 text-left text-xs text-dash-ink hover:bg-dash-bg";
+const itemClass = "block w-full px-4 py-2 text-left text-xs text-ink hover:bg-dash-bg";
 
 export function RowMenu({ label, items }: { label: string; items: RowMenuItem[] }) {
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
@@ -18,6 +19,7 @@ export function RowMenu({ label, items }: { label: string; items: RowMenuItem[] 
   useEffect(() => {
     if (!position) return;
     const close = () => setPosition(null);
+    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node;
       if (!buttonRef.current?.contains(target) && !menuRef.current?.contains(target)) close();
@@ -61,8 +63,20 @@ export function RowMenu({ label, items }: { label: string; items: RowMenuItem[] 
         <div
           ref={menuRef}
           role="menu"
+          aria-label={label}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              setPosition(null);
+              buttonRef.current?.focus();
+            } else if (e.key === "Tab") {
+              setPosition(null);
+            } else {
+              moveMenuFocus(e, '[role="menuitem"]');
+            }
+          }}
           style={{ top: position.top, left: position.left, width: MENU_WIDTH }}
-          className="fixed z-50 rounded-md border border-dash-border bg-white py-1 shadow-lg"
+          className="fixed z-50 rounded-md border border-border bg-white py-1 shadow-lg"
         >
           {items.map((item) =>
             item.href && item.external ? (

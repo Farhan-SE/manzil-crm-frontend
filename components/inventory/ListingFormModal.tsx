@@ -5,7 +5,7 @@ import { Select, type SelectOption } from "@/components/ui/Select";
 import type { Listing, ListingInput } from "@/lib/api";
 
 const inputClass =
-  "w-full min-w-0 rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full min-w-0 rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 export type ListingDraft = ListingInput;
 
@@ -65,17 +65,17 @@ export function ListingFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
-              className="font-serif text-2xl font-bold text-dash-ink"
+              className="font-serif text-2xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               {initial ? "Edit listing" : "Seller lead"}
             </h2>
-            <p className="mt-0.5 text-xs text-dash-muted">
+            <p className="mt-0.5 text-xs text-muted">
               A client selling their property. Contact stays visible to admins and the assigned agent.
             </p>
           </div>
@@ -83,7 +83,7 @@ export function ListingFormModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 text-dash-muted transition-colors hover:text-dash-ink"
+            className="shrink-0 text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -92,7 +92,7 @@ export function ListingFormModal({
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:px-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="listing-client" className="text-sm text-dash-muted">
+              <label htmlFor="listing-client" className="text-sm text-muted">
                 Client name
               </label>
               <input
@@ -106,7 +106,7 @@ export function ListingFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="listing-number" className="text-sm text-dash-muted">
+              <label htmlFor="listing-number" className="text-sm text-muted">
                 Client number
               </label>
               <input
@@ -122,7 +122,7 @@ export function ListingFormModal({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="listing-area" className="text-sm text-dash-muted">
+            <label htmlFor="listing-area" className="text-sm text-muted">
               Area name
             </label>
             <input
@@ -138,7 +138,7 @@ export function ListingFormModal({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="listing-city" className="text-sm text-dash-muted">
+              <label htmlFor="listing-city" className="text-sm text-muted">
                 City
               </label>
               <input
@@ -151,7 +151,7 @@ export function ListingFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="listing-location" className="text-sm text-dash-muted">
+              <label htmlFor="listing-location" className="text-sm text-muted">
                 Block / sector
               </label>
               <input
@@ -167,7 +167,7 @@ export function ListingFormModal({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="listing-category" className="text-sm text-dash-muted">
+              <label htmlFor="listing-category" className="text-sm text-muted">
                 Category
               </label>
               <Select
@@ -179,7 +179,7 @@ export function ListingFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="listing-interest" className="text-sm text-dash-muted">
+              <label htmlFor="listing-interest" className="text-sm text-muted">
                 Property type
               </label>
               <Select
@@ -191,7 +191,7 @@ export function ListingFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="listing-price" className="text-sm text-dash-muted">
+              <label htmlFor="listing-price" className="text-sm text-muted">
                 Asking price (PKR)
               </label>
               <input
@@ -208,7 +208,7 @@ export function ListingFormModal({
 
           {showAssignee && (
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="listing-assignee" className="text-sm text-dash-muted">
+              <label htmlFor="listing-assignee" className="text-sm text-muted">
                 Assign to
               </label>
               <Select
@@ -222,7 +222,7 @@ export function ListingFormModal({
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="listing-description" className="text-sm text-dash-muted">
+            <label htmlFor="listing-description" className="text-sm text-muted">
               Description (optional)
             </label>
             <textarea
@@ -235,20 +235,20 @@ export function ListingFormModal({
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-hot">{error}</p>}
 
           <div className="flex items-center justify-end gap-4 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+              className="text-sm font-medium text-muted transition-colors hover:text-ink"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-dash-ink"
+              className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-ink"
             >
               {isSaving ? "Saving…" : initial ? "Save changes" : "Add to inventory"}
             </button>

@@ -23,7 +23,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import {
   getAgents,
   getCustomers,
-  getPartnerProjects,
+  getProjectOptions,
   getSessionUser,
   getSources,
   setCustomerStarred,
@@ -32,7 +32,7 @@ import {
   type Customer,
   type CustomersQuery,
   type CustomerStage,
-  type PartnerProject,
+  type ProjectOption,
   type Source,
 } from "@/lib/api";
 import { COUNTRIES, CUSTOMER_STAGES, flagUrl, whatsappUrl } from "@/lib/customers";
@@ -77,10 +77,10 @@ const SORT_OPTIONS = [
 
 const clientRowClass = "h-[78px] text-xs leading-[1.4] text-ink odd:bg-white even:bg-sidebar";
 
-const actionClass = "size-7 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-110";
+const actionClass = "size-8 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-110";
 
 const headerActionClass =
-  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-dash-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
+  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
 
 export default function CustomersPage() {
   const admin = useIsAdmin();
@@ -103,12 +103,12 @@ export default function CustomersPage() {
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
-  const [projects, setProjects] = useState<PartnerProject[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
 
   useEffect(() => {
     getAgents().then(setAgents).catch(() => {});
     getSources().then(setSources).catch(() => {});
-    getPartnerProjects({ limit: 500 }).then(setProjects).catch(() => {});
+    getProjectOptions().then(setProjects).catch(() => {});
   }, []);
 
   // `silent` refreshes rows and tab counts in place, without flashing the skeleton.
@@ -196,6 +196,7 @@ export default function CustomersPage() {
   return (
     <ViewTransition>
       <div className="flex w-full flex-col">
+        <h1 className="sr-only">Clients</h1>
         <FilterBar
           onSearch={() => {
             setFilters(draft);
@@ -306,7 +307,7 @@ export default function CustomersPage() {
               resetPaging();
             }}
             aria-pressed={favouritesOnly}
-            className={`flex shrink-0 items-center gap-1.5 text-xs leading-[1.4] text-warm ${
+            className={`flex shrink-0 items-center gap-1.5 text-xs leading-[1.4] text-warm-ink ${
               favouritesOnly ? "font-bold" : ""
             }`}
           >
@@ -323,7 +324,7 @@ export default function CustomersPage() {
               }}
               options={SORT_OPTIONS}
               label="Sort clients"
-              className="flex items-center gap-1.5 font-bold text-emerald-600"
+              className="flex items-center gap-1.5 font-bold text-success"
             >
               {(isOpen) => (
                 <>
@@ -342,7 +343,7 @@ export default function CustomersPage() {
           <table className={tableClass}>
             <thead>
               <tr className="h-10 bg-cream text-[11px] uppercase text-muted">
-                <th className="hidden w-10 pl-3 lg:table-cell">
+                <th scope="col" className="hidden w-10 pl-3 lg:table-cell">
                   <input
                     type="checkbox"
                     aria-label="Select all clients"
@@ -351,14 +352,14 @@ export default function CustomersPage() {
                     className={checkboxClass}
                   />
                 </th>
-                <th className="w-9" aria-label="Favourite" />
-                <th className={`${headCellClass} w-[96px] font-bold lg:w-[10%]`}>Client ID</th>
-                <th className={`${headCellClass} font-bold`}>Full name</th>
-                <th className={`${headCellClass} hidden w-[13%] font-bold lg:table-cell`}>Location</th>
-                <th className={`${headCellClass} hidden w-[17%] font-bold lg:table-cell`}>Source</th>
-                <th className={`${headCellClass} hidden w-[16%] font-bold lg:table-cell`}>Allocation</th>
-                <th className={`${headCellClass} w-[112px] font-bold lg:w-[11%]`}>Stage</th>
-                <th className={`${headCellClass} w-[84px] font-bold lg:w-[196px]`}>Actions</th>
+                <th scope="col" className="w-9" aria-label="Favourite" />
+                <th scope="col" className={`${headCellClass} hidden w-[96px] font-bold sm:table-cell lg:w-[10%]`}>Client ID</th>
+                <th scope="col" className={`${headCellClass} font-bold`}>Full name</th>
+                <th scope="col" className={`${headCellClass} hidden w-[13%] font-bold lg:table-cell`}>Location</th>
+                <th scope="col" className={`${headCellClass} hidden w-[17%] font-bold lg:table-cell`}>Source</th>
+                <th scope="col" className={`${headCellClass} hidden w-[16%] font-bold lg:table-cell`}>Allocation</th>
+                <th scope="col" className={`${headCellClass} w-[108px] font-bold lg:w-[11%]`}>Stage</th>
+                <th scope="col" className={`${headCellClass} w-[84px] font-bold lg:w-[196px]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -376,7 +377,7 @@ export default function CustomersPage() {
 
               {!isLoading && customers.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? "No clients match those filters." : "No clients yet."}
                   </td>
                 </tr>
@@ -412,13 +413,13 @@ export default function CustomersPage() {
                           aria-label={`${customer.is_starred ? "Remove" : "Add"} ${customer.customer_name} ${
                             customer.is_starred ? "from" : "to"
                           } favourites`}
-                          className="text-lg leading-none text-warm transition-transform hover:scale-110"
+                          className="flex size-6 items-center justify-center text-lg leading-none text-warm-ink transition-transform hover:scale-110"
                         >
                           {customer.is_starred ? "★" : "☆"}
                         </button>
                       </td>
-                      <td className="pr-3">
-                        <Link href={href} className="text-cold hover:underline">
+                      <td className="hidden pr-3 sm:table-cell">
+                        <Link href={href} className="-my-1.5 inline-block py-1.5 text-cold hover:underline">
                           {customer.customer_no}
                         </Link>
                         <p className={`${subTextClass} flex items-center gap-1.5 text-[11px]`}>
@@ -436,6 +437,8 @@ export default function CustomersPage() {
                               {customer.customer_name || "No Name"}
                             </Link>
                             <p className={`${subTextClass} text-[11px]`}>
+                              {/* On phones the ID column is dropped to give the name room. */}
+                              <span className="sm:hidden">#{customer.customer_no} · </span>
                               {customer.lead_count} {customer.lead_count === 1 ? "Lead" : "Leads"}
                             </p>
                           </div>
@@ -458,7 +461,7 @@ export default function CustomersPage() {
                           {customer.assigned_to && (
                             <span
                               title={`Allocated to ${agentName}${customer.assigned_to.team ? ` · ${customer.assigned_to.team}` : ""}`}
-                              className="flex size-3.5 shrink-0 cursor-help items-center justify-center rounded-full bg-border text-[9px] font-bold leading-none text-white"
+                              className="flex size-3.5 shrink-0 cursor-help items-center justify-center rounded-full bg-muted text-[11px] font-bold leading-none text-white"
                             >
                               i
                             </span>
@@ -478,7 +481,7 @@ export default function CustomersPage() {
                         ) : (
                           <span
                             className={`inline-block whitespace-nowrap rounded-[20px] px-4 py-[5px] text-[11px] leading-[1.4] ${
-                              stage?.className ?? "bg-badge-neutral text-dash-muted"
+                              stage?.className ?? "bg-badge-neutral text-muted"
                             }`}
                           >
                             {stage?.label ?? customer.stage}
@@ -501,7 +504,7 @@ export default function CustomersPage() {
                             rel="noopener noreferrer"
                             aria-label={`WhatsApp ${customer.customer_name}`}
                             title="WhatsApp"
-                            className={`${actionClass} flex bg-emerald-100 text-emerald-600`}
+                            className={`${actionClass} flex bg-success/15 text-success`}
                           >
                             <Icon name="whatsapp" className="size-3.5" />
                           </a>
@@ -510,7 +513,7 @@ export default function CustomersPage() {
                               href={`mailto:${customer.email}`}
                               aria-label={`Email ${customer.customer_name}`}
                               title={customer.email}
-                              className={`${actionClass} hidden bg-emerald-50 text-emerald-600 lg:flex`}
+                              className={`${actionClass} hidden bg-success/10 text-success lg:flex`}
                             >
                               <Icon name="mail" className="size-3.5" />
                             </a>
@@ -520,7 +523,7 @@ export default function CustomersPage() {
                               href={`${href}/edit`}
                               aria-label={`Edit ${customer.customer_name}`}
                               title="Edit client"
-                              className={`${actionClass} hidden bg-indigo-50 text-indigo-500 lg:flex`}
+                              className={`${actionClass} hidden bg-badge-neutral text-primary lg:flex`}
                             >
                               <Icon name="file" className="size-3.5" />
                             </Link>
@@ -529,7 +532,7 @@ export default function CustomersPage() {
                             href={`tel:${customer.contact_number}`}
                             aria-label={`Call ${customer.customer_name}`}
                             title={`Call ${customer.contact_number}`}
-                            className={`${actionClass} flex bg-orange-100 text-orange-500`}
+                            className={`${actionClass} flex bg-attention/15 text-attention`}
                           >
                             <Icon name="phone" className="size-3.5" />
                           </a>

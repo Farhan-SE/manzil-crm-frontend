@@ -51,7 +51,7 @@ function LabeledField({
         tall ? "min-h-[108px]" : "min-h-[66px]"
       }`}
     >
-      <label htmlFor={id} className="text-[10px] leading-[1.7] text-muted">
+      <label htmlFor={id} className="text-[11px] leading-[1.7] text-muted">
         {label}
         {required && " *"}
       </label>
@@ -344,7 +344,7 @@ export function SupportTicketForm({ articleSlug }: { articleSlug?: string }) {
                 >
                   <Icon name="upload" className="size-4 text-primary" />
                   <span className="text-xs leading-[1.4] text-primary">Add screenshots or supporting documents</span>
-                  <span className="text-[10px] leading-[1.4] text-muted">PDF, JPG or PNG · Up to 10 MB per file</span>
+                  <span className="text-[11px] leading-[1.4] text-muted">PDF, JPG or PNG · Up to 10 MB per file</span>
                 </button>
                 <input
                   ref={fileInputRef}
@@ -364,14 +364,14 @@ export function SupportTicketForm({ articleSlug }: { articleSlug?: string }) {
                         <span className="flex min-w-0 items-center gap-2.5 text-xs leading-[1.4] text-primary">
                           <Icon name="file" className="size-4" />
                           <span className="truncate">{file.name}</span>
-                          <span className="shrink-0 text-[10px] text-muted">
+                          <span className="shrink-0 text-[11px] text-muted">
                             {(file.size / 1024 / 1024).toFixed(1)} MB
                           </span>
                         </span>
                         <button
                           type="button"
                           onClick={() => setFiles(files.filter((_, at) => at !== index))}
-                          className="shrink-0 text-[10px] leading-[1.4] text-muted hover:text-hot"
+                          className="shrink-0 text-[11px] leading-[1.4] text-muted hover:text-hot"
                         >
                           Remove
                         </button>
@@ -384,7 +384,7 @@ export function SupportTicketForm({ articleSlug }: { articleSlug?: string }) {
                 </p>
                 {error && <p className="text-xs text-hot">{error}</p>}
                 <div className="flex items-start justify-between gap-4 border-t border-border pt-4">
-                  <p className="text-[10px] leading-[1.4] text-muted">* Required fields</p>
+                  <p className="text-[11px] leading-[1.4] text-muted">* Required fields</p>
                   <div className="flex gap-3">
                     <Link href="/help" className={outlineButtonClass}>
                       Cancel

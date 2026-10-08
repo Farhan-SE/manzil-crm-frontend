@@ -24,7 +24,7 @@ function initials(name: string) {
 const wordmarkStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
 const iconButtonClass =
-  "flex size-8 shrink-0 items-center justify-center rounded-md text-nav-idle transition-colors hover:bg-dash-border/40";
+  "flex size-8 shrink-0 items-center justify-center rounded-md text-nav-idle transition-colors hover:bg-border/40";
 
 const drawerRowClass = "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors";
 
@@ -97,14 +97,14 @@ export function TopNav() {
           onClick={() => setIsDrawerOpen(true)}
           aria-label="Open menu"
           aria-expanded={isDrawerOpen}
-          className="-ml-1 flex size-9 shrink-0 items-center justify-center rounded-lg text-dash-ink transition-colors hover:bg-dash-border/40 lg:hidden"
+          className="-ml-1 flex size-9 shrink-0 items-center justify-center rounded-lg text-ink transition-colors hover:bg-border/40 lg:hidden"
         >
           <MenuIcon className="h-3.5 w-[18px]" />
         </button>
 
         <Link
           href="/dashboard"
-          className="shrink-0 font-serif text-2xl font-bold tracking-[-0.48px] text-dash-ink"
+          className="shrink-0 font-serif text-2xl font-bold tracking-[-0.48px] text-ink"
           style={wordmarkStyle}
         >
           manzil.com
@@ -135,7 +135,7 @@ export function TopNav() {
                 className={`shrink-0 whitespace-nowrap leading-[1.4] transition-colors ${
                   isActive
                     ? "rounded-md bg-nav-active px-2.5 py-[5px] text-sm font-bold text-nav-active-fg"
-                    : "text-xs text-nav-idle hover:text-dash-ink"
+                    : "text-xs text-nav-idle hover:text-ink"
                 }`}
               >
                 {section.label}
@@ -158,7 +158,7 @@ export function TopNav() {
             >
               <Icon name="bell" className="size-[18px]" />
               {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-hot px-1 text-[9px] font-bold leading-none text-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-hot px-1 text-[11px] font-bold leading-none text-white">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -178,15 +178,15 @@ export function TopNav() {
             </button>
 
             {isProfileOpen && (
-              <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-56 overflow-hidden rounded-md border border-dash-border bg-white py-1 shadow-lg">
-                <div className="border-b border-dash-border px-4 py-3">
-                  <p className="truncate text-sm font-semibold capitalize text-dash-ink">{fullName}</p>
+              <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-56 overflow-hidden rounded-md border border-border bg-white py-1 shadow-lg">
+                <div className="border-b border-border px-4 py-3">
+                  <p className="truncate text-sm font-semibold capitalize text-ink">{fullName}</p>
                   <p className="text-xs text-nav-idle">{admin ? "Admin" : "Agent"}</p>
                 </div>
                 <Link
                   href="/settings"
                   onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-dash-ink transition-colors hover:bg-dash-bg"
+                  className="flex items-center gap-3 px-4 py-2 text-sm text-ink transition-colors hover:bg-dash-bg"
                 >
                   <SettingsIcon className="size-4 shrink-0" />
                   Settings
@@ -194,7 +194,7 @@ export function TopNav() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-dash-ink transition-colors hover:bg-hot/10 hover:text-hot"
+                  className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-hot/10 hover:text-hot"
                 >
                   <LogoutIcon className="size-4 shrink-0" />
                   Logout
@@ -214,19 +214,19 @@ export function TopNav() {
       />
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-dvh w-[256px] max-w-[85vw] flex-col border-r border-dash-border bg-sidebar p-4 transition-transform duration-300 lg:hidden ${
+        className={`fixed left-0 top-0 z-50 flex h-dvh w-[256px] max-w-[85vw] flex-col border-r border-border bg-sidebar p-4 transition-transform duration-300 lg:hidden ${
           isDrawerOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
         }`}
       >
         <div className="flex items-center justify-between pb-6 pt-2">
-          <p className="font-serif text-2xl font-bold tracking-[-0.48px] text-dash-ink" style={wordmarkStyle}>
+          <p className="font-serif text-2xl font-bold tracking-[-0.48px] text-ink" style={wordmarkStyle}>
             manzil.com
           </p>
           <button
             type="button"
             onClick={() => setIsDrawerOpen(false)}
             aria-label="Close menu"
-            className="flex size-8 items-center justify-center rounded-lg text-dash-muted transition-colors hover:bg-dash-border/40 hover:text-dash-ink"
+            className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-border/40 hover:text-ink"
           >
             <CloseIcon className="size-3.5" />
           </button>
@@ -236,7 +236,7 @@ export function TopNav() {
           {[...NAV_SECTIONS, { label: "Support", items: [HELP_ITEM] }].map((section) => (
             <div key={section.label} className="flex flex-col gap-1">
               {section.items.length > 1 && (
-                <p className="px-3 text-[10px] font-bold uppercase tracking-[1px] text-nav-idle">{section.label}</p>
+                <p className="px-3 text-[11px] font-bold uppercase tracking-[1px] text-nav-idle">{section.label}</p>
               )}
               {section.items.map((item) => {
                 if (!item.href) {
@@ -260,7 +260,7 @@ export function TopNav() {
                     className={`${drawerRowClass} ${
                       isActive
                         ? "bg-nav-active font-bold text-nav-active-fg"
-                        : "text-nav-idle hover:bg-dash-border/40 hover:text-dash-ink"
+                        : "text-nav-idle hover:bg-border/40 hover:text-ink"
                     }`}
                   >
                     <Icon name={item.icon} className="size-5" />

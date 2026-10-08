@@ -27,11 +27,11 @@ import {
 } from "@/lib/tasks";
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 const TEMP_STYLES: Record<LeadTemperature, string> = {
   HOT: "border-hot text-hot",
-  WARM: "border-warm text-warm",
+  WARM: "border-warm text-warm-ink",
   COLD: "border-cold text-cold",
 };
 
@@ -58,9 +58,9 @@ function daysAgo(followUp: FollowUp) {
 }
 
 function loadClass(count: number) {
-  if (count === 0) return "text-dash-muted";
+  if (count === 0) return "text-muted";
   if (count <= 3) return "text-stage-sold";
-  return count <= 6 ? "text-warm" : "text-hot";
+  return count <= 6 ? "text-warm-ink" : "text-hot";
 }
 
 function Field({
@@ -76,7 +76,7 @@ function Field({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-sm text-dash-muted">
+      <label htmlFor={htmlFor} className="text-sm text-muted">
         {label}
         {required && <span className="text-hot"> *</span>}
       </label>
@@ -87,7 +87,7 @@ function Field({
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h3 className="border-b border-dash-border pb-2 text-xs font-bold uppercase tracking-[1px] text-dash-muted">
+    <h3 className="border-b border-border pb-2 text-xs font-bold uppercase tracking-[1px] text-muted">
       {children}
     </h3>
   );
@@ -227,11 +227,11 @@ export function LogTaskModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6">
           <h2
-            className="font-serif text-2xl font-bold text-dash-ink"
+            className="font-serif text-2xl font-bold text-ink"
             style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
           >
             Add task
@@ -240,7 +240,7 @@ export function LogTaskModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-dash-muted transition-colors hover:text-dash-ink"
+            className="text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -249,21 +249,21 @@ export function LogTaskModal({
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 px-4 py-5 sm:px-6">
           <section className="flex flex-col gap-3">
             <SectionTitle>Client details</SectionTitle>
-            <div className="rounded-xl border border-dash-border bg-dash-bg/50 p-4">
+            <div className="rounded-xl border border-border bg-dash-bg/50 p-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="min-w-0">
-                  <p className="text-xs text-dash-muted">Client</p>
-                  <p className="truncate text-sm font-semibold text-dash-ink">
+                  <p className="text-xs text-muted">Client</p>
+                  <p className="truncate text-sm font-semibold text-ink">
                     {lead.client_name}
                     <span className="ml-2 font-normal text-stage-inquiry">#{lead.lead_no}</span>
                   </p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-dash-muted">Interested project</p>
-                  <p className="truncate text-sm text-dash-ink">
+                  <p className="text-xs text-muted">Interested project</p>
+                  <p className="truncate text-sm text-ink">
                     {lead.project?.name ?? "—"}
                     {lead.unit && (
-                      <span className="text-dash-muted">
+                      <span className="text-muted">
                         {" "}
                         · {lead.unit.unit_number} ({unitStatusLabel(lead.unit.status)})
                       </span>
@@ -271,14 +271,14 @@ export function LogTaskModal({
                   </p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-dash-muted">Last task</p>
-                  <p className="truncate text-sm text-dash-ink">
+                  <p className="text-xs text-muted">Last task</p>
+                  <p className="truncate text-sm text-ink">
                     {lastTask ? `${taskLabel(lastTask)} · ${daysAgo(lastTask)}` : "—"}
                   </p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-dash-muted">Planned next task</p>
-                  <p className="truncate text-sm text-dash-ink">
+                  <p className="text-xs text-muted">Planned next task</p>
+                  <p className="truncate text-sm text-ink">
                     {plannedNext ? taskLabel(plannedNext) : "Do Nothing"}
                   </p>
                 </div>
@@ -298,10 +298,10 @@ export function LogTaskModal({
                     />
                   </button>
                   {showComments && (
-                    <ul className="mt-3 flex flex-col gap-2 border-t border-dash-border pt-3">
+                    <ul className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
                       {done.map((f) => (
-                        <li key={f.id} className="text-sm text-dash-ink">
-                          <span className="text-xs text-dash-muted">
+                        <li key={f.id} className="text-sm text-ink">
+                          <span className="text-xs text-muted">
                             {f.task_type ? `${taskLabel(f)} · ` : ""}
                             {daysAgo(f)}
                           </span>
@@ -357,10 +357,10 @@ export function LogTaskModal({
                 {/* Placeholder until file storage is wired up — nothing is uploaded yet. */}
                 <div
                   aria-disabled="true"
-                  className="flex cursor-not-allowed items-center justify-between rounded-xl border border-dashed border-dash-border bg-white px-4 py-2 text-sm text-dash-placeholder"
+                  className="flex cursor-not-allowed items-center justify-between rounded-xl border border-dashed border-border bg-white px-4 py-2 text-sm text-placeholder"
                 >
                   + Select file
-                  <span className="text-[10px] uppercase tracking-[0.45px]">Coming soon</span>
+                  <span className="text-[11px] uppercase tracking-[0.45px]">Coming soon</span>
                 </div>
               </Field>
             </div>
@@ -376,13 +376,13 @@ export function LogTaskModal({
                 className={`${inputClass} resize-y`}
               />
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-dash-muted">Suggested comments:</span>
+                <span className="text-xs text-muted">Suggested comments:</span>
                 {SUGGESTED_COMMENTS.map((text) => (
                   <button
                     key={text}
                     type="button"
                     onClick={() => setComment(text)}
-                    className="rounded-full border border-dash-border px-2.5 py-0.5 text-xs text-dash-ink transition-colors hover:bg-dash-bg"
+                    className="rounded-full border border-border px-2.5 py-0.5 text-xs text-ink transition-colors hover:bg-dash-bg"
                   >
                     + {text}
                   </button>
@@ -403,7 +403,7 @@ export function LogTaskModal({
                   placeholder="Select next task"
                 />
                 {nextTask === "closed_won" && (
-                  <p className="text-xs text-dash-muted">This lead&apos;s stage will be set to Sold.</p>
+                  <p className="text-xs text-muted">This lead&apos;s stage will be set to Sold.</p>
                 )}
               </Field>
 
@@ -446,14 +446,14 @@ export function LogTaskModal({
                       onClick={() => setDeadlineDate(key)}
                       title={`${count} open task${count === 1 ? "" : "s"} due`}
                       className={`flex flex-col items-center rounded-lg border bg-white py-1.5 transition-colors ${
-                        key === deadlineDate ? "border-dash-ink" : "border-dash-border hover:bg-dash-bg"
+                        key === deadlineDate ? "border-ink" : "border-border hover:bg-dash-bg"
                       }`}
                     >
-                      <span className="text-[10px] uppercase text-dash-muted">
+                      <span className="text-[11px] uppercase text-muted">
                         {day.toLocaleDateString("en-US", { weekday: "short" })}
                       </span>
-                      <span className="text-sm font-semibold text-dash-ink">{day.getDate()}</span>
-                      <span className={`text-[10px] font-bold ${loadClass(count)}`}>{count}</span>
+                      <span className="text-sm font-semibold text-ink">{day.getDate()}</span>
+                      <span className={`text-[11px] font-bold ${loadClass(count)}`}>{count}</span>
                     </button>
                   );
                 })}
@@ -482,7 +482,7 @@ export function LogTaskModal({
                   placeholder={projectId ? "Select unit" : "Select a project first"}
                 />
                 {selectedUnit && reachedStatus && (
-                  <p className="text-xs text-dash-muted">
+                  <p className="text-xs text-muted">
                     Unit {selectedUnit.unit_number} will be marked {unitStatusLabel(reachedStatus)}.
                   </p>
                 )}
@@ -496,7 +496,7 @@ export function LogTaskModal({
                       onClick={() => setTemperature(temp)}
                       aria-pressed={temperature === temp}
                       className={`rounded-xl border bg-white py-2 text-sm font-bold ${
-                        temperature === temp ? TEMP_STYLES[temp] : "border-dash-border text-dash-ink"
+                        temperature === temp ? TEMP_STYLES[temp] : "border-border text-ink"
                       }`}
                     >
                       {temp.charAt(0) + temp.slice(1).toLowerCase()}
@@ -513,14 +513,14 @@ export function LogTaskModal({
             <button
               type="button"
               onClick={onClose}
-              className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+              className="text-sm font-medium text-muted transition-colors hover:text-ink"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? "Saving..." : "Submit"}
             </button>

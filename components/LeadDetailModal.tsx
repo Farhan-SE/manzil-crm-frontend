@@ -24,12 +24,12 @@ const STAGES = LEAD_STAGES;
 
 const TEMP_STYLES: Record<LeadTemperature, string> = {
   HOT: "border-hot text-hot",
-  WARM: "border-warm text-warm",
+  WARM: "border-warm text-warm-ink",
   COLD: "border-cold text-cold",
 };
 
 const inputClass =
-  "w-full min-w-0 rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full min-w-0 rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 function formatBudget(budget: number | null) {
   if (budget == null) return "Not set";
@@ -44,7 +44,7 @@ function formatDueAt(dueDate: string, dueTime: string) {
 function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-sm text-dash-muted">
+      <label htmlFor={htmlFor} className="text-sm text-muted">
         {label}
       </label>
       {children}
@@ -208,7 +208,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
         {isSaved ? (
           <div className="flex flex-col items-center gap-3 px-6 py-10 animate-[fade-in_300ms_ease-out]">
@@ -219,24 +219,24 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
               style={{ width: 160, height: 160 }}
             />
             <p
-              className="font-serif text-xl font-bold text-dash-ink"
+              className="font-serif text-xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               Changes saved
             </p>
-            <p className="text-sm text-dash-muted">{currentLead.client_name} has been updated.</p>
+            <p className="text-sm text-muted">{currentLead.client_name} has been updated.</p>
           </div>
         ) : (
         <>
-        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
-              className="truncate font-serif text-2xl font-bold text-dash-ink"
+              className="truncate font-serif text-2xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               {currentLead.client_name}
             </h2>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-dash-muted">
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
               <PhoneIcon className="size-3" />
               {currentLead.client_number}
               {(currentLead.city || currentLead.area) && (
@@ -251,7 +251,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 text-dash-muted transition-colors hover:text-dash-ink"
+            className="shrink-0 text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -320,7 +320,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
                   type="button"
                   onClick={() => setDraftTemperature(temp)}
                   className={`rounded-xl border bg-white py-2 text-sm font-bold capitalize ${
-                    draftTemperature === temp ? TEMP_STYLES[temp] : "border-dash-border text-dash-ink"
+                    draftTemperature === temp ? TEMP_STYLES[temp] : "border-border text-ink"
                   }`}
                 >
                   {temp.charAt(0) + temp.slice(1).toLowerCase()}
@@ -329,15 +329,15 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
             </div>
           </Field>
 
-          <div className="flex items-center justify-between border-t border-dash-border pt-4">
-            <p className="text-sm text-dash-muted">Budget</p>
-            <p className="text-base font-bold text-dash-ink">{formatBudget(currentLead.budget)}</p>
+          <div className="flex items-center justify-between border-t border-border pt-4">
+            <p className="text-sm text-muted">Budget</p>
+            <p className="text-base font-bold text-ink">{formatBudget(currentLead.budget)}</p>
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-dash-border pt-4">
-            <p className="text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">Follow-ups</p>
+          <div className="flex flex-col gap-3 border-t border-border pt-4">
+            <p className="text-xs font-bold uppercase tracking-[0.6px] text-muted">Follow-ups</p>
 
-            {followUps.length === 0 && <p className="text-sm text-dash-placeholder">No follow-ups yet.</p>}
+            {followUps.length === 0 && <p className="text-sm text-placeholder">No follow-ups yet.</p>}
 
             <div className="flex max-h-40 flex-col gap-2 overflow-y-auto">
               {followUps.map((followUp) => (
@@ -350,12 +350,12 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
                   />
                   <span
                     className={`min-w-0 flex-1 break-words ${
-                      followUp.completed ? "text-dash-muted line-through" : "text-dash-ink"
+                      followUp.completed ? "text-muted line-through" : "text-ink"
                     }`}
                   >
                     {followUp.text}
                   </span>
-                  <span className="shrink-0 text-xs text-dash-muted">
+                  <span className="shrink-0 text-xs text-muted">
                     {formatDueAt(followUp.due_date, followUp.due_time)}
                   </span>
                 </label>
@@ -388,7 +388,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
                     type="button"
                     onClick={handleAddFollowUp}
                     disabled={isAddingFollowUp || !newText || !newDate || !newTime}
-                    className="col-span-2 rounded-xl border border-dash-border px-5 py-2 text-sm font-bold text-dash-ink transition-colors hover:bg-dash-bg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent sm:col-span-1 sm:py-0"
+                    className="col-span-2 rounded-xl border border-border px-5 py-2 text-sm font-bold text-ink transition-colors hover:bg-dash-bg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent sm:col-span-1 sm:py-0"
                   >
                     Add
                   </button>
@@ -397,7 +397,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
             )}
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-hot">{error}</p>}
 
           <div className="flex items-center justify-between gap-3 pt-2 sm:gap-4">
             {admin ? (
@@ -405,7 +405,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="flex shrink-0 items-center gap-2 text-sm font-medium text-red-600 transition-colors hover:text-red-700 disabled:opacity-60"
+                className="flex shrink-0 items-center gap-2 text-sm font-medium text-hot transition-colors hover:text-hot disabled:opacity-60"
               >
                 <TrashIcon className="size-3.5" />
                 {isDeleting ? "Deleting…" : "Delete lead"}
@@ -417,7 +417,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
               <button
                 type="button"
                 onClick={onClose}
-                className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+                className="text-sm font-medium text-muted transition-colors hover:text-ink"
               >
                 Close
               </button>
@@ -425,7 +425,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
                 type="button"
                 onClick={handleSave}
                 disabled={!isDirty || isSaving}
-                className="whitespace-nowrap rounded-xl bg-dash-ink px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-dash-ink sm:px-5"
+                className="whitespace-nowrap rounded-xl bg-ink px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-ink sm:px-5"
               >
                 {isSaving ? "Saving…" : "Save changes"}
               </button>

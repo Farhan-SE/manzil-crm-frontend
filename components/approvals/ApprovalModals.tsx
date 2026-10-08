@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState, type ReactNode, type SubmitEvent } from "react";
+import { useState, type ReactNode, type SubmitEvent } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
-import { createApproval, decideApproval, getLeads, type Approval, type ApprovalDecision } from "@/lib/api";
+import { LeadPicker } from "@/components/ui/LeadPicker";
+import { createApproval, decideApproval, type Approval, type ApprovalDecision } from "@/lib/api";
 import { APPROVAL_TYPES, approvalCode, approvalTypeLabel } from "@/lib/approvals";
 import { formatClock, formatDay } from "@/lib/time";
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 const PRIORITIES: SelectOption[] = [
   { id: "normal", name: "Normal" },
@@ -19,11 +20,11 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6">
           <h2
-            className="font-serif text-2xl font-bold text-dash-ink"
+            className="font-serif text-2xl font-bold text-ink"
             style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
           >
             {title}
@@ -32,7 +33,7 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-dash-muted transition-colors hover:text-dash-ink"
+            className="text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -49,22 +50,8 @@ export function NewApprovalModal({ onClose, onCreated }: { onClose: () => void; 
   const [summary, setSummary] = useState("");
   const [priority, setPriority] = useState("normal");
   const [dueDate, setDueDate] = useState("");
-  const [leads, setLeads] = useState<SelectOption[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getLeads({ limit: 200 })
-      .then((res) =>
-        setLeads(
-          res.data.map((lead) => ({
-            id: lead.id,
-            name: `Lead ${lead.lead_no} — ${lead.client_name}${lead.project ? ` · ${lead.project.name}` : ""}`,
-          })),
-        ),
-      )
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load leads."));
-  }, []);
 
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -88,20 +75,20 @@ export function NewApprovalModal({ onClose, onCreated }: { onClose: () => void; 
     <ModalShell title="Request approval" onClose={onClose}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 py-5 sm:px-6">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="approval-type" className="text-sm text-dash-muted">
+          <label htmlFor="approval-type" className="text-sm text-muted">
             Request type
           </label>
           <Select id="approval-type" value={type} onChange={setType} options={APPROVAL_TYPES} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="approval-lead" className="text-sm text-dash-muted">
+          <label htmlFor="approval-lead" className="text-sm text-muted">
             Client / lead
             <span className="text-hot"> *</span>
           </label>
-          <Select id="approval-lead" value={leadId} onChange={setLeadId} options={leads} placeholder="Select a lead" />
+          <LeadPicker id="approval-lead" value={leadId} onChange={setLeadId} onError={setError} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="approval-summary" className="text-sm text-dash-muted">
+          <label htmlFor="approval-summary" className="text-sm text-muted">
             What needs approving
             <span className="text-hot"> *</span>
           </label>
@@ -117,13 +104,13 @@ export function NewApprovalModal({ onClose, onCreated }: { onClose: () => void; 
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="approval-priority" className="text-sm text-dash-muted">
+            <label htmlFor="approval-priority" className="text-sm text-muted">
               Priority
             </label>
             <Select id="approval-priority" value={priority} onChange={setPriority} options={PRIORITIES} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="approval-due" className="text-sm text-dash-muted">
+            <label htmlFor="approval-due" className="text-sm text-muted">
               Decision needed by
             </label>
             <input
@@ -142,14 +129,14 @@ export function NewApprovalModal({ onClose, onCreated }: { onClose: () => void; 
           <button
             type="button"
             onClick={onClose}
-            className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+            className="text-sm font-medium text-muted transition-colors hover:text-ink"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? "Submitting..." : "Submit request"}
           </button>
@@ -214,19 +201,19 @@ export function ReviewApprovalModal({
   return (
     <ModalShell title="Review request" onClose={onClose}>
       <div className="flex flex-col gap-5 px-4 py-5 sm:px-6">
-        <p className="text-sm text-dash-ink">{approval.summary}</p>
+        <p className="text-sm text-ink">{approval.summary}</p>
         <dl className="flex flex-col gap-2 text-sm">
           {details.map(([label, value]) => (
             <div key={label} className="flex gap-2">
-              <dt className="w-32 shrink-0 text-dash-muted">{label}</dt>
-              <dd className="min-w-0 text-dash-ink">{value}</dd>
+              <dt className="w-32 shrink-0 text-muted">{label}</dt>
+              <dd className="min-w-0 text-ink">{value}</dd>
             </div>
           ))}
         </dl>
 
         {canDecide && isOpen && (
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="approval-comment" className="text-sm text-dash-muted">
+            <label htmlFor="approval-comment" className="text-sm text-muted">
               Review comments
             </label>
             <textarea
@@ -252,8 +239,8 @@ export function ReviewApprovalModal({
                 onClick={() => void decide(decision.id)}
                 className={`rounded-xl px-4 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                   decision.primary
-                    ? "bg-dash-ink font-bold text-white hover:bg-dash-ink/90"
-                    : "border border-dash-border bg-white text-dash-ink hover:bg-dash-bg"
+                    ? "bg-ink font-bold text-white hover:bg-ink/90"
+                    : "border border-border bg-white text-ink hover:bg-dash-bg"
                 }`}
               >
                 {busy === decision.id ? "Saving..." : decision.label}
@@ -263,7 +250,7 @@ export function ReviewApprovalModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink hover:bg-dash-bg"
+              className="rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink hover:bg-dash-bg"
             >
               Close
             </button>

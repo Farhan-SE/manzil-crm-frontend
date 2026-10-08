@@ -25,12 +25,12 @@ const UNASSIGNED_ID = "unassigned";
 
 const TEMP_STYLES: Record<Temperature, string> = {
   HOT: "border-hot text-hot",
-  WARM: "border-warm text-warm",
+  WARM: "border-warm text-warm-ink",
   COLD: "border-cold text-cold",
 };
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -144,7 +144,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={handleClose}>
       <div
         className="w-full max-w-xl rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
         {isSuccess ? (
           <div className="flex flex-col items-center gap-3 px-6 py-10 animate-[fade-in_300ms_ease-out]">
@@ -155,18 +155,18 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
               style={{ width: 160, height: 160 }}
             />
             <p
-              className="font-serif text-xl font-bold text-dash-ink"
+              className="font-serif text-xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               Lead added
             </p>
-            <p className="text-sm text-dash-muted">{customer?.customer_name} is now in your pipeline.</p>
+            <p className="text-sm text-muted">{customer?.customer_name} is now in your pipeline.</p>
           </div>
         ) : (
         <>
-        <div className="flex items-center justify-between border-b border-dash-border px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2
-            className="font-serif text-2xl font-bold text-dash-ink"
+            className="font-serif text-2xl font-bold text-ink"
             style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
           >
             New lead
@@ -175,7 +175,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
             type="button"
             onClick={handleClose}
             aria-label="Close"
-            className="text-dash-muted transition-colors hover:text-dash-ink"
+            className="text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -183,7 +183,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-6 py-5">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="lead-customer" className="text-sm text-dash-muted">
+            <label htmlFor="lead-customer" className="text-sm text-muted">
               Customer
               <span className="text-hot"> *</span>
             </label>
@@ -192,7 +192,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="interest" className="text-sm text-dash-muted">
+              <label htmlFor="interest" className="text-sm text-muted">
                 Interest
               </label>
               <Select
@@ -204,7 +204,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="category" className="text-sm text-dash-muted">
+              <label htmlFor="category" className="text-sm text-muted">
                 Category
               </label>
               <Select
@@ -219,7 +219,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="city" className="text-sm text-dash-muted">
+              <label htmlFor="city" className="text-sm text-muted">
                 City
               </label>
               <input
@@ -232,7 +232,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="area" className="text-sm text-dash-muted">
+              <label htmlFor="area" className="text-sm text-muted">
                 Area
               </label>
               <input
@@ -248,7 +248,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="budget" className="text-sm text-dash-muted">
+              <label htmlFor="budget" className="text-sm text-muted">
                 Budget (PKR, optional)
               </label>
               <input
@@ -262,7 +262,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="source" className="text-sm text-dash-muted">
+              <label htmlFor="source" className="text-sm text-muted">
                 Source
               </label>
               <Select
@@ -276,7 +276,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="sub-source" className="text-sm text-dash-muted">
+            <label htmlFor="sub-source" className="text-sm text-muted">
               Sub-source (optional)
             </label>
             <input
@@ -290,7 +290,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <p className="text-sm text-dash-muted">Temperature</p>
+            <p className="text-sm text-muted">Temperature</p>
             <div className="grid grid-cols-3 gap-3">
               {(Object.keys(TEMP_STYLES) as Temperature[]).map((temp) => (
                 <button
@@ -298,7 +298,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
                   type="button"
                   onClick={() => setTemperature(temp)}
                   className={`rounded-xl border bg-white py-2 text-sm font-bold capitalize ${
-                    temperature === temp ? TEMP_STYLES[temp] : "border-dash-border text-dash-ink"
+                    temperature === temp ? TEMP_STYLES[temp] : "border-border text-ink"
                   }`}
                 >
                   {temp.charAt(0) + temp.slice(1).toLowerCase()}
@@ -308,7 +308,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="assign-to" className="text-sm text-dash-muted">
+            <label htmlFor="assign-to" className="text-sm text-muted">
               Assign to
             </label>
             <Select
@@ -320,20 +320,20 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-hot">{error}</p>}
 
           <div className="flex items-center justify-end gap-4 pt-2">
             <button
               type="button"
               onClick={handleClose}
-              className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+              className="text-sm font-medium text-muted transition-colors hover:text-ink"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-dash-ink"
+              className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-ink"
             >
               {isSubmitting ? "Adding..." : "Add lead"}
             </button>

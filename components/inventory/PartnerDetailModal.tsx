@@ -32,17 +32,17 @@ export function PartnerDetailModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
-              className="truncate font-serif text-2xl font-bold text-dash-ink"
+              className="truncate font-serif text-2xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               {project.project_name}
             </h2>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-dash-muted">
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
               {project.developer && (
                 <>
                   <span>by {project.developer}</span>
@@ -57,7 +57,7 @@ export function PartnerDetailModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 text-dash-muted transition-colors hover:text-dash-ink"
+            className="shrink-0 text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -66,32 +66,32 @@ export function PartnerDetailModal({
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-badge-neutral px-3 py-1 text-xs font-semibold text-dash-ink">
+              <span className="rounded-full bg-badge-neutral px-3 py-1 text-xs font-semibold text-ink">
                 {categoryName}
               </span>
-              <span className="rounded-full border border-dash-border px-3 py-1 text-xs font-semibold text-dash-muted">
+              <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted">
                 {interestName}
               </span>
             </div>
-            <p className="text-lg font-bold text-dash-ink">{formatPrice(project.price)}</p>
+            <p className="text-lg font-bold text-ink">{formatPrice(project.price)}</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 rounded-lg border border-dash-border bg-white p-3 text-center">
+          <div className="grid grid-cols-3 gap-3 rounded-lg border border-border bg-white p-3 text-center">
             <div>
-              <p className="text-[11px] text-dash-muted">Token</p>
-              <p className="text-sm font-semibold text-dash-ink">
+              <p className="text-[11px] text-muted">Token</p>
+              <p className="text-sm font-semibold text-ink">
                 {project.token_amount != null ? `PKR ${formatCompact(project.token_amount)}` : "—"}
               </p>
             </div>
             <div>
-              <p className="text-[11px] text-dash-muted">Partial down payment</p>
-              <p className="text-sm font-semibold text-dash-ink">
+              <p className="text-[11px] text-muted">Partial down payment</p>
+              <p className="text-sm font-semibold text-ink">
                 {project.pdp_percent != null ? `${project.pdp_percent}%` : "—"}
               </p>
             </div>
             <div>
-              <p className="text-[11px] text-dash-muted">Complete down payment</p>
-              <p className="text-sm font-semibold text-dash-ink">
+              <p className="text-[11px] text-muted">Complete down payment</p>
+              <p className="text-sm font-semibold text-ink">
                 {project.cdp_percent != null ? `${project.cdp_percent}%` : "—"}
               </p>
             </div>
@@ -105,15 +105,15 @@ export function PartnerDetailModal({
           </Link>
 
           {project.description && (
-            <p className="text-sm leading-relaxed text-dash-ink">{project.description}</p>
+            <p className="text-sm leading-relaxed text-ink">{project.description}</p>
           )}
 
-          <div className="flex items-center justify-between gap-4 border-t border-dash-border pt-4">
+          <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
             {canManage ? (
               <button
                 type="button"
                 onClick={onDelete}
-                className="flex shrink-0 items-center gap-2 text-sm font-medium text-red-600 transition-colors hover:text-red-700"
+                className="flex shrink-0 items-center gap-2 text-sm font-medium text-hot transition-colors hover:text-hot"
               >
                 <TrashIcon className="size-3.5" />
                 Delete project
@@ -125,7 +125,7 @@ export function PartnerDetailModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+                className="text-sm font-medium text-muted transition-colors hover:text-ink"
               >
                 Close
               </button>
@@ -133,7 +133,7 @@ export function PartnerDetailModal({
                 <button
                   type="button"
                   onClick={onEdit}
-                  className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
+                  className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90"
                 >
                   Edit
                 </button>

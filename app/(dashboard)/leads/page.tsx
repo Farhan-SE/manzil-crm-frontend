@@ -43,7 +43,7 @@ const TABS: { id: LeadTab; label: string }[] = [
 const COLUMN_COUNT = 8;
 
 const headerActionClass =
-  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-dash-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
+  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
 
 export default function LeadsPage() {
   return (
@@ -145,6 +145,7 @@ function LeadsDirectory() {
   return (
     <ViewTransition>
       <div className="flex w-full flex-col">
+        <h1 className="sr-only">Leads</h1>
         <LeadFiltersBar
           initialSearch={initialSearch}
           onApply={(next) => {
@@ -192,7 +193,7 @@ function LeadsDirectory() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className="hidden w-8 lg:table-cell">
+                <th scope="col" className="hidden w-8 lg:table-cell">
                   <input
                     type="checkbox"
                     aria-label="Select all leads"
@@ -201,13 +202,13 @@ function LeadsDirectory() {
                     className={checkboxClass}
                   />
                 </th>
-                <th className={`${headCellClass} w-[112px] pl-10 lg:w-[12%]`}>Lead ID</th>
-                <th className={headCellClass}>Client</th>
-                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Last task</th>
-                <th className={`${headCellClass} hidden w-[19%] lg:table-cell`}>Interest</th>
-                <th className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Source</th>
-                <th className={`${headCellClass} hidden w-[16%] lg:table-cell`}>Allocated to</th>
-                <th className={`${headCellClass} w-[44px] lg:w-[14%]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[112px] pl-10 lg:w-[12%]`}>Lead ID</th>
+                <th scope="col" className={headCellClass}>Client</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Last task</th>
+                <th scope="col" className={`${headCellClass} hidden w-[19%] lg:table-cell`}>Interest</th>
+                <th scope="col" className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Source</th>
+                <th scope="col" className={`${headCellClass} hidden w-[16%] lg:table-cell`}>Allocated to</th>
+                <th scope="col" className={`${headCellClass} w-[44px] lg:w-[14%]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -225,7 +226,7 @@ function LeadsDirectory() {
 
               {!isLoading && leads.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? "No leads match those filters." : "No leads yet."}
                   </td>
                 </tr>
@@ -266,7 +267,7 @@ function LeadsDirectory() {
                             }}
                             aria-label={lead.is_starred ? "Remove from watchlist" : "Add to watchlist"}
                             aria-pressed={lead.is_starred}
-                            className="shrink-0 text-warm"
+                            className="shrink-0 text-warm-ink"
                           >
                             <StarIcon className="size-4" filled={lead.is_starred} />
                           </button>

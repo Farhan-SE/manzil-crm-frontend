@@ -6,7 +6,7 @@ import type { PartnerProject, PartnerProjectInput } from "@/lib/api";
 import { PROJECT_TYPES } from "@/lib/inventory";
 
 const inputClass =
-  "w-full min-w-0 rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full min-w-0 rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 export type PartnerDraft = PartnerProjectInput;
 
@@ -69,17 +69,17 @@ export function PartnerFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
-              className="font-serif text-2xl font-bold text-dash-ink"
+              className="font-serif text-2xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               {initial ? "Edit project" : "New project"}
             </h2>
-            <p className="mt-0.5 text-xs text-dash-muted">
+            <p className="mt-0.5 text-xs text-muted">
               A developer&apos;s project your team markets. Visible to everyone.
             </p>
           </div>
@@ -87,7 +87,7 @@ export function PartnerFormModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 text-dash-muted transition-colors hover:text-dash-ink"
+            className="shrink-0 text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -96,7 +96,7 @@ export function PartnerFormModal({
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:px-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-project" className="text-sm text-dash-muted">
+              <label htmlFor="partner-project" className="text-sm text-muted">
                 Project name
               </label>
               <input
@@ -110,7 +110,7 @@ export function PartnerFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-developer" className="text-sm text-dash-muted">
+              <label htmlFor="partner-developer" className="text-sm text-muted">
                 Developer
               </label>
               <input
@@ -126,7 +126,7 @@ export function PartnerFormModal({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-city" className="text-sm text-dash-muted">
+              <label htmlFor="partner-city" className="text-sm text-muted">
                 City
               </label>
               <input
@@ -139,7 +139,7 @@ export function PartnerFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-location" className="text-sm text-dash-muted">
+              <label htmlFor="partner-location" className="text-sm text-muted">
                 Location
               </label>
               <input
@@ -155,7 +155,7 @@ export function PartnerFormModal({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-category" className="text-sm text-dash-muted">
+              <label htmlFor="partner-category" className="text-sm text-muted">
                 Category
               </label>
               <Select
@@ -167,7 +167,7 @@ export function PartnerFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-interest" className="text-sm text-dash-muted">
+              <label htmlFor="partner-interest" className="text-sm text-muted">
                 Property type
               </label>
               <Select
@@ -179,7 +179,7 @@ export function PartnerFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-price" className="text-sm text-dash-muted">
+              <label htmlFor="partner-price" className="text-sm text-muted">
                 Starting price (PKR)
               </label>
               <input
@@ -196,13 +196,13 @@ export function PartnerFormModal({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-type" className="text-sm text-dash-muted">
+              <label htmlFor="partner-type" className="text-sm text-muted">
                 Type
               </label>
               <Select id="partner-type" value={projectType} onChange={setProjectType} options={PROJECT_TYPES} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-grade" className="text-sm text-dash-muted">
+              <label htmlFor="partner-grade" className="text-sm text-muted">
                 Grade (optional)
               </label>
               <input
@@ -215,7 +215,7 @@ export function PartnerFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-active" className="text-sm text-dash-muted">
+              <label htmlFor="partner-active" className="text-sm text-muted">
                 Status
               </label>
               <Select
@@ -232,7 +232,7 @@ export function PartnerFormModal({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-token" className="text-sm text-dash-muted">
+              <label htmlFor="partner-token" className="text-sm text-muted">
                 Token (PKR)
               </label>
               <input
@@ -246,7 +246,7 @@ export function PartnerFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-pdp" className="text-sm text-dash-muted">
+              <label htmlFor="partner-pdp" className="text-sm text-muted">
                 Partial down payment (%)
               </label>
               <input
@@ -262,7 +262,7 @@ export function PartnerFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="partner-cdp" className="text-sm text-dash-muted">
+              <label htmlFor="partner-cdp" className="text-sm text-muted">
                 Complete down payment (%)
               </label>
               <input
@@ -280,7 +280,7 @@ export function PartnerFormModal({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="partner-description" className="text-sm text-dash-muted">
+            <label htmlFor="partner-description" className="text-sm text-muted">
               Details (optional)
             </label>
             <textarea
@@ -293,20 +293,20 @@ export function PartnerFormModal({
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-hot">{error}</p>}
 
           <div className="flex items-center justify-end gap-4 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+              className="text-sm font-medium text-muted transition-colors hover:text-ink"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-dash-ink"
+              className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-ink"
             >
               {isSaving ? "Saving…" : initial ? "Save changes" : "Add project"}
             </button>

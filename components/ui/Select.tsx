@@ -6,7 +6,7 @@ import { Listbox } from "@/components/ui/Listbox";
 export type SelectOption = { id: string; name: string };
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 export function Select({
   id,
@@ -30,14 +30,14 @@ export function Select({
       onChange={onChange}
       options={options}
       className={`${inputClass} flex items-center justify-between gap-2 text-left ${
-        selectedName ? "" : "text-dash-placeholder"
+        selectedName ? "" : "text-placeholder"
       }`}
     >
       {(isOpen) => (
         <>
           <span className="min-w-0 truncate">{selectedName ?? placeholder}</span>
           <ChevronDownIcon
-            className={`size-2.5 shrink-0 text-dash-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+            className={`size-2.5 shrink-0 text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
           />
         </>
       )}

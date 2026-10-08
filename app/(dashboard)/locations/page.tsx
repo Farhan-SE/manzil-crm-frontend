@@ -19,13 +19,13 @@ import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   getLocations,
-  getPartnerProjects,
+  getProjectOptions,
   setLocationStarred,
   updateLocation,
   type Location,
   type LocationsQuery,
   type LocationTab,
-  type PartnerProject,
+  type ProjectOption,
 } from "@/lib/api";
 import { downloadCsv } from "@/lib/csv";
 import { useIsAdmin } from "@/lib/session";
@@ -73,10 +73,10 @@ export default function LocationsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [projects, setProjects] = useState<PartnerProject[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
 
   useEffect(() => {
-    getPartnerProjects({ limit: 500 }).then(setProjects).catch(() => {});
+    getProjectOptions().then(setProjects).catch(() => {});
   }, []);
 
   const buildQuery = useCallback(
@@ -166,16 +166,16 @@ export default function LocationsPage() {
       <div className="flex w-full flex-col">
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-8">
           <div className="flex flex-col gap-[3px] leading-[1.4]">
-            <h1 className="font-serif text-xl font-bold text-dash-ink" style={headingStyle}>
+            <h1 className="font-serif text-xl font-bold text-ink" style={headingStyle}>
               Locations
             </h1>
-            <p className="text-[10px] text-dash-muted">Location coverage · Project and inventory register</p>
+            <p className="text-[11px] text-muted">Location coverage · Project and inventory register</p>
           </div>
           <button
             type="button"
             onClick={() => void exportLocations()}
             disabled={total === 0}
-            className="flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-dash-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60"
+            className="flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60"
           >
             <Icon name="download" className="size-4" />
             Export
@@ -262,7 +262,7 @@ export default function LocationsPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className="hidden w-8 lg:table-cell">
+                <th scope="col" className="hidden w-8 lg:table-cell">
                   <input
                     type="checkbox"
                     aria-label="Select all locations"
@@ -273,14 +273,14 @@ export default function LocationsPage() {
                     className={checkboxClass}
                   />
                 </th>
-                <th className={headCellClass}>Location</th>
-                <th className={`${headCellClass} w-[24%] lg:w-[10%]`}>City</th>
-                <th className={`${headCellClass} hidden w-[21%] lg:table-cell`}>Project coverage</th>
-                <th className={`${headCellClass} hidden w-[16%] lg:table-cell`}>Region / Department</th>
-                <th className={`${headCellClass} hidden w-[9%] lg:table-cell`}>Projects</th>
-                <th className={`${headCellClass} hidden w-[13%] sm:table-cell`}>Available inventory</th>
-                <th className={`${headCellClass} w-[84px] lg:w-[9%]`}>Status</th>
-                <th className={`${headCellClass} w-[40px] text-[9px] lg:w-[5%]`}>Actions</th>
+                <th scope="col" className={headCellClass}>Location</th>
+                <th scope="col" className={`${headCellClass} w-[24%] lg:w-[10%]`}>City</th>
+                <th scope="col" className={`${headCellClass} hidden w-[21%] lg:table-cell`}>Project coverage</th>
+                <th scope="col" className={`${headCellClass} hidden w-[16%] lg:table-cell`}>Region / Department</th>
+                <th scope="col" className={`${headCellClass} hidden w-[9%] lg:table-cell`}>Projects</th>
+                <th scope="col" className={`${headCellClass} hidden w-[13%] sm:table-cell`}>Available inventory</th>
+                <th scope="col" className={`${headCellClass} w-[84px] lg:w-[9%]`}>Status</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -298,7 +298,7 @@ export default function LocationsPage() {
 
               {!isLoading && locations.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered
                       ? "No locations match those filters."
                       : "No locations yet. They appear as projects are given a location."}

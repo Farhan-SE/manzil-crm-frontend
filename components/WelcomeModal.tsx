@@ -12,7 +12,7 @@ import {
 import { changePassword } from "@/lib/api";
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white px-4 py-2.5 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 const SLIDES = [
   {
@@ -73,7 +73,7 @@ export function WelcomeModal({ firstName, onDone }: { firstName: string; onDone:
   return (
     // No overlay click-to-close and no ✕ — the password step is the point of the flow.
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-lg rounded-xl bg-sidebar shadow-lg">
+      <div role="dialog" aria-modal="true" className="w-full max-w-lg rounded-xl bg-sidebar shadow-lg">
         {isDone ? (
           <div className="flex flex-col items-center gap-3 px-6 py-10 animate-[fade-in_300ms_ease-out]">
             <DotLottieReact
@@ -83,12 +83,12 @@ export function WelcomeModal({ firstName, onDone }: { firstName: string; onDone:
               style={{ width: 160, height: 160 }}
             />
             <p
-              className="font-serif text-xl font-bold text-dash-ink"
+              className="font-serif text-xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               You&apos;re all set
             </p>
-            <p className="text-sm text-dash-muted">Welcome to Manzil CRM.</p>
+            <p className="text-sm text-muted">Welcome to Manzil CRM.</p>
           </div>
         ) : (
           <>
@@ -97,18 +97,18 @@ export function WelcomeModal({ firstName, onDone }: { firstName: string; onDone:
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                   <div>
                     <h2
-                      className="font-serif text-2xl font-bold text-dash-ink"
+                      className="font-serif text-2xl font-bold text-ink"
                       style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
                     >
                       Pick your own password
                     </h2>
-                    <p className="mt-1 text-sm text-dash-muted">
+                    <p className="mt-1 text-sm text-muted">
                       You signed in with a password we generated. Replace it with one only you know.
                     </p>
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="welcome-current" className="text-sm text-dash-muted">
+                    <label htmlFor="welcome-current" className="text-sm text-muted">
                       Generated password
                       <span className="text-hot"> *</span>
                     </label>
@@ -125,7 +125,7 @@ export function WelcomeModal({ firstName, onDone }: { firstName: string; onDone:
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="welcome-new" className="text-sm text-dash-muted">
+                    <label htmlFor="welcome-new" className="text-sm text-muted">
                       New password
                       <span className="text-hot"> *</span>
                     </label>
@@ -143,7 +143,7 @@ export function WelcomeModal({ firstName, onDone }: { firstName: string; onDone:
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="welcome-confirm" className="text-sm text-dash-muted">
+                    <label htmlFor="welcome-confirm" className="text-sm text-muted">
                       Confirm new password
                       <span className="text-hot"> *</span>
                     </label>
@@ -165,7 +165,7 @@ export function WelcomeModal({ firstName, onDone }: { firstName: string; onDone:
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="mt-1 w-full rounded-xl bg-dash-ink px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-1 w-full rounded-xl bg-ink px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSubmitting ? "Saving..." : "Save password and start"}
                   </button>
@@ -173,12 +173,12 @@ export function WelcomeModal({ firstName, onDone }: { firstName: string; onDone:
               ) : (
                 <div className="flex flex-col items-center gap-4 text-center">
                   {step === 0 && (
-                    <p className="text-sm font-semibold uppercase tracking-[1px] text-dash-muted">
+                    <p className="text-sm font-semibold uppercase tracking-[1px] text-muted">
                       Welcome{firstName ? `, ${firstName}` : ""}
                     </p>
                   )}
 
-                  <span className="flex size-14 items-center justify-center rounded-full bg-avatar/30 text-dash-ink">
+                  <span className="flex size-14 items-center justify-center rounded-full bg-avatar/30 text-ink">
                     {(() => {
                       const { Icon } = SLIDES[step];
                       return <Icon className="size-6" />;
@@ -186,25 +186,25 @@ export function WelcomeModal({ firstName, onDone }: { firstName: string; onDone:
                   </span>
 
                   <h2
-                    className="font-serif text-2xl font-bold text-dash-ink"
+                    className="font-serif text-2xl font-bold text-ink"
                     style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
                   >
                     {SLIDES[step].title}
                   </h2>
-                  <p className="max-w-sm text-sm leading-relaxed text-dash-muted">
+                  <p className="max-w-sm text-sm leading-relaxed text-muted">
                     {SLIDES[step].body}
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center justify-between gap-4 border-t border-dash-border px-8 py-4">
+            <div className="flex items-center justify-between gap-4 border-t border-border px-8 py-4">
               <div className="flex items-center gap-1.5">
                 {Array.from({ length: totalSteps }).map((_, i) => (
                   <span
                     key={i}
                     className={`h-1.5 rounded-full transition-all ${
-                      i === step ? "w-5 bg-dash-ink" : "w-1.5 bg-dash-border"
+                      i === step ? "w-5 bg-ink" : "w-1.5 bg-border"
                     }`}
                   />
                 ))}
@@ -215,7 +215,7 @@ export function WelcomeModal({ firstName, onDone }: { firstName: string; onDone:
                   <button
                     type="button"
                     onClick={() => setStep((s) => s - 1)}
-                    className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+                    className="text-sm font-medium text-muted transition-colors hover:text-ink"
                   >
                     Back
                   </button>
@@ -224,7 +224,7 @@ export function WelcomeModal({ firstName, onDone }: { firstName: string; onDone:
                   <button
                     type="button"
                     onClick={() => setStep((s) => s + 1)}
-                    className="flex items-center gap-2 rounded-lg bg-dash-ink px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
+                    className="flex items-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90"
                   >
                     {step === SLIDES.length - 1 ? "Set your password" : "Next"}
                     <ArrowRightIcon className="size-3" />

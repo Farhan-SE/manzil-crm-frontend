@@ -14,7 +14,7 @@ import {
 } from "@/lib/api";
 
 const inputClass =
-  "w-full min-w-0 rounded-lg border border-dash-border bg-white px-3 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full min-w-0 rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 type TaxonomyItem = { id: string; name: string };
 
@@ -117,23 +117,23 @@ export function TaxonomyModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
-              className="font-serif text-2xl font-bold text-dash-ink"
+              className="font-serif text-2xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
               {title}
             </h2>
-            <p className="mt-0.5 text-xs text-dash-muted">{hint}</p>
+            <p className="mt-0.5 text-xs text-muted">{hint}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 text-dash-muted transition-colors hover:text-dash-ink"
+            className="shrink-0 text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -146,7 +146,7 @@ export function TaxonomyModal({
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
 
           {!isLoading && items.length === 0 && (
-            <p className="rounded-lg border border-dashed border-dash-border py-8 text-center text-sm text-dash-placeholder">
+            <p className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-placeholder">
               Nothing here yet. Add the first one below.
             </p>
           )}
@@ -176,7 +176,7 @@ export function TaxonomyModal({
                       type="button"
                       onClick={() => void handleSave(item)}
                       disabled={busyId === item.id}
-                      className="shrink-0 rounded-lg bg-dash-ink px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:opacity-50"
+                      className="shrink-0 rounded-lg bg-ink px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-ink/90 disabled:opacity-50"
                     >
                       Save
                     </button>
@@ -188,14 +188,14 @@ export function TaxonomyModal({
                         type="button"
                         onClick={() => void handleDelete(item.id)}
                         disabled={busyId === item.id}
-                        className="rounded-lg border border-red-200 px-2.5 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                        className="rounded-lg border border-hot/30 px-2.5 py-2 text-xs font-semibold text-hot transition-colors hover:bg-hot/10 disabled:opacity-50"
                       >
                         Delete
                       </button>
                       <button
                         type="button"
                         onClick={() => setPendingDeleteId(null)}
-                        className="text-xs font-medium text-dash-muted transition-colors hover:text-dash-ink"
+                        className="text-xs font-medium text-muted transition-colors hover:text-ink"
                       >
                         Cancel
                       </button>
@@ -205,7 +205,7 @@ export function TaxonomyModal({
                       type="button"
                       onClick={() => setPendingDeleteId(item.id)}
                       aria-label={`Delete ${item.name}`}
-                      className="shrink-0 rounded-lg border border-dash-border p-2 text-dash-muted transition-colors hover:border-red-200 hover:text-red-600"
+                      className="shrink-0 rounded-lg border border-border p-2 text-muted transition-colors hover:border-hot/30 hover:text-hot"
                     >
                       <TrashIcon className="size-3.5" />
                     </button>
@@ -217,7 +217,7 @@ export function TaxonomyModal({
 
         <form
           onSubmit={handleAdd}
-          className="flex items-center gap-2 border-t border-dash-border px-4 py-4 sm:px-6"
+          className="flex items-center gap-2 border-t border-border px-4 py-4 sm:px-6"
         >
           <input
             type="text"
@@ -229,7 +229,7 @@ export function TaxonomyModal({
           <button
             type="submit"
             disabled={isAdding || !newName.trim()}
-            className="flex shrink-0 items-center gap-2 rounded-lg bg-dash-ink px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex shrink-0 items-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <PlusIcon className="size-3" />
             Add

@@ -80,7 +80,7 @@ export function NotificationToasts() {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className="flex items-start gap-3 rounded-[4px] border border-border border-l-4 border-l-warm bg-white p-3 shadow-lg"
+          className="flex items-start gap-3 rounded-[4px] border border-border bg-white p-3 shadow-lg"
         >
           <button type="button" onClick={() => void open(toast)} className="flex min-w-0 flex-1 items-start gap-3 text-left">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-nav-active text-nav-active-fg">
@@ -89,7 +89,7 @@ export function NotificationToasts() {
             <span className="min-w-0 leading-[1.4]">
               <span className="block truncate text-xs font-bold text-ink">{toast.title}</span>
               {toast.body && <span className="mt-0.5 block truncate text-[11px] text-muted">{toast.body}</span>}
-              {toast.link && <span className="mt-1 block text-[10px] text-cold">Open task →</span>}
+              {toast.link && <span className="mt-1 block text-[11px] text-cold">Open task →</span>}
             </span>
           </button>
           <button

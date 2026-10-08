@@ -91,7 +91,7 @@ export default function HelpArticlePage() {
             <Panel title={article ? `${article.short_title} guide` : "Guide"}>
               {article ? (
                 <>
-                  <p className="text-[10px] leading-[1.4] text-muted">
+                  <p className="text-[11px] leading-[1.4] text-muted">
                     {article.read_minutes} min read · Updated {formatDay(article.updated_at)} · Sales workspace
                   </p>
                   {blocks.map((block, index) =>

@@ -67,7 +67,7 @@ const COLUMN_COUNT = 8;
 const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
 const headerActionClass =
-  "flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-dash-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60";
+  "flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60";
 
 function taskId(task: FollowUp) {
   return `TSK-${task.task_no}`;
@@ -201,10 +201,10 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
       <div className="flex w-full flex-col">
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-8">
           <div className="flex flex-col gap-[3px] leading-[1.4]">
-            <h1 className="font-serif text-xl font-bold text-dash-ink" style={headingStyle}>
+            <h1 className="font-serif text-xl font-bold text-ink" style={headingStyle}>
               Tasks
             </h1>
-            <p className="text-[10px] text-dash-muted">
+            <p className="text-[11px] text-muted">
               {admin ? "All tasks" : "Tasks on your leads"} ·{" "}
               {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </p>
@@ -316,7 +316,7 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className="hidden w-8 lg:table-cell">
+                <th scope="col" className="hidden w-8 lg:table-cell">
                   <input
                     type="checkbox"
                     aria-label="Select all tasks"
@@ -325,13 +325,13 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
                     className={checkboxClass}
                   />
                 </th>
-                <th className={`${headCellClass} w-[96px] lg:w-[13%]`}>Task ID / Type</th>
-                <th className={headCellClass}>Subject / Project</th>
-                <th className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Client / Lead</th>
-                <th className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Staff (Assignee)</th>
-                <th className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Due date</th>
-                <th className={`${headCellClass} w-[96px] lg:w-[11%]`}>Status</th>
-                <th className={`${headCellClass} w-[40px] text-[9px] lg:w-[5%]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[96px] lg:w-[13%]`}>Task ID / Type</th>
+                <th scope="col" className={headCellClass}>Subject / Project</th>
+                <th scope="col" className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Client / Lead</th>
+                <th scope="col" className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Staff (Assignee)</th>
+                <th scope="col" className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Due date</th>
+                <th scope="col" className={`${headCellClass} w-[96px] lg:w-[11%]`}>Status</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -349,7 +349,7 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
 
               {!isLoading && tasks.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? "No tasks match those filters." : "No tasks yet."}
                   </td>
                 </tr>

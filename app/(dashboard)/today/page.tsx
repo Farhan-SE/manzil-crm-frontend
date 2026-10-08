@@ -158,6 +158,7 @@ export default function TodosPage({
   return (
     <ViewTransition>
       <div className="flex w-full flex-col">
+        <h1 className="sr-only">Todos</h1>
         <FilterBar
           onSearch={() => {
             setFilters(draft);
@@ -271,14 +272,14 @@ export default function TodosPage({
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className="w-8" />
-                <th className={headCellClass}>Todo</th>
-                <th className={`${headCellClass} hidden w-[13%] lg:table-cell`}>Last task</th>
-                <th className={`${headCellClass} hidden w-[15%] lg:table-cell`}>Staff (Assignee)</th>
-                <th className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Lead ID</th>
-                <th className={`${headCellClass} w-[34%] lg:w-[13%]`}>Client</th>
-                <th className={`${headCellClass} hidden w-[15%] sm:table-cell`}>Interest</th>
-                <th className="w-[60px] lg:w-[11%]" />
+                <th scope="col" className="w-8" />
+                <th scope="col" className={headCellClass}>Todo</th>
+                <th scope="col" className={`${headCellClass} hidden w-[13%] lg:table-cell`}>Last task</th>
+                <th scope="col" className={`${headCellClass} hidden w-[15%] lg:table-cell`}>Staff (Assignee)</th>
+                <th scope="col" className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Lead ID</th>
+                <th scope="col" className={`${headCellClass} w-[34%] lg:w-[13%]`}>Client</th>
+                <th scope="col" className={`${headCellClass} hidden w-[15%] sm:table-cell`}>Interest</th>
+                <th scope="col" className="w-[60px] lg:w-[11%]" />
               </tr>
             </thead>
             <tbody>
@@ -296,7 +297,7 @@ export default function TodosPage({
 
               {!isLoading && todos.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? "No todos match those filters." : "Nothing here. All caught up."}
                   </td>
                 </tr>

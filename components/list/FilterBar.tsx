@@ -5,7 +5,8 @@ import type { ChangeEvent, InputHTMLAttributes, ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Listbox, type ListboxOption } from "@/components/ui/Listbox";
 
-const controlClass = "min-w-0 bg-transparent text-xs leading-[1.4] focus:outline-none";
+// The vertical padding and matching negative margin grow the hit area without moving the layout.
+const controlClass = "-my-2 min-w-0 bg-transparent py-2 text-xs leading-[1.4] focus:outline-none";
 
 export function FilterBar({ children, onSearch }: { children: ReactNode; onSearch: () => void }) {
   return (
@@ -19,7 +20,7 @@ export function FilterBar({ children, onSearch }: { children: ReactNode; onSearc
       {children}
       <button
         type="submit"
-        className="ml-auto flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] bg-primary px-4 text-xs leading-[1.4] text-placeholder transition-colors hover:text-white"
+        className="ml-auto flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] bg-primary px-4 text-xs leading-[1.4] text-white transition-colors hover:bg-primary/90"
       >
         <Icon name="search" className="size-4" />
         Search
@@ -31,7 +32,7 @@ export function FilterBar({ children, onSearch }: { children: ReactNode; onSearc
 export function FilterField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="flex min-w-[160px] flex-1 flex-col gap-[13px]">
-      <span className="text-[10px] leading-[1.4] text-muted">{label}</span>
+      <span className="text-[11px] leading-[1.4] text-muted">{label}</span>
       <span className="flex items-center gap-2 text-muted">
         <Icon name="search" className="size-4" />
         {children}
@@ -138,7 +139,7 @@ export function MoreFilters({ activeCount = 0, children }: { activeCount?: numbe
         type="button"
         onClick={() => setIsOpen((v) => !v)}
         aria-expanded={isOpen}
-        className="flex items-center gap-1 text-xs leading-[1.4] text-primary"
+        className="-my-2 flex items-center gap-1 py-2 text-xs leading-[1.4] text-primary"
       >
         More Filters
         {activeCount > 0 && ` (${activeCount})`}
@@ -146,7 +147,7 @@ export function MoreFilters({ activeCount = 0, children }: { activeCount?: numbe
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-20 flex w-[280px] flex-col gap-5 rounded-[4px] border border-dash-border bg-cream p-4 shadow-lg">
+        <div className="absolute right-0 top-[calc(100%+8px)] z-20 flex w-[280px] flex-col gap-5 rounded-[4px] border border-border bg-cream p-4 shadow-lg">
           {children}
         </div>
       )}

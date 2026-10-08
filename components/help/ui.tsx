@@ -59,7 +59,7 @@ export function ContextHeading({
         </h1>
         {action}
       </div>
-      <p className="text-[10px] leading-[1.4] text-muted">{caption}</p>
+      <p className="text-[11px] leading-[1.4] text-muted">{caption}</p>
     </div>
   );
 }

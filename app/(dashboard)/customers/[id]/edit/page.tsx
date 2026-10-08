@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { getAgents, getCustomer, getSources, updateCustomer, type CustomerStage } from "@/lib/api";
 
 const inputClass =
-  "w-full min-w-0 rounded-xl border border-dash-border bg-white px-4 py-2.5 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full min-w-0 rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 const TYPE_OPTIONS: SelectOption[] = [
   { id: "buyer", name: "Buyer" },
@@ -36,7 +36,7 @@ function Field({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-sm text-dash-muted">
+      <label htmlFor={htmlFor} className="text-sm text-muted">
         {label}
         {required && <span className="text-hot"> *</span>}
       </label>
@@ -47,8 +47,8 @@ function Field({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-dash-border bg-white p-4 shadow-sm sm:p-6">
-      <h2 className="text-xs font-bold uppercase tracking-[1px] text-dash-muted">{title}</h2>
+    <section className="flex flex-col gap-4 rounded-lg border border-border bg-white p-4 shadow-sm sm:p-6">
+      <h2 className="text-xs font-bold uppercase tracking-[1px] text-muted">{title}</h2>
       {children}
     </section>
   );
@@ -180,10 +180,10 @@ export default function EditCustomerPage() {
   if (notFound) {
     return (
       <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
-        <Link href="/customers" className="text-sm text-dash-muted transition-colors hover:text-dash-ink">
+        <Link href="/customers" className="text-sm text-muted transition-colors hover:text-ink">
           ← Customers
         </Link>
-        <p className="rounded-lg border border-dashed border-dash-border py-16 text-center text-sm text-dash-placeholder">
+        <p className="rounded-lg border border-dashed border-border py-16 text-center text-sm text-placeholder">
           {error ?? "That customer doesn't exist."}
         </p>
       </div>
@@ -195,7 +195,7 @@ export default function EditCustomerPage() {
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <Link
         href={`/customers/${params.id}`}
-        className="w-fit text-sm text-dash-muted transition-colors hover:text-dash-ink"
+        className="w-fit text-sm text-muted transition-colors hover:text-ink"
       >
         ← {customerName}
       </Link>
@@ -203,18 +203,18 @@ export default function EditCustomerPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1
-            className="font-serif text-[28px] font-semibold text-dash-ink sm:text-[34px]"
+            className="font-serif text-[28px] font-semibold text-ink sm:text-[34px]"
             style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
           >
             Edit customer
           </h1>
-          <p className="mt-1 text-sm text-dash-muted">{customerName}</p>
+          <p className="mt-1 text-sm text-muted">{customerName}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
           <Link
             href={`/customers/${params.id}`}
-            className="rounded-lg border border-dash-border px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
+            className="rounded-lg border border-border px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-dash-bg"
           >
             Cancel
           </Link>
@@ -222,7 +222,7 @@ export default function EditCustomerPage() {
             type="submit"
             form="edit-customer-form"
             disabled={isSubmitting}
-            className="rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg bg-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? "Saving..." : "Save changes"}
           </button>
@@ -397,7 +397,7 @@ export default function EditCustomerPage() {
                 placeholder="Select agent"
               />
             </Field>
-            <p className="text-xs text-dash-muted">
+            <p className="text-xs text-muted">
               The agent who owns this relationship. Leave unassigned to decide later.
             </p>
           </Section>

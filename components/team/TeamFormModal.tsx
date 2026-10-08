@@ -6,7 +6,7 @@ import { Select } from "@/components/ui/Select";
 import { createTeam, updateTeam, type Team, type TeamMember } from "@/lib/api";
 
 const inputClass =
-  "w-full rounded-xl border border-dash-border bg-white px-4 py-2 text-sm text-dash-ink placeholder:text-dash-placeholder focus:outline-none";
+  "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 export function TeamFormModal({
   initial,
@@ -90,11 +90,11 @@ export function TeamFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-sidebar shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-dash-border px-4 py-4 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-4 sm:px-6">
           <h2
-            className="font-serif text-2xl font-bold text-dash-ink"
+            className="font-serif text-2xl font-bold text-ink"
             style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
           >
             {initial ? "Edit team" : "New team"}
@@ -103,7 +103,7 @@ export function TeamFormModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-dash-muted transition-colors hover:text-dash-ink"
+            className="text-muted transition-colors hover:text-ink"
           >
             ✕
           </button>
@@ -111,7 +111,7 @@ export function TeamFormModal({
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-6">
           <div className="flex shrink-0 flex-col gap-1.5">
-            <label htmlFor="team-name" className="text-sm text-dash-muted">
+            <label htmlFor="team-name" className="text-sm text-muted">
               Team name
               <span className="text-hot"> *</span>
             </label>
@@ -129,7 +129,7 @@ export function TeamFormModal({
 
           <div className="grid shrink-0 grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="team-lead" className="text-sm text-dash-muted">
+              <label htmlFor="team-lead" className="text-sm text-muted">
                 Team lead
               </label>
               <Select
@@ -146,7 +146,7 @@ export function TeamFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="team-department" className="text-sm text-dash-muted">
+              <label htmlFor="team-department" className="text-sm text-muted">
                 Department
               </label>
               <input
@@ -159,7 +159,7 @@ export function TeamFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="team-region" className="text-sm text-dash-muted">
+              <label htmlFor="team-region" className="text-sm text-muted">
                 Region
               </label>
               <input
@@ -172,7 +172,7 @@ export function TeamFormModal({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="team-office" className="text-sm text-dash-muted">
+              <label htmlFor="team-office" className="text-sm text-muted">
                 Office
               </label>
               <input
@@ -184,12 +184,12 @@ export function TeamFormModal({
                 className={inputClass}
               />
             </div>
-            <label className="col-span-2 flex items-center gap-2 text-sm text-dash-ink">
+            <label className="col-span-2 flex items-center gap-2 text-sm text-ink">
               <input
                 type="checkbox"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
-                className="size-4 accent-dash-ink"
+                className="size-4 accent-ink"
               />
               Active team
             </label>
@@ -197,7 +197,7 @@ export function TeamFormModal({
 
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="flex shrink-0 items-center justify-between gap-3">
-              <p className="text-sm text-dash-muted">
+              <p className="text-sm text-muted">
                 Members
                 <span className="ml-2 text-xs">{selected.size} selected</span>
               </p>
@@ -205,7 +205,7 @@ export function TeamFormModal({
                 <button
                   type="button"
                   onClick={toggleAllVisible}
-                  className="text-xs font-semibold text-dash-muted transition-colors hover:text-dash-ink"
+                  className="text-xs font-semibold text-muted transition-colors hover:text-ink"
                 >
                   {allVisibleSelected ? "Clear all" : "Select all"}
                 </button>
@@ -224,9 +224,9 @@ export function TeamFormModal({
               />
             </div>
 
-            <div className="min-h-24 flex-1 overflow-y-auto rounded-xl border border-dash-border bg-white">
+            <div className="min-h-24 flex-1 overflow-y-auto rounded-xl border border-border bg-white">
               {visible.length === 0 && (
-                <p className="px-4 py-6 text-center text-sm text-dash-placeholder">
+                <p className="px-4 py-6 text-center text-sm text-placeholder">
                   {members.length === 0 ? "No members yet." : "Nobody matches that search."}
                 </p>
               )}
@@ -236,24 +236,24 @@ export function TeamFormModal({
                   <label
                     key={member.id}
                     className={`flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-colors hover:bg-dash-bg/60 ${
-                      i > 0 ? "border-t border-dash-border" : ""
+                      i > 0 ? "border-t border-border" : ""
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={selected.has(member.id)}
                       onChange={() => toggle(member.id)}
-                      className="size-4 shrink-0 accent-dash-ink"
+                      className="size-4 shrink-0 accent-ink"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-dash-ink">
+                      <span className="block truncate text-sm font-semibold text-ink">
                         {member.first_name} {member.last_name}
                       </span>
-                      <span className="block truncate text-xs text-dash-muted">{member.email}</span>
+                      <span className="block truncate text-xs text-muted">{member.email}</span>
                     </span>
                     {/* Ticking someone from another team moves them — say so before it happens. */}
                     {inAnotherTeam && (
-                      <span className="shrink-0 rounded bg-badge-neutral px-2 py-0.5 text-[10px] text-dash-muted">
+                      <span className="shrink-0 rounded bg-badge-neutral px-2 py-0.5 text-[11px] text-muted">
                         {selected.has(member.id) ? `Moves from ${member.team}` : member.team}
                       </span>
                     )}
@@ -269,14 +269,14 @@ export function TeamFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="text-sm font-medium text-dash-muted transition-colors hover:text-dash-ink"
+              className="text-sm font-medium text-muted transition-colors hover:text-ink"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-dash-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? "Saving..." : initial ? "Save changes" : "Create team"}
             </button>

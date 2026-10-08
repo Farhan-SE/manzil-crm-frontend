@@ -55,7 +55,7 @@ const COLUMN_COUNT = 9;
 const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
 const headerActionClass =
-  "flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-dash-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60";
+  "flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60";
 
 function personName(person: SalesDispute["raised_by"]) {
   return person ? `${person.first_name} ${person.last_name}` : "—";
@@ -174,10 +174,10 @@ export default function SalesDisputesPage() {
       <div className="flex w-full flex-col">
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-8">
           <div className="flex flex-col gap-[3px] leading-[1.4]">
-            <h1 className="font-serif text-xl font-bold text-dash-ink" style={headingStyle}>
+            <h1 className="font-serif text-xl font-bold text-ink" style={headingStyle}>
               Sales Dispute
             </h1>
-            <p className="text-[10px] text-dash-muted">Ownership, allocation and commission reviews</p>
+            <p className="text-[11px] text-muted">Ownership, allocation and commission reviews</p>
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => setIsNewOpen(true)} className={headerActionClass}>
@@ -282,7 +282,7 @@ export default function SalesDisputesPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th className="hidden w-8 lg:table-cell">
+                <th scope="col" className="hidden w-8 lg:table-cell">
                   <input
                     type="checkbox"
                     aria-label="Select all cases"
@@ -293,14 +293,14 @@ export default function SalesDisputesPage() {
                     className={checkboxClass}
                   />
                 </th>
-                <th className={`${headCellClass} w-[92px] lg:w-[10%]`}>Case ID</th>
-                <th className={headCellClass}>Dispute / Client</th>
-                <th className={`${headCellClass} hidden w-[15%] lg:table-cell`}>Project</th>
-                <th className={`${headCellClass} hidden w-[13%] lg:table-cell`}>Raised by</th>
-                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Review owner</th>
-                <th className={`${headCellClass} w-[120px] lg:w-[13%]`}>Status</th>
-                <th className={`${headCellClass} hidden w-[13%] sm:table-cell`}>Resolution due</th>
-                <th className={`${headCellClass} w-[40px] text-[9px] lg:w-[5%]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[92px] lg:w-[10%]`}>Case ID</th>
+                <th scope="col" className={headCellClass}>Dispute / Client</th>
+                <th scope="col" className={`${headCellClass} hidden w-[15%] lg:table-cell`}>Project</th>
+                <th scope="col" className={`${headCellClass} hidden w-[13%] lg:table-cell`}>Raised by</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Review owner</th>
+                <th scope="col" className={`${headCellClass} w-[120px] lg:w-[13%]`}>Status</th>
+                <th scope="col" className={`${headCellClass} hidden w-[13%] sm:table-cell`}>Resolution due</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -318,7 +318,7 @@ export default function SalesDisputesPage() {
 
               {!isLoading && disputes.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? "No cases match those filters." : "No sales disputes yet."}
                   </td>
                 </tr>
