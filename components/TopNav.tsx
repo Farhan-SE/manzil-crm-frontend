@@ -7,6 +7,7 @@ import { clearToken } from "@/lib/api";
 import { useIsAdmin, useSessionFullName } from "@/lib/session";
 import { CloseIcon, LogoutIcon, MenuIcon, SettingsIcon } from "@/components/icons/DashboardIcons";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
+import { UNREAD_EVENT } from "@/components/NotificationToasts";
 import { Icon } from "@/components/ui/Icon";
 import { HELP_ITEM, NAV_SECTIONS, findActiveSection, isActivePath, sectionHref } from "@/lib/navigation";
 
@@ -37,6 +38,13 @@ export function TopNav() {
   const profileRef = useRef<HTMLDivElement>(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const onUnread = (e: Event) => setUnreadCount((e as CustomEvent<number>).detail);
+    window.addEventListener(UNREAD_EVENT, onUnread);
+    return () => window.removeEventListener(UNREAD_EVENT, onUnread);
+  }, []);
   const activeSection = findActiveSection(pathname);
 
   // Mobile drawer only: lock the page behind it and let Escape close it.
@@ -102,17 +110,8 @@ export function TopNav() {
           manzil.com
         </Link>
 
-        <div className="hidden h-8 shrink-0 items-center gap-2 sm:flex">
-          <span className="flex size-[30px] items-center justify-center rounded-full bg-badge-neutral text-muted">
-            <Icon name="workspace" className="size-4" />
-          </span>
-          <span className="flex flex-col gap-0.5 text-muted">
-            <span className="text-[8px] leading-[10px]">WORKSPACE</span>
-            <span className="text-xs font-bold leading-[14px]">Sales</span>
-          </span>
-        </div>
-
-        <nav className="hide-scrollbar hidden h-full min-w-0 flex-1 items-center gap-4 overflow-x-auto lg:flex xl:gap-6">
+        {/* Auto margins centre the tabs yet still let them scroll from the first one when they overflow. */}
+        <nav className="hide-scrollbar hidden h-full min-w-0 flex-1 items-center gap-4 overflow-x-auto lg:flex xl:gap-6 [&>*:first-child]:ml-auto [&>*:last-child]:mr-auto">
           {NAV_SECTIONS.map((section) => {
             const href = sectionHref(section);
             if (!href) {
@@ -153,11 +152,16 @@ export function TopNav() {
             <button
               type="button"
               onClick={() => setIsNotificationsOpen((open) => !open)}
-              aria-label="Notifications"
+              aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications"}
               aria-expanded={isNotificationsOpen}
-              className={iconButtonClass}
+              className={`${iconButtonClass} relative`}
             >
               <Icon name="bell" className="size-[18px]" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-hot px-1 text-[9px] font-bold leading-none text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </button>
             {isNotificationsOpen && <NotificationsPanel onClose={() => setIsNotificationsOpen(false)} />}
           </div>

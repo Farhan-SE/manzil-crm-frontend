@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CloseIcon } from "@/components/icons/DashboardIcons";
+import { announceUnread } from "@/components/NotificationToasts";
 import { Icon } from "@/components/ui/Icon";
 import {
   getNotifications,
@@ -24,6 +25,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
       .then((res) => {
         setNotifications(res.data);
         setUnreadCount(res.unread_count);
+        announceUnread(res.unread_count);
       })
       .catch(() => setNotifications([]));
   }, [unreadOnly]);
@@ -33,7 +35,10 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
   }, [load]);
 
   async function open(notification: AppNotification) {
-    if (!notification.is_read) await markNotificationRead(notification.id).catch(() => {});
+    if (!notification.is_read) {
+      await markNotificationRead(notification.id).catch(() => {});
+      announceUnread(Math.max(0, unreadCount - 1));
+    }
     if (notification.link) onClose();
     else load();
   }

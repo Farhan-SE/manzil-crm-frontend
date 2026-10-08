@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
 import { PlusIcon } from "@/components/icons/DashboardIcons";
 import { FilterBar, FilterDate, FilterField, FilterInput, FilterSelect } from "@/components/list/FilterBar";
@@ -78,7 +78,18 @@ function assigneeName(task: FollowUp) {
   return agent ? `${agent.first_name} ${agent.last_name}`.trim() : "Unassigned";
 }
 
-export default function TasksPage() {
+export default function TasksPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { search } = use(searchParams);
+  const linkedSearch = typeof search === "string" ? search : "";
+  // Keyed so that following a link to another task resets the list to that search.
+  return <TasksList key={linkedSearch} linkedSearch={linkedSearch} />;
+}
+
+function TasksList({ linkedSearch }: { linkedSearch: string }) {
   const admin = useIsAdmin();
 
   const [tasks, setTasks] = useState<FollowUp[]>([]);
@@ -87,8 +98,8 @@ export default function TasksPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [draft, setDraft] = useState<Filters>({ ...EMPTY_FILTERS, search: linkedSearch });
+  const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS, search: linkedSearch });
   const [tab, setTab] = useState<TaskTab>("all");
   const [favouritesOnly, setFavouritesOnly] = useState(false);
   const [sort, setSort] = useState<"asc" | "desc">("desc");
