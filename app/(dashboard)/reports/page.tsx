@@ -45,6 +45,7 @@ const TARGETS: Record<TargetMetric, { label: string; unit: string; money: boolea
   booked_sales: { label: "Booked sales", unit: "M PKR", money: true },
   site_visits: { label: "Client site visits", unit: "visits", money: false },
   collections: { label: "Collections", unit: "M PKR", money: true },
+  unit_sales: { label: "Project units sold", unit: "units", money: false },
 };
 
 const BAR_MAX_HEIGHT = 97;

@@ -14,18 +14,11 @@ import {
   FilterSelect,
   MoreFilters,
 } from "@/components/list/FilterBar";
-import { RowMenu } from "@/components/list/RowMenu";
-import { FavouritesButton, SortButton, StatusTabs, type StatusTab } from "@/components/list/StatusTabs";
+import { StatusTabs, type StatusTab } from "@/components/list/StatusTabs";
 import { TablePagination } from "@/components/list/TablePagination";
-import {
-  checkboxClass,
-  headCellClass,
-  headRowClass,
-  rowClass,
-  subTextClass,
-  tableClass,
-} from "@/components/list/tableStyles";
+import { checkboxClass, headCellClass, subTextClass, tableClass } from "@/components/list/tableStyles";
 import { Icon } from "@/components/ui/Icon";
+import { Listbox } from "@/components/ui/Listbox";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   getAgents,
@@ -42,9 +35,9 @@ import {
   type PartnerProject,
   type Source,
 } from "@/lib/api";
-import { CUSTOMER_STAGES, whatsappUrl } from "@/lib/customers";
+import { COUNTRIES, CUSTOMER_STAGES, flagUrl, whatsappUrl } from "@/lib/customers";
 import { useIsAdmin } from "@/lib/session";
-import { formatClock, formatDay, genderLabel } from "@/lib/time";
+import { formatDay } from "@/lib/time";
 
 type SearchField = NonNullable<CustomersQuery["search_by"]>;
 
@@ -75,7 +68,16 @@ const SEARCH_FIELDS: { id: SearchField; name: string }[] = [
   { id: "cnic", name: "CNIC" },
 ];
 
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 9;
+
+const SORT_OPTIONS = [
+  { id: "desc", name: "Client ID Descending" },
+  { id: "asc", name: "Client ID Ascending" },
+];
+
+const clientRowClass = "h-[78px] text-xs leading-[1.4] text-ink odd:bg-white even:bg-sidebar";
+
+const actionClass = "size-7 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-110";
 
 const headerActionClass =
   "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-dash-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
@@ -278,6 +280,7 @@ export default function CustomersPage() {
         </FilterBar>
 
         <StatusTabs
+          variant="underline"
           tabs={tabs}
           active={stageFilter}
           onChange={(next) => {
@@ -296,29 +299,50 @@ export default function CustomersPage() {
               </Link>
             </>
           )}
-          <FavouritesButton
-            active={favouritesOnly}
-            onChange={(next) => {
-              setFavouritesOnly(next);
+          <button
+            type="button"
+            onClick={() => {
+              setFavouritesOnly(!favouritesOnly);
               resetPaging();
             }}
-          />
-          <SortButton
-            sort={sort}
-            onChange={(next) => {
-              setSort(next);
-              setPage(1);
-            }}
-          />
+            aria-pressed={favouritesOnly}
+            className={`flex shrink-0 items-center gap-1.5 text-xs leading-[1.4] text-warm ${
+              favouritesOnly ? "font-bold" : ""
+            }`}
+          >
+            <span className="text-base leading-none">{favouritesOnly ? "★" : "☆"}</span>
+            Favourites
+          </button>
+          <div className="flex shrink-0 items-center gap-2 text-xs leading-[1.4] text-muted">
+            Sort By
+            <Listbox
+              value={sort}
+              onChange={(next) => {
+                setSort(next as "asc" | "desc");
+                setPage(1);
+              }}
+              options={SORT_OPTIONS}
+              label="Sort clients"
+              className="flex items-center gap-1.5 font-bold text-emerald-600"
+            >
+              {(isOpen) => (
+                <>
+                  <Icon name="sort" className={`size-4 ${sort === "asc" ? "-scale-y-100" : ""}`} />
+                  {SORT_OPTIONS.find((option) => option.id === sort)?.name}
+                  <Icon name="chevron-down" className={`size-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                </>
+              )}
+            </Listbox>
+          </div>
         </StatusTabs>
 
         {error && <p className="mx-4 mt-4 rounded-[4px] bg-hot/10 px-4 py-3 text-xs text-hot sm:mx-8">{error}</p>}
 
-        <div className="px-4 sm:px-8">
+        <div className="px-4 pt-4 sm:px-8">
           <table className={tableClass}>
             <thead>
-              <tr className={headRowClass}>
-                <th className="hidden w-8 lg:table-cell">
+              <tr className="h-10 bg-cream text-[11px] uppercase text-muted">
+                <th className="hidden w-10 pl-3 lg:table-cell">
                   <input
                     type="checkbox"
                     aria-label="Select all clients"
@@ -327,20 +351,21 @@ export default function CustomersPage() {
                     className={checkboxClass}
                   />
                 </th>
-                <th className={`${headCellClass} w-[92px] lg:w-[12%]`}>Lead ID</th>
-                <th className={headCellClass}>Cell name</th>
-                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Location</th>
-                <th className={`${headCellClass} hidden w-[15%] lg:table-cell`}>Source</th>
-                <th className={`${headCellClass} hidden w-[18%] lg:table-cell`}>Allocation</th>
-                <th className={`${headCellClass} w-[104px] lg:w-[12%]`}>Stage</th>
-                <th className={`${headCellClass} w-[60px] lg:w-[12%]`}>Actions</th>
+                <th className="w-9" aria-label="Favourite" />
+                <th className={`${headCellClass} w-[96px] font-bold lg:w-[10%]`}>Client ID</th>
+                <th className={`${headCellClass} font-bold`}>Full name</th>
+                <th className={`${headCellClass} hidden w-[13%] font-bold lg:table-cell`}>Location</th>
+                <th className={`${headCellClass} hidden w-[17%] font-bold lg:table-cell`}>Source</th>
+                <th className={`${headCellClass} hidden w-[16%] font-bold lg:table-cell`}>Allocation</th>
+                <th className={`${headCellClass} w-[112px] font-bold lg:w-[11%]`}>Stage</th>
+                <th className={`${headCellClass} w-[84px] font-bold lg:w-[196px]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className={rowClass}>
-                    <td colSpan={COLUMN_COUNT}>
+                  <tr key={i} className={clientRowClass}>
+                    <td colSpan={COLUMN_COUNT} className="px-3">
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
                         <Skeleton className="h-2.5 w-1/5" />
@@ -366,10 +391,11 @@ export default function CustomersPage() {
                   // Mirrors the server rule: admins edit anyone, agents only their own customers.
                   const canEdit = admin || customer.assigned_to?.id === sessionUserId;
                   const href = `/customers/${customer.id}`;
+                  const country = COUNTRIES.find((c) => c.id === customer.country)?.name ?? customer.country;
 
                   return (
-                    <tr key={customer.id} className={rowClass}>
-                      <td className="hidden lg:table-cell">
+                    <tr key={customer.id} className={clientRowClass}>
+                      <td className="hidden pl-3 lg:table-cell">
                         <input
                           type="checkbox"
                           aria-label={`Select ${customer.customer_name}`}
@@ -378,34 +404,69 @@ export default function CustomersPage() {
                           className={checkboxClass}
                         />
                       </td>
+                      <td className="pl-2 lg:pl-0">
+                        <button
+                          type="button"
+                          onClick={() => void handleStarToggle(customer)}
+                          aria-pressed={customer.is_starred}
+                          aria-label={`${customer.is_starred ? "Remove" : "Add"} ${customer.customer_name} ${
+                            customer.is_starred ? "from" : "to"
+                          } favourites`}
+                          className="text-lg leading-none text-warm transition-transform hover:scale-110"
+                        >
+                          {customer.is_starred ? "★" : "☆"}
+                        </button>
+                      </td>
                       <td className="pr-3">
-                        <Link href={href} className="text-primary hover:underline">
+                        <Link href={href} className="text-cold hover:underline">
                           {customer.customer_no}
                         </Link>
-                        <p className={subTextClass}>▣&nbsp; {formatDay(customer.created_at)}</p>
-                        <p className="hidden truncate pl-[17px] text-[10px] text-muted lg:block">
-                          {formatClock(customer.created_at)}
+                        <p className={`${subTextClass} flex items-center gap-1.5 text-[11px]`}>
+                          <Icon name="calendar" className="size-3" />
+                          {formatDay(customer.created_at)}
                         </p>
                       </td>
                       <td className="pr-3">
-                        <Link href={href} className="block truncate hover:underline">
-                          {customer.customer_name}
-                        </Link>
-                        <p className={subTextClass}>▣&nbsp; {genderLabel(customer.gender)}</p>
+                        <div className="flex items-center gap-2.5">
+                          <span className="hidden size-7 shrink-0 items-center justify-center rounded-full bg-cold/10 text-cold sm:flex">
+                            <Icon name="clients" className="size-3.5" />
+                          </span>
+                          <div className="min-w-0">
+                            <Link href={href} className="block truncate hover:underline">
+                              {customer.customer_name || "No Name"}
+                            </Link>
+                            <p className={`${subTextClass} text-[11px]`}>
+                              {customer.lead_count} {customer.lead_count === 1 ? "Lead" : "Leads"}
+                            </p>
+                          </div>
+                        </div>
                       </td>
                       <td className="hidden pr-3 lg:table-cell">
-                        <div className="flex items-center gap-[5px]">
-                          <Icon name="location" className="size-4" />
+                        <div className="flex items-center gap-2">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={flagUrl(customer.country)} alt={country} title={country} className="h-3 w-[18px] shrink-0" />
                           <p className="truncate">{customer.city || "—"}</p>
                         </div>
                       </td>
                       <td className="hidden pr-3 lg:table-cell">
                         <p className="truncate">{customer.source?.name ?? "—"}</p>
-                        {customer.sub_source && <p className={subTextClass}>{customer.sub_source}</p>}
+                        {customer.sub_source && <p className={`${subTextClass} text-[11px]`}>{customer.sub_source}</p>}
                       </td>
                       <td className="hidden pr-3 lg:table-cell">
-                        <p className="truncate">{agentName}</p>
-                        {customer.assigned_to?.team && <p className={subTextClass}>{customer.assigned_to.team}</p>}
+                        <p className="flex items-center gap-1.5">
+                          <span className="truncate">{agentName}</span>
+                          {customer.assigned_to && (
+                            <span
+                              title={`Allocated to ${agentName}${customer.assigned_to.team ? ` · ${customer.assigned_to.team}` : ""}`}
+                              className="flex size-3.5 shrink-0 cursor-help items-center justify-center rounded-full bg-border text-[9px] font-bold leading-none text-white"
+                            >
+                              i
+                            </span>
+                          )}
+                        </p>
+                        {customer.assigned_to?.team && (
+                          <p className={`${subTextClass} text-[11px]`}>{customer.assigned_to.team}</p>
+                        )}
                       </td>
                       <td className="pr-3">
                         {canEdit ? (
@@ -425,34 +486,53 @@ export default function CustomersPage() {
                         )}
                       </td>
                       <td>
-                        <div className="flex items-center gap-2 text-primary lg:gap-[19px]">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <Link
                             href={href}
                             aria-label={`Open ${customer.customer_name}`}
-                            className="hidden lg:block"
+                            title="Open client"
+                            className={`${actionClass} hidden bg-cold/10 text-cold lg:flex`}
                           >
-                            <Icon name="link" className="block size-4" />
+                            <Icon name="link" className="size-3.5" />
                           </Link>
                           <a
                             href={whatsappUrl(customer.contact_number)}
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label={`WhatsApp ${customer.customer_name}`}
+                            title="WhatsApp"
+                            className={`${actionClass} flex bg-emerald-100 text-emerald-600`}
                           >
-                            <Icon name="whatsapp" className="block size-4" />
+                            <Icon name="whatsapp" className="size-3.5" />
                           </a>
-                          <RowMenu
-                            label={`More actions for ${customer.customer_name}`}
-                            items={[
-                              { label: "View client", href },
-                              ...(canEdit ? [{ label: "Edit client", href: `${href}/edit` }] : []),
-                              {
-                                label: customer.is_starred ? "Remove from favourites" : "Add to favourites",
-                                onClick: () => void handleStarToggle(customer),
-                              },
-                              { label: "Call client", href: `tel:${customer.contact_number}`, external: true },
-                            ]}
-                          />
+                          {customer.email && (
+                            <a
+                              href={`mailto:${customer.email}`}
+                              aria-label={`Email ${customer.customer_name}`}
+                              title={customer.email}
+                              className={`${actionClass} hidden bg-emerald-50 text-emerald-600 lg:flex`}
+                            >
+                              <Icon name="mail" className="size-3.5" />
+                            </a>
+                          )}
+                          {canEdit && (
+                            <Link
+                              href={`${href}/edit`}
+                              aria-label={`Edit ${customer.customer_name}`}
+                              title="Edit client"
+                              className={`${actionClass} hidden bg-indigo-50 text-indigo-500 lg:flex`}
+                            >
+                              <Icon name="file" className="size-3.5" />
+                            </Link>
+                          )}
+                          <a
+                            href={`tel:${customer.contact_number}`}
+                            aria-label={`Call ${customer.customer_name}`}
+                            title={`Call ${customer.contact_number}`}
+                            className={`${actionClass} flex bg-orange-100 text-orange-500`}
+                          >
+                            <Icon name="phone" className="size-3.5" />
+                          </a>
                         </div>
                       </td>
                     </tr>
@@ -466,7 +546,7 @@ export default function CustomersPage() {
           page={page}
           pageSize={pageSize}
           total={total}
-          noun="leads"
+          noun="clients"
           onPageChange={setPage}
           onPageSizeChange={(size) => {
             setPageSize(size);

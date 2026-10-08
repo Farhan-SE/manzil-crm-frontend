@@ -12,12 +12,39 @@ export function StatusTabs<T extends string>({
   active,
   onChange,
   children,
+  variant = "pill",
 }: {
   tabs: StatusTab<T>[];
   active: T;
   onChange: (id: T) => void;
   children?: ReactNode;
+  /** "underline" marks the active tab with a bar under it instead of a filled pill. */
+  variant?: "pill" | "underline";
 }) {
+  if (variant === "underline") {
+    return (
+      <div className="flex min-h-[50px] flex-wrap items-center gap-x-6 gap-y-2 border-b border-border px-4 sm:px-8">
+        <div className="hide-scrollbar flex min-w-full flex-1 items-stretch gap-7 self-stretch overflow-x-auto sm:min-w-0">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onChange(tab.id)}
+              aria-pressed={tab.id === active}
+              className={`-mb-px flex shrink-0 items-center gap-1 whitespace-nowrap border-b-2 px-3 text-xs font-bold leading-[1.4] transition-colors ${
+                tab.id === active ? "border-cold text-cold" : "border-transparent text-ink hover:text-cold"
+              }`}
+            >
+              {tab.label}
+              {tab.count != null && <span className="font-normal text-muted">({formatCount(tab.count)})</span>}
+            </button>
+          ))}
+        </div>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[50px] flex-wrap items-center gap-x-6 gap-y-2 border-b border-border px-4 py-1.5 sm:px-8">
       <div className="hide-scrollbar flex min-w-full flex-1 items-center gap-1 overflow-x-auto sm:min-w-0">

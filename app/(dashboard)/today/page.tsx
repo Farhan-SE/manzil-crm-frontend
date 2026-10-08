@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
 import { FilterBar, FilterDate, FilterField, FilterInput, FilterSelect } from "@/components/list/FilterBar";
 import { RowMenu } from "@/components/list/RowMenu";
@@ -35,6 +35,13 @@ type SearchField = NonNullable<TodosQuery["search_by"]>;
 
 type Filters = { search: string; searchBy: SearchField; assignedToId: string; taskType: string; dueDate: string };
 
+/** A due range handed over in the URL, e.g. from a dashboard task count. */
+type DueRange = { before?: string; after?: string };
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const dayParam = (value: string | string[] | undefined) =>
+  typeof value === "string" && DAY.test(value) ? value : undefined;
+
 const EMPTY_FILTERS: Filters = { search: "", searchBy: "lead_id", assignedToId: "", taskType: "", dueDate: "" };
 
 const SEARCH_FIELDS: { id: SearchField; name: string }[] = [
@@ -66,7 +73,20 @@ const TODO_TYPES = [...NEXT_TASKS, ...TASK_TYPES].filter(
 
 const COLUMN_COUNT = 8;
 
-export default function TodosPage() {
+export default function TodosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = use(searchParams);
+  const linked: Filters = {
+    ...EMPTY_FILTERS,
+    taskType: typeof params.task_type === "string" ? params.task_type : "",
+    dueDate: dayParam(params.due_date) ?? "",
+  };
+  const linkedRange: DueRange = { before: dayParam(params.due_before), after: dayParam(params.due_after) };
+  const isLinked = Boolean(linked.taskType || linked.dueDate || linkedRange.before || linkedRange.after);
+
   const admin = useIsAdmin();
   const [todos, setTodos] = useState<FollowUp[]>([]);
   const [total, setTotal] = useState(0);
@@ -74,9 +94,11 @@ export default function TodosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [tab, setTab] = useState<TodoWindow>("overdue");
+  const [draft, setDraft] = useState<Filters>(linked);
+  const [filters, setFilters] = useState<Filters>(linked);
+  const [dueRange, setDueRange] = useState<DueRange>(linkedRange);
+  // A link already says which days it wants, so it opens on the unrestricted tab.
+  const [tab, setTab] = useState<TodoWindow>(isLinked ? "all" : "overdue");
   const [favouritesOnly, setFavouritesOnly] = useState(false);
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
@@ -99,6 +121,8 @@ export default function TodosPage() {
         assigned_to_id: filters.assignedToId ? Number(filters.assignedToId) : undefined,
         task_type: filters.taskType || undefined,
         due_date: filters.dueDate || undefined,
+        due_before: dueRange.before,
+        due_after: dueRange.after,
         starred: favouritesOnly ? "true" : undefined,
         sort,
         page,
@@ -114,7 +138,7 @@ export default function TodosPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [tab, filters, favouritesOnly, sort, page, pageSize]);
+  }, [tab, filters, dueRange, favouritesOnly, sort, page, pageSize]);
 
   useEffect(() => {
     void load();
@@ -196,6 +220,26 @@ export default function TodosPage() {
             />
           </FilterField>
         </FilterBar>
+
+        {(dueRange.before || dueRange.after) && (
+          <div className="flex items-center gap-2 px-4 pt-3 text-xs text-ink sm:px-8">
+            <span className="rounded-[20px] bg-badge-neutral px-3 py-1">
+              {dueRange.before
+                ? `Due before ${formatDay(`${dueRange.before}T00:00:00`)}`
+                : `Due after ${formatDay(`${dueRange.after}T00:00:00`)}`}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setDueRange({});
+                setPage(1);
+              }}
+              className="text-muted hover:text-ink hover:underline"
+            >
+              Clear
+            </button>
+          </div>
+        )}
 
         <StatusTabs
           tabs={TABS.map((entry) => ({ ...entry, count: windowCounts?.[entry.id] ?? null }))}

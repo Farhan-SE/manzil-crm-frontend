@@ -1071,7 +1071,7 @@ export const generateReport = (key: string, filters: ReportFilters = {}) =>
     `/reports/${key}/data${buildQueryString(filters)}`,
   );
 
-export type TargetMetric = "booked_sales" | "site_visits" | "collections";
+export type TargetMetric = "booked_sales" | "site_visits" | "collections" | "unit_sales";
 
 /** `target` is null while nothing has been set for the month. */
 export type TargetProgress = { metric: TargetMetric; target: number | null; actual: number };
@@ -1233,6 +1233,8 @@ export type TodosQuery = {
   task_type?: string;
   /** Only todos due on this day, as YYYY-MM-DD. */
   due_date?: string;
+  due_before?: string;
+  due_after?: string;
   starred?: "true";
   sort?: "asc" | "desc";
 };
@@ -1326,7 +1328,7 @@ export const setFollowUpCompleted = (id: string, completed: boolean) =>
 
 // ── Customers ─────────────────────────────────────────────────────────────────
 
-export type CustomerStage = "inquiry" | "prospect" | "mature" | "pre_closure" | "sold";
+export type CustomerStage = "inquiry" | "prospect" | "mature" | "pre_closure" | "sold" | "lost";
 
 export type Gender = "male" | "female";
 
@@ -1590,3 +1592,48 @@ export async function createSupportTicket(input: SupportTicketInput, attachments
   }
   return res.json() as Promise<SupportTicketReceipt>;
 }
+
+// ── Staff dashboard ───────────────────────────────────────────────────────────
+
+/** Tasks counted once per lead (`unique`) and the extra ones on the same lead (`repeat`). */
+export type FunnelStep = { unique: number; repeat: number };
+export type Funnel = { total: FunnelStep; connected: FunnelStep; qualified: FunnelStep };
+
+export type PendingPayment = {
+  id: string;
+  /** YYYY-MM-DD. */
+  due_date: string;
+  outstanding: number;
+  client_name: string;
+  project: string | null;
+  unit: string | null;
+  staff: string | null;
+};
+
+export type Performance = {
+  date: string;
+  scope: "system" | "own";
+  profile: {
+    first_name: string;
+    last_name: string;
+    team: string | null;
+    office: string | null;
+    joined_on: string | null;
+  } | null;
+  /** Month to date, up to `date`. `unit_target` is 0 when no target is set. */
+  cards: { tokens: number; pdp: number; closed_won: number; achieved_revenue: number; unit_target: number };
+  tasks: Record<"today" | "overdue" | "upcoming", { task_type: string; count: number }[]>;
+  calls: Funnel;
+  meetings: Funnel;
+  /** One entry per hour of `date`, 0–23. */
+  activity: { hour: number; uqc: number; calls: number; umet: number }[];
+  payments: {
+    expected: number;
+    overdue: number;
+    received: number;
+    token: { total: number; rows: PendingPayment[] };
+    pdp: { total: number; rows: PendingPayment[] };
+  };
+};
+
+export const getPerformance = (date?: string) => apiFetch<Performance>(`/stats/performance${buildQueryString({ date })}`);
