@@ -2,6 +2,7 @@
 
 import { useState, type SubmitEvent } from "react";
 import { SearchIcon } from "@/components/icons/DashboardIcons";
+import { Select } from "@/components/ui/Select";
 import { createTeam, updateTeam, type Team, type TeamMember } from "@/lib/api";
 
 const inputClass =
@@ -19,6 +20,11 @@ export function TeamFormModal({
   onSaved: () => void;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
+  const [leadId, setLeadId] = useState(initial?.lead_id != null ? String(initial.lead_id) : "");
+  const [department, setDepartment] = useState(initial?.department ?? "");
+  const [region, setRegion] = useState(initial?.region ?? "");
+  const [office, setOffice] = useState(initial?.office ?? "");
+  const [isActive, setIsActive] = useState(initial?.is_active ?? true);
   // Starts as the team's current members; whatever is ticked on save becomes the whole team.
   const [selected, setSelected] = useState<Set<number>>(
     () => new Set(initial ? members.filter((m) => m.team_id === initial.id).map((m) => m.id) : []),
@@ -60,10 +66,17 @@ export function TeamFormModal({
     setIsSubmitting(true);
     try {
       const memberIds = [...selected];
+      const details = {
+        lead_id: leadId ? Number(leadId) : null,
+        department,
+        region,
+        office,
+        is_active: isActive,
+      };
       if (initial) {
-        await updateTeam(initial.id, name, memberIds);
+        await updateTeam(initial.id, name, memberIds, details);
       } else {
-        await createTeam(name, memberIds);
+        await createTeam(name, memberIds, details);
       }
       onSaved();
       onClose();
@@ -112,6 +125,74 @@ export function TeamFormModal({
               placeholder="e.g. Sales - Lahore"
               className={inputClass}
             />
+          </div>
+
+          <div className="grid shrink-0 grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="team-lead" className="text-sm text-dash-muted">
+                Team lead
+              </label>
+              <Select
+                id="team-lead"
+                value={leadId}
+                onChange={setLeadId}
+                options={[
+                  { id: "", name: "No lead" },
+                  ...members.map((member) => ({
+                    id: String(member.id),
+                    name: `${member.first_name} ${member.last_name}`,
+                  })),
+                ]}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="team-department" className="text-sm text-dash-muted">
+                Department
+              </label>
+              <input
+                id="team-department"
+                type="text"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                placeholder="e.g. Sales - Primary"
+                className={inputClass}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="team-region" className="text-sm text-dash-muted">
+                Region
+              </label>
+              <input
+                id="team-region"
+                type="text"
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                placeholder="e.g. Central 1"
+                className={inputClass}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="team-office" className="text-sm text-dash-muted">
+                Office
+              </label>
+              <input
+                id="team-office"
+                type="text"
+                value={office}
+                onChange={(e) => setOffice(e.target.value)}
+                placeholder="e.g. Lahore"
+                className={inputClass}
+              />
+            </div>
+            <label className="col-span-2 flex items-center gap-2 text-sm text-dash-ink">
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="size-4 accent-dash-ink"
+              />
+              Active team
+            </label>
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-2">

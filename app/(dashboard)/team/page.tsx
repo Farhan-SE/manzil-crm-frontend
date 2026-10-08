@@ -1,447 +1,478 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
-import { EmailIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/components/icons/DashboardIcons";
+import { PlusIcon } from "@/components/icons/DashboardIcons";
+import { FilterBar, FilterField, FilterInput, FilterSelect, MoreFilters } from "@/components/list/FilterBar";
+import { RowMenu } from "@/components/list/RowMenu";
+import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
+import { TablePagination } from "@/components/list/TablePagination";
+import {
+  checkboxClass,
+  headCellClass,
+  headRowClass,
+  rowClass,
+  subTextClass,
+  tableClass,
+} from "@/components/list/tableStyles";
 import { AddTeamMemberModal } from "@/components/team/AddTeamMemberModal";
-import { Select, type SelectOption } from "@/components/ui/Select";
+import { EditTeamMemberModal } from "@/components/team/EditTeamMemberModal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
-  deleteTeam,
   getSessionUser,
+  getStaff,
   getTeams,
   getUsers,
   setUserBlocked,
   setUserRole,
+  setUserStarred,
+  setUserSuspended,
+  type StaffMember,
+  type StaffQuery,
+  type StaffTab,
   type Team,
   type TeamMember,
 } from "@/lib/api";
-import { EditTeamMemberModal } from "@/components/team/EditTeamMemberModal";
-import { TeamFormModal } from "@/components/team/TeamFormModal";
 import { useIsAdmin } from "@/lib/session";
 
-// Spans only apply to the md grid; below md each row collapses into a card.
-const COLS = {
-  member: "md:col-span-3",
-  email: "md:col-span-3",
-  role: "md:col-span-3",
-  joined: "md:col-span-1",
-  actions: "md:col-span-2",
+type SearchField = NonNullable<StaffQuery["search_by"]>;
+
+type Filters = {
+  search: string;
+  searchBy: SearchField;
+  department: string;
+  designation: string;
+  managerId: string;
+  region: string;
+  teamId: string;
 };
 
-const ROLE_OPTIONS: SelectOption[] = [
-  { id: "agent", name: "Agent" },
-  { id: "admin", name: "Admin" },
+const EMPTY_FILTERS: Filters = {
+  search: "",
+  searchBy: "employee_id",
+  department: "",
+  designation: "",
+  managerId: "",
+  region: "",
+  teamId: "",
+};
+
+const SEARCH_FIELDS: { id: SearchField; name: string }[] = [
+  { id: "employee_id", name: "Employee ID" },
+  { id: "name", name: "Name" },
 ];
 
-const headerCell = "text-xs font-bold uppercase tracking-[0.6px] text-dash-muted";
+const TABS: { id: StaffTab; label: string }[] = [
+  { id: "active", label: "Active" },
+  { id: "suspended", label: "Suspended" },
+  { id: "blocked", label: "Blocked" },
+];
 
-const ROLE_BADGES: Record<string, { label: string; className: string }> = {
-  admin: { label: "Admin", className: "bg-warm/20 text-warm" },
-  agent: { label: "Agent", className: "bg-cold/15 text-cold" },
-};
+const COLUMN_COUNT = 9;
 
-function initials(first: string, last: string) {
-  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
+const headerActionClass =
+  "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-dash-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
+
+/** "Jan 24" and "2 years" — when they joined and how long ago that was. */
+function tenure(member: TeamMember) {
+  const joined = new Date(member.joined_on ? `${member.joined_on}T00:00:00` : member.created_at);
+  const months = Math.max(
+    0,
+    (new Date().getFullYear() - joined.getFullYear()) * 12 + new Date().getMonth() - joined.getMonth(),
+  );
+  const years = Math.floor(months / 12);
+  return {
+    since: joined.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+    length:
+      years > 0
+        ? `${years} year${years === 1 ? "" : "s"}`
+        : months > 0
+          ? `${months} month${months === 1 ? "" : "s"}`
+          : "This month",
+  };
 }
 
-function formatJoined(date: string) {
-  return new Date(date).toLocaleDateString("en-US", { month: "short", year: "numeric" });
-}
-
-export default function TeamPage() {
+export default function StaffPage() {
   const admin = useIsAdmin();
 
-  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [total, setTotal] = useState(0);
+  const [statusCounts, setStatusCounts] = useState<Record<StaffTab, number> | null>(null);
+  const [options, setOptions] = useState({ departments: [] as string[], designations: [] as string[], regions: [] as string[] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+
+  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [tab, setTab] = useState<StaffTab>("active");
+  const [favouritesOnly, setFavouritesOnly] = useState(false);
+  const [sort, setSort] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+
+  const [everyone, setEveryone] = useState<TeamMember[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editing, setEditing] = useState<TeamMember | null>(null);
-  const [busyId, setBusyId] = useState<number | null>(null);
-
-  const [teams, setTeams] = useState<Team[]>([]);
-  // "all", "none" (members without a team) or a team id — narrows the members list below.
-  const [teamFilter, setTeamFilter] = useState("all");
-  const [isTeamFormOpen, setIsTeamFormOpen] = useState(false);
-  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
 
   const currentUserId = getSessionUser()?.id;
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      setMembers(await getUsers());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load the team.");
-      setMembers([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const loadTeams = useCallback(() => {
-    getTeams()
-      .then(setTeams)
-      .catch(() => {});
+  const loadLookups = useCallback(() => {
+    getUsers().then(setEveryone).catch(() => {});
+    getTeams().then(setTeams).catch(() => {});
   }, []);
 
   useEffect(() => {
-    void load();
-    loadTeams();
-  }, [load, loadTeams]);
+    loadLookups();
+  }, [loadLookups]);
 
-  async function handleDeleteTeam(team: Team) {
-    const note = team.member_count > 0 ? ` Its ${team.member_count} member(s) will be left without a team.` : "";
-    if (!window.confirm(`Delete the team "${team.name}"?${note}`)) return;
+  const load = useCallback(async () => {
     setError(null);
     try {
-      await deleteTeam(team.id);
-      if (teamFilter === team.id) setTeamFilter("all");
-      loadTeams();
-      void load();
+      const search = filters.search.trim();
+      const res = await getStaff({
+        status: tab,
+        search: search || undefined,
+        search_by: search ? filters.searchBy : undefined,
+        department: filters.department || undefined,
+        designation: filters.designation || undefined,
+        manager_id: filters.managerId ? Number(filters.managerId) : undefined,
+        region: filters.region || undefined,
+        team_id: filters.teamId || undefined,
+        starred: favouritesOnly ? "true" : undefined,
+        sort,
+        page,
+        limit: pageSize,
+      });
+      setStaff(res.data);
+      setTotal(res.total);
+      setStatusCounts(res.status_counts);
+      setOptions({ departments: res.departments, designations: res.designations, regions: res.regions });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't delete that team.");
+      setError(err instanceof Error ? err.message : "Failed to load staff.");
+      setStaff([]);
+      setTotal(0);
+    } finally {
+      setIsLoading(false);
     }
-  }
+  }, [tab, filters, favouritesOnly, sort, page, pageSize]);
 
-  async function handleBlockToggle(member: TeamMember) {
-    setBusyId(member.id);
-    setError(null);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function run(action: Promise<unknown>) {
     try {
-      const updated = await setUserBlocked(member.id, !member.blocked);
-      setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      await action;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't update that member.");
-    } finally {
-      setBusyId(null);
     }
+    void load();
   }
 
-  async function handleRoleChange(member: TeamMember, nextRole: "admin" | "agent") {
-    if (nextRole === member.user_role) return;
-    setBusyId(member.id);
-    setError(null);
-    try {
-      const updated = await setUserRole(member.id, nextRole);
-      setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't change that role.");
-    } finally {
-      setBusyId(null);
-    }
+  function resetPaging() {
+    setPage(1);
+    setSelected(new Set());
   }
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    const inTeam = members.filter(
-      (m) => teamFilter === "all" || (teamFilter === "none" ? !m.team_id : m.team_id === teamFilter),
-    );
-    if (!term) return inTeam;
-    return inTeam.filter((m) =>
-      [m.first_name, m.last_name, m.email, m.user_role, m.team ?? ""].some((f) => f.toLowerCase().includes(term)),
-    );
-  }, [members, search, teamFilter]);
+  function toggleSelected(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }
 
-  const adminCount = members.filter((m) => m.user_role === "admin").length;
-  const agentCount = members.length - adminCount;
-  const noTeamCount = members.filter((m) => !m.team_id).length;
-  const teamCards = [
-    { id: "all", name: "All members", count: members.length, team: null },
-    ...teams.map((team) => ({ id: team.id, name: team.name, count: team.member_count, team })),
-    ...(noTeamCount > 0 ? [{ id: "none", name: "No team", count: noTeamCount, team: null }] : []),
-  ];
+  const isFiltered = Object.values({ ...filters, searchBy: "" }).some(Boolean) || favouritesOnly;
+  const allSelected = staff.length > 0 && staff.every((member) => selected.has(member.id));
+  const tabNoun = `${tab} employees`;
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1
-            className="font-serif text-[28px] font-semibold leading-none text-dash-ink sm:text-[34px]"
-            style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
-          >
-            Team
-          </h1>
-          {!isLoading && members.length > 0 && (
-            <p className="text-sm text-dash-muted">
-              {adminCount} admin{adminCount === 1 ? "" : "s"} · {agentCount} agent
-              {agentCount === 1 ? "" : "s"}
-            </p>
-          )}
-        </div>
-
-      </div>
-
-      {error && <p className="rounded-lg bg-hot/10 px-4 py-3 text-sm text-hot">{error}</p>}
-
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xs font-bold uppercase tracking-[1px] text-dash-muted">Teams</h2>
-          {admin && (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingTeam(null);
-                setIsTeamFormOpen(true);
-              }}
-              className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-dash-border px-3 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
-            >
-              <PlusIcon className="size-3" />
-              Add team
-            </button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-3">
-          {teamCards.map((card) => (
-            <div
-              key={card.id}
-              className={`flex items-center justify-between gap-2 rounded-lg border bg-white transition-colors ${
-                teamFilter === card.id ? "border-dash-ink" : "border-dash-border hover:border-dash-muted/40"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => setTeamFilter(card.id)}
-                aria-pressed={teamFilter === card.id}
-                className="flex min-w-0 flex-1 flex-col items-start gap-0.5 px-4 py-3 text-left"
-              >
-                <span className="w-full truncate text-sm font-semibold text-dash-ink">{card.name}</span>
-                <span className="text-xs text-dash-muted">
-                  {card.count} member{card.count === 1 ? "" : "s"}
-                </span>
-              </button>
-              {admin && card.team && (
-                <div className="flex shrink-0 items-center gap-1 pr-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingTeam(card.team);
-                      setIsTeamFormOpen(true);
-                    }}
-                    aria-label={`Edit ${card.name}`}
-                    title="Edit"
-                    className="flex size-7 items-center justify-center rounded-lg text-dash-muted transition-colors hover:bg-dash-bg hover:text-dash-ink"
-                  >
-                    <PencilIcon className="size-3" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => card.team && void handleDeleteTeam(card.team)}
-                    aria-label={`Delete ${card.name}`}
-                    title="Delete"
-                    className="flex size-7 items-center justify-center rounded-lg text-dash-muted transition-colors hover:bg-dash-bg hover:text-red-600"
-                  >
-                    <TrashIcon className="size-3" />
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xs font-bold uppercase tracking-[1px] text-dash-muted">
-          Members{teamFilter !== "all" ? ` — ${teamCards.find((c) => c.id === teamFilter)?.name ?? ""}` : ""}
-        </h2>
-        <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
-          <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
-            <SearchIcon className="absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-muted" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search name, email, role..."
-              className="w-full rounded-lg border border-dash-border bg-sidebar py-2.5 pl-10 pr-3 text-sm text-dash-ink placeholder:text-muted focus:outline-none"
+      <div className="flex w-full flex-col">
+        <FilterBar
+          onSearch={() => {
+            setFilters(draft);
+            resetPaging();
+          }}
+        >
+          <FilterField label="Search by">
+            <FilterInput
+              value={draft.search}
+              onChange={(e) => setDraft({ ...draft, search: e.target.value })}
+              placeholder="Search by Employee"
+              aria-label="Search staff"
             />
-          </div>
-          {admin && (
-            <button
-              type="button"
-              onClick={() => setIsAddOpen(true)}
-              className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
+            <FilterSelect
+              value={draft.searchBy}
+              onChange={(e) => setDraft({ ...draft, searchBy: e.target.value as SearchField })}
+              aria-label="Search field"
+              className="w-[92px] shrink-0"
             >
-              <PlusIcon className="size-3" />
+              {SEARCH_FIELDS.map((field) => (
+                <option key={field.id} value={field.id}>
+                  {field.name}
+                </option>
+              ))}
+            </FilterSelect>
+          </FilterField>
+          <FilterField label="Department">
+            <FilterSelect
+              value={draft.department}
+              onChange={(e) => setDraft({ ...draft, department: e.target.value })}
+              placeholder="Select Department"
+            >
+              {options.departments.map((department) => (
+                <option key={department}>{department}</option>
+              ))}
+            </FilterSelect>
+          </FilterField>
+          <FilterField label="Designation">
+            <FilterSelect
+              value={draft.designation}
+              onChange={(e) => setDraft({ ...draft, designation: e.target.value })}
+              placeholder="Select Designation"
+            >
+              {options.designations.map((designation) => (
+                <option key={designation}>{designation}</option>
+              ))}
+            </FilterSelect>
+          </FilterField>
+          <FilterField label="Search for Staff">
+            <FilterSelect
+              value={draft.managerId}
+              onChange={(e) => setDraft({ ...draft, managerId: e.target.value })}
+              placeholder="Search by Staff"
+            >
+              {everyone.map((member) => (
+                <option key={member.id} value={member.id}>
+                  Reports to {member.first_name} {member.last_name}
+                </option>
+              ))}
+            </FilterSelect>
+          </FilterField>
+          <MoreFilters activeCount={[filters.region, filters.teamId].filter(Boolean).length}>
+            <FilterField label="Region">
+              <FilterSelect
+                value={draft.region}
+                onChange={(e) => setDraft({ ...draft, region: e.target.value })}
+                placeholder="Select Region"
+              >
+                {options.regions.map((region) => (
+                  <option key={region}>{region}</option>
+                ))}
+              </FilterSelect>
+            </FilterField>
+            <FilterField label="Team">
+              <FilterSelect
+                value={draft.teamId}
+                onChange={(e) => setDraft({ ...draft, teamId: e.target.value })}
+                placeholder="Select Team"
+              >
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </FilterSelect>
+            </FilterField>
+          </MoreFilters>
+        </FilterBar>
+
+        <StatusTabs
+          tabs={TABS.map((entry) => ({ ...entry, count: statusCounts?.[entry.id] ?? null }))}
+          active={tab}
+          onChange={(next) => {
+            setTab(next);
+            resetPaging();
+          }}
+        >
+          {admin && (
+            <button type="button" onClick={() => setIsAddOpen(true)} className={headerActionClass}>
+              <PlusIcon className="size-2.5" />
               Add member
             </button>
           )}
+          <FavouritesButton
+            active={favouritesOnly}
+            onChange={(next) => {
+              setFavouritesOnly(next);
+              resetPaging();
+            }}
+          />
+          <SortButton
+            sort={sort}
+            onChange={(next) => {
+              setSort(next);
+              setPage(1);
+            }}
+          />
+        </StatusTabs>
+
+        {error && <p className="mx-4 mt-4 rounded-[4px] bg-hot/10 px-4 py-3 text-xs text-hot sm:mx-8">{error}</p>}
+
+        <div className="px-4 sm:px-8">
+          <table className={tableClass}>
+            <thead>
+              <tr className={headRowClass}>
+                <th className="hidden w-8 lg:table-cell">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all staff"
+                    checked={allSelected}
+                    onChange={() => setSelected(allSelected ? new Set() : new Set(staff.map((member) => member.id)))}
+                    className={checkboxClass}
+                  />
+                </th>
+                <th className={headCellClass}>Employee detail</th>
+                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Department</th>
+                <th className={`${headCellClass} hidden w-[9%] lg:table-cell`}>Tenure</th>
+                <th className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Region</th>
+                <th className={`${headCellClass} hidden w-[12%] sm:table-cell`}>Line manager</th>
+                <th className={`${headCellClass} w-[34%] lg:w-[12%]`}>Leads</th>
+                <th className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Projects allocated</th>
+                <th className="w-[40px] lg:w-[12%]" />
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading &&
+                Array.from({ length: 3 }).map((_, i) => (
+                  <tr key={i} className={`${rowClass} !h-[170px]`}>
+                    <td colSpan={COLUMN_COUNT}>
+                      <div className="flex flex-col gap-2">
+                        <Skeleton className="h-3 w-1/3" />
+                        <Skeleton className="h-2.5 w-1/5" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+              {!isLoading && staff.length === 0 && (
+                <tr>
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                    {isFiltered ? `No ${tabNoun} match those filters.` : `No ${tabNoun}.`}
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading &&
+                staff.map((member) => {
+                  const joined = tenure(member);
+                  const isSelf = member.id === currentUserId;
+                  return (
+                    <tr key={member.id} className={`${rowClass} !h-[170px]`}>
+                      <td className="hidden lg:table-cell">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${member.first_name} ${member.last_name}`}
+                          checked={selected.has(member.id)}
+                          onChange={() => toggleSelected(member.id)}
+                          className={checkboxClass}
+                        />
+                      </td>
+                      <td className="pr-3">
+                        <p className="truncate">
+                          {member.first_name} {member.last_name}
+                        </p>
+                        <p className={subTextClass}>
+                          E.ID: {member.id} · {member.designation ?? (member.user_role === "admin" ? "Admin" : "Agent")}
+                        </p>
+                      </td>
+                      <td className="hidden truncate pr-3 lg:table-cell">{member.department ?? "—"}</td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        <p>{joined.since}</p>
+                        <p className={subTextClass}>{joined.length}</p>
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        <p className="truncate">{member.region ?? "—"}</p>
+                        {member.office && <p className={subTextClass}>{member.office}</p>}
+                      </td>
+                      <td className="hidden truncate pr-3 sm:table-cell">
+                        {member.manager ? `${member.manager.first_name} ${member.manager.last_name}` : "—"}
+                      </td>
+                      <td className="pr-3">
+                        <p>Allocated {member.allocated_leads.toLocaleString()}</p>
+                        <p>Direct {member.direct_leads.toLocaleString()}</p>
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">{member.projects_allocated}</td>
+                      <td>
+                        <RowMenu
+                          label={`More actions for ${member.first_name} ${member.last_name}`}
+                          items={[
+                            {
+                              label: member.is_starred ? "Remove from favourites" : "Add to favourites",
+                              onClick: () => void run(setUserStarred(member.id, !member.is_starred)),
+                            },
+                            ...(admin
+                              ? [
+                                  { label: "Edit member", onClick: () => setEditing(member) },
+                                  ...(isSelf
+                                    ? []
+                                    : [
+                                        {
+                                          label: member.user_role === "admin" ? "Make agent" : "Make admin",
+                                          onClick: () =>
+                                            void run(
+                                              setUserRole(member.id, member.user_role === "admin" ? "agent" : "admin"),
+                                            ),
+                                        },
+                                        {
+                                          label: member.suspended ? "Lift suspension" : "Suspend",
+                                          onClick: () => void run(setUserSuspended(member.id, !member.suspended)),
+                                        },
+                                        {
+                                          label: member.blocked ? "Unblock" : "Block",
+                                          onClick: () => void run(setUserBlocked(member.id, !member.blocked)),
+                                        },
+                                      ]),
+                                ]
+                              : []),
+                          ]}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
         </div>
+
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          noun={tabNoun}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-dash-border">
-        <div className="hidden gap-4 border-b border-dash-border bg-dash-bg/50 px-6 py-4 md:grid md:grid-cols-12">
-          <p className={`${COLS.member} ${headerCell}`}>Member</p>
-          <p className={`${COLS.email} ${headerCell}`}>Email</p>
-          <p className={`${COLS.role} ${headerCell}`}>Role</p>
-          <p className={`${COLS.joined} ${headerCell}`}>Joined</p>
-          {admin && <p className={`${COLS.actions} ${headerCell} text-right`}>Actions</p>}
-        </div>
-
-        {isLoading &&
-          Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className={`flex flex-wrap items-center gap-3 bg-white px-4 py-4 md:grid md:grid-cols-12 md:gap-4 md:px-6 ${
-                i > 0 ? "border-t border-dash-border" : ""
-              }`}
-            >
-              <div className={`${COLS.member} flex w-full items-center gap-3 md:w-auto`}>
-                <Skeleton className="size-9 shrink-0 rounded-full" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-              <Skeleton className={`${COLS.email} hidden h-4 w-48 md:block`} />
-              <Skeleton className={`${COLS.role} h-5 w-16`} />
-              <Skeleton className={`${COLS.joined} hidden h-4 w-16 md:block`} />
-              {admin && <Skeleton className={`${COLS.actions} ml-auto h-8 w-16 md:ml-0 md:w-full`} />}
-            </div>
-          ))}
-
-        {!isLoading && filtered.length === 0 && (
-          <p className="bg-white px-4 py-10 text-center text-sm text-dash-placeholder md:px-6">
-            {search || teamFilter !== "all" ? "Nobody matches that filter." : "No team members yet."}
-          </p>
-        )}
-
-        {!isLoading &&
-          filtered.map((member, i) => {
-            const role = ROLE_BADGES[member.user_role];
-            return (
-              <div
-                key={member.id}
-                className={`flex flex-wrap items-center gap-3 bg-white px-4 py-4 md:grid md:grid-cols-12 md:gap-4 md:px-6 ${
-                  i > 0 ? "border-t border-dash-border" : ""
-                } ${member.blocked ? "opacity-60" : ""}`}
-              >
-                <div className={`${COLS.member} flex w-full min-w-0 items-center gap-3 md:w-auto`}>
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-avatar/30 text-xs font-bold text-dash-ink">
-                    {initials(member.first_name, member.last_name)}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-dash-ink">
-                      {member.first_name} {member.last_name}
-                    </p>
-                    {member.team && <p className="truncate text-[11px] text-dash-muted">{member.team}</p>}
-                    {/* Email and joined date get their own columns from md up. */}
-                    <a
-                      href={`mailto:${member.email}`}
-                      className="flex min-w-0 items-center gap-1.5 text-xs text-dash-muted md:hidden"
-                    >
-                      <EmailIcon className="size-3 shrink-0" />
-                      <span className="truncate">{member.email}</span>
-                    </a>
-                    <p className="text-[11px] text-dash-muted md:hidden">
-                      Joined {formatJoined(member.created_at)}
-                    </p>
-                    {member.blocked && (
-                      <p className="truncate text-[11px] font-semibold text-hot">Blocked</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className={`${COLS.email} hidden min-w-0 md:block`}>
-                  <a
-                    href={`mailto:${member.email}`}
-                    className="flex items-center gap-1.5 text-sm text-dash-ink transition-colors hover:text-warm hover:underline"
-                  >
-                    <EmailIcon className="size-3 shrink-0" />
-                    <span className="truncate">{member.email}</span>
-                  </a>
-                </div>
-
-                <div className={`${COLS.role} min-w-0 flex-1 md:flex-none`}>
-                  {admin && member.id !== currentUserId ? (
-                    <Select
-                      id={`role-${member.id}`}
-                      value={member.user_role}
-                      onChange={(v) => void handleRoleChange(member, v as "admin" | "agent")}
-                      options={ROLE_OPTIONS}
-                    />
-                  ) : (
-                    <span
-                      className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.45px] ${
-                        role?.className ?? "bg-badge-neutral text-dash-muted"
-                      }`}
-                    >
-                      {role?.label ?? member.user_role}
-                    </span>
-                  )}
-                </div>
-
-                <p className={`${COLS.joined} hidden text-sm text-dash-muted md:block`}>
-                  {formatJoined(member.created_at)}
-                </p>
-
-                {admin && (
-                  <div className={`${COLS.actions} flex shrink-0 items-center justify-end gap-2`}>
-                    <button
-                      type="button"
-                      onClick={() => setEditing(member)}
-                      className="rounded-lg border border-dash-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-dash-bg"
-                    >
-                      Update
-                    </button>
-                    {/* The server refuses self-block, so it isn't offered. */}
-                    {member.id !== currentUserId && (
-                      <button
-                        type="button"
-                        disabled={busyId === member.id}
-                        onClick={() => void handleBlockToggle(member)}
-                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                          member.blocked
-                            ? "border-dash-border text-dash-ink hover:bg-dash-bg"
-                            : "border-red-200 text-red-600 hover:bg-red-50"
-                        }`}
-                      >
-                        {member.blocked ? "Unblock" : "Block"}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-      </div>
-      </section>
-    </div>
-
-    {isAddOpen && (
-      <AddTeamMemberModal
-        teams={teams}
-        onClose={() => setIsAddOpen(false)}
-        onCreated={() => {
-          void load();
-          loadTeams();
-        }}
-      />
-    )}
-    {editing && (
-      <EditTeamMemberModal
-        member={editing}
-        teams={teams}
-        onClose={() => setEditing(null)}
-        onUpdated={(updated) => {
-          setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-          loadTeams();
-        }}
-      />
-    )}
-    {isTeamFormOpen && (
-      <TeamFormModal
-        key={editingTeam?.id ?? "new-team"}
-        initial={editingTeam}
-        members={members}
-        onClose={() => setIsTeamFormOpen(false)}
-        onSaved={() => {
-          loadTeams();
-          // Saving can rename the team and move members, both of which show on the list below.
-          void load();
-        }}
-      />
-    )}
+      {isAddOpen && (
+        <AddTeamMemberModal
+          teams={teams}
+          onClose={() => setIsAddOpen(false)}
+          onCreated={() => {
+            void load();
+            loadLookups();
+          }}
+        />
+      )}
+      {editing && (
+        <EditTeamMemberModal
+          member={editing}
+          teams={teams}
+          managers={everyone}
+          onClose={() => setEditing(null)}
+          onUpdated={() => {
+            void load();
+            loadLookups();
+          }}
+        />
+      )}
     </ViewTransition>
   );
 }

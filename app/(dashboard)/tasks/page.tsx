@@ -1,378 +1,445 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
-import { PhoneIcon, PlusIcon, SearchIcon } from "@/components/icons/DashboardIcons";
+import { PlusIcon } from "@/components/icons/DashboardIcons";
+import { FilterBar, FilterDate, FilterField, FilterInput, FilterSelect } from "@/components/list/FilterBar";
+import { RowMenu } from "@/components/list/RowMenu";
+import { StatusBadge, type StatusTone } from "@/components/list/StatusBadge";
+import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
+import { TablePagination } from "@/components/list/TablePagination";
+import {
+  checkboxClass,
+  headCellClass,
+  headRowClass,
+  rowClass,
+  subTextClass,
+  tableClass,
+} from "@/components/list/tableStyles";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
+import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getFollowUps, setFollowUpCompleted, type FollowUp } from "@/lib/api";
+import {
+  getAgents,
+  getTasks,
+  setFollowUpStarred,
+  setTaskStatus,
+  type Agent,
+  type FollowUp,
+  type TasksQuery,
+  type TaskStatus,
+  type TaskTab,
+} from "@/lib/api";
+import { downloadCsv } from "@/lib/csv";
 import { useIsAdmin } from "@/lib/session";
+import { NEXT_TASKS, TASK_TYPES, taskLabel } from "@/lib/tasks";
+import { formatClock, formatDay } from "@/lib/time";
 
-const STAGE_BADGES: Record<string, { label: string; className: string }> = {
-  inquiry: { label: "Inquiry", className: "bg-stage-inquiry/10 text-stage-inquiry" },
-  contacted: { label: "Contacted", className: "bg-stage-contacted/10 text-stage-contacted" },
-  site_visit: { label: "Site Visit", className: "bg-stage-site-visit/10 text-stage-site-visit" },
-  negotiation: { label: "Negotiation", className: "bg-stage-negotiation/10 text-stage-negotiation" },
-  booked: { label: "Booked", className: "bg-stage-booked/10 text-stage-booked" },
-  sold: { label: "Sold", className: "bg-stage-sold/10 text-stage-sold" },
-  lost: { label: "Lost", className: "bg-stage-lost/10 text-stage-lost" },
+type Filters = { search: string; assignedToId: string; taskType: string; dueFrom: string; dueTo: string };
+
+const EMPTY_FILTERS: Filters = { search: "", assignedToId: "", taskType: "", dueFrom: "", dueTo: "" };
+
+const TABS: { id: TaskTab; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "open", label: "Open" },
+  { id: "in_progress", label: "In progress" },
+  { id: "overdue", label: "Overdue" },
+  { id: "completed", label: "Completed" },
+];
+
+const STATUSES: Record<TaskStatus, { label: string; tone: StatusTone }> = {
+  open: { label: "Open", tone: "neutral" },
+  in_progress: { label: "In progress", tone: "warning" },
+  scheduled: { label: "Scheduled", tone: "neutral" },
+  overdue: { label: "Overdue", tone: "danger" },
+  completed: { label: "Completed", tone: "success" },
 };
 
-function formatTime(due: string) {
-  const [hours, minutes] = due.split(":");
-  const hour = Number(hours);
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  return `${String(displayHour).padStart(2, "0")}:${minutes} ${suffix}`;
+// Next tasks reuse some task-type ids; keep the first label for each.
+const ALL_TASK_TYPES = [...TASK_TYPES, ...NEXT_TASKS].filter(
+  (option, i, all) => option.id !== "do_nothing" && all.findIndex((other) => other.id === option.id) === i,
+);
+
+const EXPORT_LIMIT = 1000;
+
+const COLUMN_COUNT = 8;
+
+const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
+
+const headerActionClass =
+  "flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] border border-dash-border bg-white px-4 text-xs leading-[1.4] text-primary transition-colors hover:bg-sidebar disabled:opacity-60";
+
+function taskId(task: FollowUp) {
+  return `TSK-${task.task_no}`;
 }
 
-function formatDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-  });
+function assigneeName(task: FollowUp) {
+  const agent = task.lead.assigned_to;
+  return agent ? `${agent.first_name} ${agent.last_name}`.trim() : "Unassigned";
 }
 
-/** How far past due, in whole days — 0 means it slipped earlier today. */
-function daysOverdue(followUp: FollowUp) {
-  const due = new Date(`${followUp.due_date}T${followUp.due_time}`);
-  return Math.floor((Date.now() - due.getTime()) / 86_400_000);
+export default function TasksPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { search } = use(searchParams);
+  const linkedSearch = typeof search === "string" ? search : "";
+  // Keyed so that following a link to another task resets the list to that search.
+  return <TasksList key={linkedSearch} linkedSearch={linkedSearch} />;
 }
 
-function overdueLabel(followUp: FollowUp) {
-  const days = daysOverdue(followUp);
-  if (days <= 0) return "Today";
-  if (days === 1) return "1 day late";
-  return `${days} days late`;
-}
-
-/** Column header already says "Completed", so the cell carries just the stamp. */
-function completedLabel(completedAt: string | null) {
-  if (!completedAt) return "—";
-  const at = new Date(completedAt);
-  const date = at.toLocaleDateString("en-US", { day: "numeric", month: "short" });
-  const time = at.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-  return `${date} · ${time}`;
-}
-
-function upcomingLabel(followUp: FollowUp) {
-  const due = new Date(`${followUp.due_date}T${followUp.due_time}`);
-  const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
-  if (days <= 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  return `In ${days} days`;
-}
-
-type Variant = "overdue" | "upcoming" | "completed";
-
-export default function TasksPage() {
+function TasksList({ linkedSearch }: { linkedSearch: string }) {
   const admin = useIsAdmin();
 
-  const [overdue, setOverdue] = useState<FollowUp[]>([]);
-  const [upcoming, setUpcoming] = useState<FollowUp[]>([]);
-  const [completed, setCompleted] = useState<FollowUp[]>([]);
+  const [tasks, setTasks] = useState<FollowUp[]>([]);
+  const [total, setTotal] = useState(0);
+  const [statusCounts, setStatusCounts] = useState<Record<TaskTab, number> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [draft, setDraft] = useState<Filters>({ ...EMPTY_FILTERS, search: linkedSearch });
+  const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS, search: linkedSearch });
+  const [tab, setTab] = useState<TaskTab>("all");
+  const [favouritesOnly, setFavouritesOnly] = useState(false);
+  const [sort, setSort] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+    if (!admin) return;
+    getAgents().then(setAgents).catch(() => {});
+  }, [admin]);
+
+  const buildQuery = useCallback(
+    (): TasksQuery => ({
+      status: tab,
+      search: filters.search.trim() || undefined,
+      assigned_to_id: filters.assignedToId ? Number(filters.assignedToId) : undefined,
+      task_type: filters.taskType || undefined,
+      due_from: filters.dueFrom || undefined,
+      due_to: filters.dueTo || undefined,
+      starred: favouritesOnly ? "true" : undefined,
+      sort,
+    }),
+    [tab, filters, favouritesOnly, sort],
+  );
 
   const load = useCallback(async () => {
-    setIsLoading(true);
     setError(null);
     try {
-      const [overdueList, upcomingList, completedList] = await Promise.all([
-        getFollowUps({ status: "overdue", search: debouncedSearch || undefined, limit: 100 }),
-        getFollowUps({ status: "upcoming", search: debouncedSearch || undefined, limit: 100 }),
-        getFollowUps({ status: "completed", search: debouncedSearch || undefined, limit: 100 }),
-      ]);
-      setOverdue(overdueList);
-      setUpcoming(upcomingList);
-      setCompleted(completedList);
+      const res = await getTasks({ ...buildQuery(), page, limit: pageSize });
+      setTasks(res.data);
+      setTotal(res.total);
+      setStatusCounts(res.status_counts);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load tasks.");
-      setOverdue([]);
-      setUpcoming([]);
-      setCompleted([]);
+      setTasks([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch]);
+  }, [buildQuery, page, pageSize]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  async function handleToggle(followUp: FollowUp) {
-    const next = !followUp.completed;
-    // Moves between lists optimistically, then refetches so ordering is the server's.
-    if (next) {
-      setOverdue((prev) => prev.filter((f) => f.id !== followUp.id));
-      setUpcoming((prev) => prev.filter((f) => f.id !== followUp.id));
-      setCompleted((prev) => [{ ...followUp, completed: true }, ...prev]);
-    } else {
-      setCompleted((prev) => prev.filter((f) => f.id !== followUp.id));
-      const restored = { ...followUp, completed: false };
-      // `overdue` is computed server-side; the refetch below settles any drift.
-      if (followUp.overdue) setOverdue((prev) => [...prev, restored]);
-      else setUpcoming((prev) => [...prev, restored]);
-    }
-
+  async function run(action: Promise<unknown>) {
     try {
-      await setFollowUpCompleted(followUp.id, next);
-      void load();
+      await action;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't update that task.");
-      void load();
+    }
+    void load();
+  }
+
+  async function exportTasks() {
+    try {
+      const res = await getTasks({ ...buildQuery(), page: 1, limit: EXPORT_LIMIT });
+      downloadCsv(`tasks-${new Date().toLocaleDateString("en-CA")}.csv`, [
+        ["Task ID", "Type", "Subject", "Project", "Client", "Lead", "Assignee", "Due date", "Due time", "Status"],
+        ...res.data.map((task) => [
+          taskId(task),
+          task.task_type ? taskLabel(task) : "",
+          task.text,
+          task.lead.project?.name ?? "",
+          task.lead.client_name,
+          String(task.lead.lead_no),
+          assigneeName(task),
+          task.due_date,
+          task.due_time,
+          STATUSES[task.status].label,
+        ]),
+      ]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't export tasks.");
     }
   }
 
-  function renderRow(followUp: FollowUp, i: number, variant: Variant) {
-    const stage = STAGE_BADGES[followUp.lead.stage];
-    const location = [followUp.lead.area, followUp.lead.city].filter(Boolean).join(", ");
-    const isCompleted = variant === "completed";
-    const timingTone = variant === "overdue" ? "text-hot" : "text-dash-muted";
-    const timingLabel =
-      variant === "completed"
-        ? completedLabel(followUp.completed_at)
-        : variant === "overdue"
-          ? overdueLabel(followUp)
-          : upcomingLabel(followUp);
-    const dueAt = `Due ${formatDate(followUp.due_date)} · ${formatTime(followUp.due_time)}`;
-    return (
-      <div
-        key={followUp.id}
-        className={`flex items-start gap-3 px-4 py-3 md:items-center md:gap-4 md:px-6 ${i > 0 ? "border-t border-dash-border" : ""} ${
-          isCompleted ? "opacity-60" : ""
-        }`}
-      >
-        <div className="flex w-6 shrink-0 items-center justify-center pt-1 md:w-10 md:pt-0">
-          <input
-            type="checkbox"
-            checked={followUp.completed}
-            onChange={() => handleToggle(followUp)}
-            aria-label={`Mark "${followUp.text}" done`}
-            className="size-4 accent-warm"
-          />
-        </div>
-
-        <div className="hidden w-[150px] shrink-0 md:block">
-          <p className={`text-[11.5px] font-semibold ${timingTone}`}>{timingLabel}</p>
-          <p className="text-[11px] text-dash-muted">{dueAt}</p>
-        </div>
-
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <p className="flex flex-wrap items-baseline gap-x-2">
-            <span
-              className="font-serif text-base font-semibold text-dash-ink"
-              style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
-            >
-              {followUp.lead.client_name}
-            </span>
-            <span className={`text-sm text-dash-muted ${isCompleted ? "line-through" : ""}`}>
-              — {followUp.text}
-            </span>
-          </p>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-dash-muted">
-            {/* Timing and stage get their own columns from md up; below that they ride in this line. */}
-            <span className={`font-semibold md:hidden ${timingTone}`}>{timingLabel}</span>
-            <span className="md:hidden">·</span>
-            <span>{location || followUp.lead.client_number}</span>
-            {admin && (
-              <>
-                <span>·</span>
-                <span className="rounded bg-badge-neutral px-1.5 py-0.5 text-[11px] text-dash-ink">
-                  {followUp.lead.assigned_to
-                    ? `${followUp.lead.assigned_to.first_name} ${followUp.lead.assigned_to.last_name}`
-                    : "Unassigned"}
-                </span>
-              </>
-            )}
-            <span
-              className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.315px] md:hidden ${
-                stage?.className ?? "bg-badge-neutral text-dash-muted"
-              }`}
-            >
-              {stage?.label ?? followUp.lead.stage}
-            </span>
-          </div>
-          <p className="text-[11px] text-dash-muted md:hidden">{dueAt}</p>
-        </div>
-
-        <div className="hidden w-[120px] shrink-0 md:block">
-          <span
-            className={`rounded px-2 py-1 text-[10.5px] font-bold uppercase tracking-[0.315px] ${
-              stage?.className ?? "bg-badge-neutral text-dash-muted"
-            }`}
-          >
-            {stage?.label ?? followUp.lead.stage}
-          </span>
-        </div>
-
-        <div className="flex w-9 shrink-0 items-center justify-end gap-3 pt-0.5 md:w-[100px] md:pt-0">
-          <a
-            href={`tel:${followUp.lead.client_number}`}
-            className="text-muted"
-            aria-label={`Call ${followUp.lead.client_name}`}
-          >
-            <PhoneIcon className="size-[15px]" />
-          </a>
-        </div>
-      </div>
-    );
+  function resetPaging() {
+    setPage(1);
+    setSelected(new Set());
   }
 
-  function renderSection(title: string, items: FollowUp[], variant: Variant, emptyText: string) {
-    const columnLabel =
-      variant === "completed" ? "Completed" : variant === "overdue" ? "Overdue by" : "Due in";
-    return (
-      <div className="flex flex-col gap-3">
-        <div className="flex items-baseline gap-2">
-          <h2
-            className="font-serif text-xl font-semibold text-dash-ink"
-            style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
-          >
-            {title}
-          </h2>
-          {!isLoading && (
-            <span className="text-sm text-dash-muted">
-              {items.length} task{items.length === 1 ? "" : "s"}
-            </span>
-          )}
-        </div>
-
-        <div className="overflow-hidden rounded-lg border border-dash-border bg-sidebar shadow-sm">
-          <div className="hidden gap-4 border-b border-dash-border bg-dash-bg px-6 py-4 md:flex">
-            <span className="w-10 shrink-0" />
-            <p className="w-[150px] shrink-0 text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">
-              {columnLabel}
-            </p>
-            <p className="flex-1 text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">Task</p>
-            <p className="w-[120px] shrink-0 text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">
-              Stage
-            </p>
-            <p className="w-[100px] shrink-0 text-right text-xs font-bold uppercase tracking-[0.6px] text-dash-muted">
-              Actions
-            </p>
-          </div>
-
-          <div className="bg-white">
-            {isLoading &&
-              Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center gap-3 px-4 py-3 md:gap-4 md:px-6 ${i > 0 ? "border-t border-dash-border" : ""}`}
-                >
-                  <div className="flex w-6 shrink-0 justify-center md:w-10">
-                    <Skeleton className="size-4" />
-                  </div>
-                  <div className="hidden w-[150px] shrink-0 flex-col gap-1.5 md:flex">
-                    <Skeleton className="h-3 w-20" />
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <Skeleton className="h-4 w-full max-w-64" />
-                    <Skeleton className="h-3 w-40" />
-                  </div>
-                  <div className="hidden w-[120px] shrink-0 md:block">
-                    <Skeleton className="h-5 w-20" />
-                  </div>
-                  <div className="flex w-9 shrink-0 justify-end md:w-[100px]">
-                    <Skeleton className="size-4" />
-                  </div>
-                </div>
-              ))}
-
-            {!isLoading && items.length === 0 && (
-              <p className="px-4 py-10 text-center text-sm text-dash-placeholder md:px-6">{emptyText}</p>
-            )}
-
-            {!isLoading && items.map((followUp, i) => renderRow(followUp, i, variant))}
-          </div>
-        </div>
-      </div>
-    );
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   }
+
+  const isFiltered = Object.values(filters).some(Boolean) || favouritesOnly || tab !== "all";
+  const allSelected = tasks.length > 0 && tasks.every((task) => selected.has(task.id));
 
   return (
     <ViewTransition>
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:gap-8 sm:px-8 sm:py-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1
-            className="font-serif text-[28px] font-semibold leading-none text-dash-ink sm:text-[34px]"
-            style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
-          >
-            Tasks
-          </h1>
-          {!isLoading && (
-            <p className="text-sm text-dash-muted">
-              {overdue.length} overdue · {upcoming.length} upcoming · {completed.length} completed
+      <div className="flex w-full flex-col">
+        <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-8">
+          <div className="flex flex-col gap-[3px] leading-[1.4]">
+            <h1 className="font-serif text-xl font-bold text-dash-ink" style={headingStyle}>
+              Tasks
+            </h1>
+            <p className="text-[10px] text-dash-muted">
+              {admin ? "All tasks" : "Tasks on your leads"} ·{" "}
+              {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </p>
-          )}
-        </div>
-
-        <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
-          <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
-            <SearchIcon className="absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-muted" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search tasks or clients..."
-              className="w-full rounded-lg border border-dash-border bg-sidebar py-2.5 pl-10 pr-4 text-sm text-dash-ink placeholder:text-dash-muted focus:outline-none"
-            />
           </div>
-          {admin && (
+          <div className="flex items-center gap-3">
+            {admin && (
+              <button type="button" onClick={() => setIsNewTaskOpen(true)} className={headerActionClass}>
+                <PlusIcon className="size-2.5" />
+                Add task
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => setIsNewTaskOpen(true)}
-              className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-dash-ink px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-dash-ink/90"
+              onClick={() => void exportTasks()}
+              disabled={total === 0}
+              className={headerActionClass}
             >
-              <PlusIcon className="size-3" />
-              Add task
+              <Icon name="download" className="size-4" />
+              Export
             </button>
-          )}
+          </div>
         </div>
+
+        <FilterBar
+          onSearch={() => {
+            setFilters(draft);
+            resetPaging();
+          }}
+        >
+          <FilterField label="Search by">
+            <FilterInput
+              value={draft.search}
+              onChange={(e) => setDraft({ ...draft, search: e.target.value })}
+              placeholder="Task ID or subject"
+            />
+          </FilterField>
+          {admin && (
+            <FilterField label="Assigned Staff">
+              <FilterSelect
+                value={draft.assignedToId}
+                onChange={(e) => setDraft({ ...draft, assignedToId: e.target.value })}
+                placeholder="Select Assignee"
+              >
+                {agents.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.first_name} {agent.last_name}
+                  </option>
+                ))}
+              </FilterSelect>
+            </FilterField>
+          )}
+          <FilterField label="Task Type">
+            <FilterSelect
+              value={draft.taskType}
+              onChange={(e) => setDraft({ ...draft, taskType: e.target.value })}
+              placeholder="Select Task Type"
+            >
+              {ALL_TASK_TYPES.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </FilterSelect>
+          </FilterField>
+          <FilterField label="Due Date">
+            <FilterDate
+              value={draft.dueFrom}
+              onChange={(e) => setDraft({ ...draft, dueFrom: e.target.value })}
+              placeholder="Select Date Range"
+              aria-label="Due from"
+            />
+            <span className="text-xs text-placeholder">–</span>
+            <FilterDate
+              value={draft.dueTo}
+              onChange={(e) => setDraft({ ...draft, dueTo: e.target.value })}
+              placeholder="To"
+              aria-label="Due to"
+            />
+          </FilterField>
+        </FilterBar>
+
+        <StatusTabs
+          tabs={TABS.map((entry) => ({ ...entry, count: statusCounts?.[entry.id] ?? null }))}
+          active={tab}
+          onChange={(next) => {
+            setTab(next);
+            resetPaging();
+          }}
+        >
+          <FavouritesButton
+            active={favouritesOnly}
+            onChange={(next) => {
+              setFavouritesOnly(next);
+              resetPaging();
+            }}
+          />
+          <SortButton
+            sort={sort}
+            onChange={(next) => {
+              setSort(next);
+              setPage(1);
+            }}
+          />
+        </StatusTabs>
+
+        {error && <p className="mx-4 mt-4 rounded-[4px] bg-hot/10 px-4 py-3 text-xs text-hot sm:mx-8">{error}</p>}
+
+        <div className="px-4 sm:px-8">
+          <table className={tableClass}>
+            <thead>
+              <tr className={headRowClass}>
+                <th className="hidden w-8 lg:table-cell">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all tasks"
+                    checked={allSelected}
+                    onChange={() => setSelected(allSelected ? new Set() : new Set(tasks.map((task) => task.id)))}
+                    className={checkboxClass}
+                  />
+                </th>
+                <th className={`${headCellClass} w-[96px] lg:w-[13%]`}>Task ID / Type</th>
+                <th className={headCellClass}>Subject / Project</th>
+                <th className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Client / Lead</th>
+                <th className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Staff (Assignee)</th>
+                <th className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Due date</th>
+                <th className={`${headCellClass} w-[96px] lg:w-[11%]`}>Status</th>
+                <th className={`${headCellClass} w-[40px] text-[9px] lg:w-[5%]`}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading &&
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className={rowClass}>
+                    <td colSpan={COLUMN_COUNT}>
+                      <div className="flex flex-col gap-2">
+                        <Skeleton className="h-3 w-1/3" />
+                        <Skeleton className="h-2.5 w-1/5" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+              {!isLoading && tasks.length === 0 && (
+                <tr>
+                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-dash-placeholder">
+                    {isFiltered ? "No tasks match those filters." : "No tasks yet."}
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading &&
+                tasks.map((task) => {
+                  const status = STATUSES[task.status];
+                  const agent = task.lead.assigned_to;
+                  return (
+                    <tr key={task.id} className={`${rowClass} !h-[74px]`}>
+                      <td className="hidden lg:table-cell">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${taskId(task)}`}
+                          checked={selected.has(task.id)}
+                          onChange={() => toggleSelected(task.id)}
+                          className={checkboxClass}
+                        />
+                      </td>
+                      <td className="pr-3">
+                        <p>{taskId(task)}</p>
+                        <p className={subTextClass}>{task.task_type ? taskLabel(task) : "Follow-up"}</p>
+                      </td>
+                      <td className="pr-3">
+                        <p className="truncate">{task.text}</p>
+                        <p className={subTextClass}>{task.lead.project?.name ?? "—"}</p>
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        <p className="truncate">{task.lead.client_name}</p>
+                        <p className={subTextClass}>Lead {task.lead.lead_no}</p>
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        <p className="truncate">{assigneeName(task)}</p>
+                        {agent?.team && <p className={subTextClass}>{agent.team}</p>}
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        <p>{formatDay(`${task.due_date}T00:00:00`)}</p>
+                        <p className={subTextClass}>{formatClock(task.due_time)}</p>
+                      </td>
+                      <td className="pr-3">
+                        <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+                      </td>
+                      <td>
+                        <RowMenu
+                          label={`More actions for ${taskId(task)}`}
+                          items={[
+                            ...(task.completed
+                              ? [{ label: "Reopen task", onClick: () => void run(setTaskStatus(task.id, "open")) }]
+                              : [
+                                  {
+                                    label: "Mark completed",
+                                    onClick: () => void run(setTaskStatus(task.id, "completed")),
+                                  },
+                                  ...(["open", "in_progress", "scheduled"] as const)
+                                    .filter((next) => next !== task.status)
+                                    .map((next) => ({
+                                      label: `Mark ${STATUSES[next].label.toLowerCase()}`,
+                                      onClick: () => void run(setTaskStatus(task.id, next)),
+                                    })),
+                                ]),
+                            {
+                              label: task.is_starred ? "Remove from favourites" : "Add to favourites",
+                              onClick: () => void run(setFollowUpStarred(task.id, !task.is_starred)),
+                            },
+                            { label: "Call client", href: `tel:${task.lead.client_number}`, external: true },
+                          ]}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          noun="tasks"
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </div>
 
-      {error && <p className="rounded-lg bg-hot/10 px-4 py-3 text-sm text-hot">{error}</p>}
-
-      {renderSection(
-        "Overdue",
-        overdue,
-        "overdue",
-        debouncedSearch ? "No overdue tasks match that search." : "Nothing overdue. All caught up.",
-      )}
-
-      {renderSection(
-        "Upcoming",
-        upcoming,
-        "upcoming",
-        debouncedSearch ? "No upcoming tasks match that search." : "Nothing scheduled ahead.",
-      )}
-
-      {renderSection(
-        "Completed",
-        completed,
-        "completed",
-        debouncedSearch ? "No completed tasks match that search." : "Nothing completed yet.",
-      )}
-    </div>
-
-    {isNewTaskOpen && (
-      <NewTaskModal onClose={() => setIsNewTaskOpen(false)} onCreated={() => void load()} />
-    )}
+      {isNewTaskOpen && <NewTaskModal onClose={() => setIsNewTaskOpen(false)} onCreated={() => void load()} />}
     </ViewTransition>
   );
 }

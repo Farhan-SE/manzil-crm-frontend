@@ -17,6 +17,13 @@ export const PROJECT_TYPES: SelectOption[] = [
   { id: "non_exclusive", name: "Non-exclusive" },
 ];
 
+/** How long a project carries its "New" marker after being added. */
+const NEW_FOR_DAYS = 30;
+
+export function isNewProject(createdAt: string) {
+  return Date.now() - new Date(createdAt).getTime() < NEW_FOR_DAYS * 86_400_000;
+}
+
 /** 10000 → "10 K", 2500000 → "2.5 M" — the compact form the projects table uses. */
 export function formatCompact(amount: number) {
   if (amount >= 1_000_000) return `${+(amount / 1_000_000).toFixed(2)} M`;

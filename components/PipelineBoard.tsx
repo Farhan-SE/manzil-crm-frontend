@@ -15,64 +15,80 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { RowMenu } from "@/components/list/RowMenu";
+import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { updateLead, type Lead, type LeadTemperature } from "@/lib/api";
+import { updateLead, type PipelineLead, type PipelineStage } from "@/lib/api";
+import { whatsappUrl } from "@/lib/customers";
+import { PIPELINE_STAGES, type PipelineStageId } from "@/lib/leads";
+import { formatMoney } from "@/lib/money";
+import { taskLabel } from "@/lib/tasks";
+import { formatClock } from "@/lib/time";
 
-type StageId = "inquiry" | "contacted" | "site_visit" | "negotiation" | "booked" | "sold" | "lost";
+type StageMeta = (typeof PIPELINE_STAGES)[number];
 
-const STAGES: { id: StageId; label: string; colorClass: string }[] = [
-  { id: "inquiry", label: "Inquiry", colorClass: "text-stage-inquiry border-stage-inquiry" },
-  { id: "contacted", label: "Contacted", colorClass: "text-stage-contacted border-stage-contacted" },
-  { id: "site_visit", label: "Site Visit", colorClass: "text-stage-site-visit border-stage-site-visit" },
-  { id: "negotiation", label: "Negotiation", colorClass: "text-stage-negotiation border-stage-negotiation" },
-  { id: "booked", label: "Booked", colorClass: "text-stage-booked border-stage-booked" },
-  { id: "sold", label: "Sold", colorClass: "text-stage-sold border-stage-sold" },
-  { id: "lost", label: "Lost", colorClass: "text-stage-lost border-stage-lost" },
-];
-
-const TEMP_STYLES: Record<LeadTemperature, string> = {
-  HOT: "bg-hot/10 text-hot",
-  WARM: "bg-warm/20 text-warm",
-  COLD: "bg-cold/10 text-cold",
-};
-
-function formatBudget(budget: number | null) {
-  if (budget == null) return "—";
-  if (budget >= 1_000_000) return `PKR ${(budget / 1_000_000).toFixed(1)}M`;
-  return `PKR ${budget.toLocaleString()}`;
+function shortDate(date: Date) {
+  return date.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
 }
 
-function LeadCardContent({ lead, subtitle }: { lead: Lead; subtitle: string }) {
+function nextStep(lead: PipelineLead): { icon: string; text: string } {
+  if (lead.stage === "sold") {
+    return { icon: "check-circle", text: `Closed · ${shortDate(new Date(lead.sold_at ?? lead.updated_at))}` };
+  }
+  if (!lead.next_task) return { icon: "clock", text: "No next step" };
+
+  const due = new Date(`${lead.next_task.due_date}T${lead.next_task.due_time}`);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const when =
+    due.toDateString() === new Date().toDateString()
+      ? `Today, ${formatClock(due)}`
+      : due.toDateString() === tomorrow.toDateString()
+        ? "Tomorrow"
+        : shortDate(due);
+  return { icon: "clock", text: `${taskLabel({ ...lead.next_task, sub_task: null })} · ${when}` };
+}
+
+function DealCard({ lead, menu }: { lead: PipelineLead; menu?: React.ReactNode }) {
+  const step = nextStep(lead);
+  const agent = lead.assigned_to ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}` : "Unassigned";
   return (
-    <div className="rounded-lg border border-dash-border bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-[15px] font-bold text-dash-ink">{lead.client_name}</p>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${TEMP_STYLES[lead.temperature]}`}>
-          {lead.temperature}
-        </span>
+    <div className="flex w-full flex-col gap-2 rounded-[4px] border border-border bg-column-bg p-3 leading-[1.4]">
+      <div className="flex items-start justify-between gap-2">
+        <p className="truncate text-xs font-bold text-ink">{lead.client_name}</p>
+        {menu}
       </div>
-      <p className="mt-3 truncate text-[13px] text-dash-ink">{subtitle || "—"}</p>
-      <p className="mt-4 text-[13px] font-bold text-dash-ink">{formatBudget(lead.budget)}</p>
+      <p className="truncate text-xs text-primary">{lead.project?.name ?? "—"}</p>
+      <p className="text-xs font-bold text-ink">{lead.budget != null ? formatMoney(lead.budget) : "—"}</p>
+      <p className="truncate text-[10px] text-muted">
+        Lead {lead.lead_no} · {agent}
+      </p>
+      <div className="flex items-center gap-1.5 text-ink">
+        <Icon name={step.icon} className="size-4" />
+        <p className="truncate text-[10px]">{step.text}</p>
+      </div>
     </div>
   );
 }
 
-function SortableLeadCard({
+function SortableDealCard({
   lead,
-  subtitle,
   canDrag,
   onOpen,
+  onMove,
 }: {
-  lead: Lead;
-  subtitle: string;
+  lead: PipelineLead;
   canDrag: boolean;
-  onOpen: (lead: Lead) => void;
+  onOpen: (lead: PipelineLead) => void;
+  onMove: (lead: PipelineLead, stage: PipelineStageId) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: lead.id,
     disabled: !canDrag,
   });
+  const stageIndex = PIPELINE_STAGES.findIndex((stage) => stage.id === lead.stage);
+  const nextStage = PIPELINE_STAGES[stageIndex + 1];
 
   return (
     <div
@@ -87,75 +103,114 @@ function SortableLeadCard({
       {...attributes}
       {...listeners}
       onClick={() => onOpen(lead)}
-      className={`touch-manipulation select-none ${
+      className={`w-full touch-manipulation select-none ${
         canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
       }`}
     >
-      <LeadCardContent lead={lead} subtitle={subtitle} />
+      <DealCard
+        lead={lead}
+        menu={
+          // Kept out of the card's click and drag handling, or opening the menu would open or lift the card.
+          <span
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="-my-1 shrink-0"
+          >
+            <RowMenu
+              label={`More actions for ${lead.client_name}`}
+              items={[
+                { label: "View lead", onClick: () => onOpen(lead) },
+                ...(canDrag && nextStage
+                  ? [{ label: `Move to ${nextStage.label}`, onClick: () => onMove(lead, nextStage.id) }]
+                  : []),
+                { label: "WhatsApp client", href: whatsappUrl(lead.client_number), external: true },
+                { label: "Call client", href: `tel:${lead.client_number}`, external: true },
+              ]}
+            />
+          </span>
+        }
+      />
+    </div>
+  );
+}
+
+function StageHeading({ meta, count, total }: { meta: StageMeta; count?: number; total?: number }) {
+  return (
+    <div className={`flex w-full flex-col gap-2 rounded-[4px] border bg-cream p-3.5 leading-[1.4] ${meta.headingClass}`}>
+      <div className="flex items-start justify-between">
+        <p className="text-xs font-bold">{meta.label}</p>
+        {count !== undefined && (
+          <span className="rounded-[20px] bg-badge-neutral px-3 py-1 text-[10px]">{count}</span>
+        )}
+      </div>
+      <p className="text-[11px] text-muted">{total !== undefined ? formatMoney(total) : " "}</p>
     </div>
   );
 }
 
 function Column({
+  meta,
   stage,
   leads,
-  subtitleFor,
   canDrag,
   onOpen,
+  onMove,
+  onViewAll,
 }: {
-  stage: { id: StageId; label: string; colorClass: string };
-  leads: Lead[];
-  subtitleFor: (lead: Lead) => string;
+  meta: StageMeta;
+  stage: PipelineStage | undefined;
+  leads: PipelineLead[];
   canDrag: boolean;
-  onOpen: (lead: Lead) => void;
+  onOpen: (lead: PipelineLead) => void;
+  onMove: (lead: PipelineLead, stage: PipelineStageId) => void;
+  onViewAll: () => void;
 }) {
-  const { setNodeRef } = useDroppable({ id: stage.id });
+  const { setNodeRef } = useDroppable({ id: meta.id });
+  const count = stage?.count ?? 0;
 
   return (
-    <div className="flex h-full w-[210px] shrink-0 flex-col gap-3 border-l border-dash-border pl-4 first:border-l-0 first:pl-0">
-      <div className={`flex shrink-0 items-center gap-2 border-b-2 pb-2 ${stage.colorClass}`}>
-        <p className="text-xs font-bold uppercase tracking-[0.6px]">{stage.label}</p>
-        <span className="text-xs">{leads.length}</span>
-      </div>
-      <div
-        ref={setNodeRef}
-        className="hide-scrollbar flex min-h-20 flex-1 flex-col gap-3 overflow-y-auto rounded-lg bg-column-bg p-2"
-      >
-        <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-          {leads.map((lead) => (
-            <SortableLeadCard
-              key={lead.id}
-              lead={lead}
-              subtitle={subtitleFor(lead)}
-              canDrag={canDrag}
-              onOpen={onOpen}
-            />
-          ))}
-        </SortableContext>
-      </div>
+    <div
+      ref={setNodeRef}
+      className="flex min-h-40 min-w-[200px] flex-1 flex-col items-start gap-3 bg-column-bg"
+    >
+      <StageHeading meta={meta} count={count} total={stage?.total ?? 0} />
+      <SortableContext items={leads.map((lead) => lead.id)} strategy={verticalListSortingStrategy}>
+        {leads.map((lead) => (
+          <SortableDealCard key={lead.id} lead={lead} canDrag={canDrag} onOpen={onOpen} onMove={onMove} />
+        ))}
+      </SortableContext>
+      {count > leads.length && (
+        <button type="button" onClick={onViewAll} className="text-[11px] leading-[1.4] text-primary hover:underline">
+          View all {count} deals →
+        </button>
+      )}
     </div>
   );
 }
 
 type PipelineBoardProps = {
-  leads: Lead[];
+  stages: PipelineStage[];
   isLoading: boolean;
   canDrag: boolean;
-  interestNames: Record<string, string>;
-  onOpenLead: (lead: Lead) => void;
+  onOpenLead: (lead: PipelineLead) => void;
+  /** Called after a deal changes stage, so the parent can refresh counts and totals. */
+  onMoved: () => void;
+  onViewAll: () => void;
   onError: (message: string) => void;
 };
 
 export function PipelineBoard({
-  leads,
+  stages,
   isLoading,
   canDrag,
-  interestNames,
   onOpenLead,
+  onMoved,
+  onViewAll,
   onError,
 }: PipelineBoardProps) {
-  const [board, setBoard] = useState<Lead[]>(leads);
-  const [activeLead, setActiveLead] = useState<Lead | null>(null);
+  const [board, setBoard] = useState<PipelineLead[]>(() => stages.flatMap((stage) => stage.leads));
+  const [activeLead, setActiveLead] = useState<PipelineLead | null>(null);
   // Touch needs press-and-hold: with a distance trigger the browser claims the swipe as a scroll
   // and cancels the gesture, so cards never pick up on a phone.
   const sensors = useSensors(
@@ -163,26 +218,32 @@ export function PipelineBoard({
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
   );
 
-  // The parent owns the fetched list; re-sync whenever it reloads.
-  const [syncedFrom, setSyncedFrom] = useState(leads);
-  if (syncedFrom !== leads) {
-    setSyncedFrom(leads);
-    setBoard(leads);
+  // The parent owns the fetched stages; re-sync whenever it reloads.
+  const [syncedFrom, setSyncedFrom] = useState(stages);
+  if (syncedFrom !== stages) {
+    setSyncedFrom(stages);
+    setBoard(stages.flatMap((stage) => stage.leads));
   }
 
-  function subtitleFor(lead: Lead) {
-    const interest = lead.interest_id ? interestNames[lead.interest_id] : "";
-    const place = lead.city ?? lead.area ?? "";
-    return [interest, place].filter(Boolean).join(" · ");
+  function findStage(id: string): PipelineStageId | undefined {
+    if (PIPELINE_STAGES.some((stage) => stage.id === id)) return id as PipelineStageId;
+    return board.find((lead) => lead.id === id)?.stage as PipelineStageId | undefined;
   }
 
-  function findStage(id: string): StageId | undefined {
-    if (STAGES.some((s) => s.id === id)) return id as StageId;
-    return board.find((l) => l.id === id)?.stage as StageId | undefined;
+  async function moveLead(lead: PipelineLead, stage: PipelineStageId) {
+    const previousStage = lead.stage;
+    setBoard((prev) => prev.map((l) => (l.id === lead.id ? { ...l, stage } : l)));
+    try {
+      await updateLead(lead.id, { stage });
+      onMoved();
+    } catch (err) {
+      setBoard((prev) => prev.map((l) => (l.id === lead.id ? { ...l, stage: previousStage } : l)));
+      onError(err instanceof Error ? err.message : "Could not move that lead.");
+    }
   }
 
   function handleDragStart(event: DragStartEvent) {
-    setActiveLead(board.find((l) => l.id === event.active.id) ?? null);
+    setActiveLead(board.find((lead) => lead.id === event.active.id) ?? null);
   }
 
   function handleDragOver(event: DragOverEvent) {
@@ -195,57 +256,25 @@ export function PipelineBoard({
     setBoard((prev) => prev.map((lead) => (lead.id === active.id ? { ...lead, stage: overStage } : lead)));
   }
 
-  async function persistStage(lead: Lead, stage: StageId, previousStage: string) {
-    try {
-      await updateLead(lead.id, { stage });
-    } catch (err) {
-      setBoard((prev) => prev.map((l) => (l.id === lead.id ? { ...l, stage: previousStage } : l)));
-      onError(err instanceof Error ? err.message : "Could not move that lead.");
-    }
-  }
-
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
     const dragged = activeLead;
     setActiveLead(null);
-    if (!over || !dragged) return;
+    if (!event.over || !dragged) return;
 
-    const overStage = findStage(String(over.id));
-    if (!overStage) return;
-
-    if (overStage !== dragged.stage) {
-      void persistStage(dragged, overStage, dragged.stage);
-      return;
-    }
-
-    if (active.id === over.id) return;
-    setBoard((prev) => {
-      const stageLeads = prev.filter((l) => l.stage === overStage);
-      const oldIndex = stageLeads.findIndex((l) => l.id === active.id);
-      const newIndex = stageLeads.findIndex((l) => l.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return prev;
-      const reordered = arrayMove(stageLeads, oldIndex, newIndex);
-      const others = prev.filter((l) => l.stage !== overStage);
-      return [...others, ...reordered];
-    });
+    const overStage = findStage(String(event.over.id));
+    // `dragged` still holds the stage the card was picked up from; the board already shows the new one.
+    if (overStage && overStage !== dragged.stage) void moveLead(dragged, overStage);
   }
 
   if (isLoading) {
     return (
-      <div className="kanban-scroll flex h-full gap-4 overflow-x-auto pb-4">
-        {STAGES.map((stage) => (
-          <div
-            key={stage.id}
-            className="flex h-full w-[210px] shrink-0 flex-col gap-3 border-l border-dash-border pl-4 first:border-l-0 first:pl-0"
-          >
-            <div className={`flex shrink-0 items-center gap-2 border-b-2 pb-2 ${stage.colorClass}`}>
-              <p className="text-xs font-bold uppercase tracking-[0.6px]">{stage.label}</p>
-            </div>
-            <div className="flex flex-1 flex-col gap-3 rounded-lg bg-column-bg p-2">
-              {Array.from({ length: 2 }).map((_, i) => (
-                <Skeleton key={i} className="h-[104px] w-full rounded-lg" />
-              ))}
-            </div>
+      <div className="kanban-scroll flex gap-4 overflow-x-auto px-4 py-6 sm:px-8">
+        {PIPELINE_STAGES.map((meta) => (
+          <div key={meta.id} className="flex min-w-[200px] flex-1 flex-col gap-3 bg-column-bg">
+            <StageHeading meta={meta} />
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Skeleton key={i} className="h-[126px] w-full rounded-[4px]" />
+            ))}
           </div>
         ))}
       </div>
@@ -260,21 +289,21 @@ export function PipelineBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="kanban-scroll flex h-full gap-4 overflow-x-auto pb-4">
-        {STAGES.map((stage) => (
+      <div className="kanban-scroll flex items-start gap-4 overflow-x-auto px-4 py-6 sm:px-8">
+        {PIPELINE_STAGES.map((meta) => (
           <Column
-            key={stage.id}
-            stage={stage}
-            leads={board.filter((l) => l.stage === stage.id)}
-            subtitleFor={subtitleFor}
+            key={meta.id}
+            meta={meta}
+            stage={stages.find((stage) => stage.id === meta.id)}
+            leads={board.filter((lead) => lead.stage === meta.id)}
             canDrag={canDrag}
             onOpen={onOpenLead}
+            onMove={(lead, stage) => void moveLead(lead, stage)}
+            onViewAll={onViewAll}
           />
         ))}
       </div>
-      <DragOverlay>
-        {activeLead ? <LeadCardContent lead={activeLead} subtitle={subtitleFor(activeLead)} /> : null}
-      </DragOverlay>
+      <DragOverlay>{activeLead ? <DealCard lead={activeLead} /> : null}</DragOverlay>
     </DndContext>
   );
 }

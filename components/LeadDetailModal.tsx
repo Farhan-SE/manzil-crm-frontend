@@ -18,18 +18,9 @@ import {
   type Lead,
   type LeadTemperature,
 } from "@/lib/api";
+import { LEAD_STAGES } from "@/lib/leads";
 
-type StageId = "inquiry" | "contacted" | "site_visit" | "negotiation" | "booked" | "sold" | "lost";
-
-const STAGES: { id: StageId; label: string }[] = [
-  { id: "inquiry", label: "Inquiry" },
-  { id: "contacted", label: "Contacted" },
-  { id: "site_visit", label: "Site Visit" },
-  { id: "negotiation", label: "Negotiation" },
-  { id: "booked", label: "Booked" },
-  { id: "sold", label: "Sold" },
-  { id: "lost", label: "Lost" },
-];
+const STAGES = LEAD_STAGES;
 
 const TEMP_STYLES: Record<LeadTemperature, string> = {
   HOT: "border-hot text-hot",

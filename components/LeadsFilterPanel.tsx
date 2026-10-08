@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
+import { LEAD_STAGES } from "@/lib/leads";
 
 export type LeadFilters = {
   stage: string;
@@ -31,13 +32,7 @@ export function countActiveFilters(filters: LeadFilters) {
 
 const STAGE_OPTIONS: SelectOption[] = [
   { id: "", name: "All stages" },
-  { id: "inquiry", name: "Inquiry" },
-  { id: "contacted", name: "Contacted" },
-  { id: "site_visit", name: "Site Visit" },
-  { id: "negotiation", name: "Negotiation" },
-  { id: "booked", name: "Booked" },
-  { id: "sold", name: "Sold" },
-  { id: "lost", name: "Lost" },
+  ...LEAD_STAGES.map((stage) => ({ id: stage.id, name: stage.label })),
 ];
 
 const TEMPERATURE_OPTIONS: SelectOption[] = [
