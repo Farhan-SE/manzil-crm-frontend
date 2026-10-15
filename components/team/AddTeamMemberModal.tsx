@@ -3,31 +3,33 @@
 import { useState, type SubmitEvent } from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { Select, type SelectOption } from "@/components/ui/Select";
-import { addUser, type Team, type TeamMember } from "@/lib/api";
+import { addUser, type Role, type Team, type TeamMember } from "@/lib/api";
 
 const inputClass =
   "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
-
-const ROLE_OPTIONS: SelectOption[] = [
-  { id: "agent", name: "Agent" },
-  { id: "admin", name: "Admin" },
-];
 
 const NO_TEAM: SelectOption = { id: "", name: "No team" };
 
 export function AddTeamMemberModal({
   teams,
+  roles,
+  canChooseRole,
   onClose,
   onCreated,
 }: {
   teams: Team[];
+  roles: Role[];
+  /** Without roles.manage the new member gets the company's default role. */
+  canChooseRole: boolean;
   onClose: () => void;
   onCreated: () => void;
 }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"admin" | "agent">("agent");
+  const defaultRole = roles.find((role) => role.is_default);
+  const [roleId, setRoleId] = useState(defaultRole?.id ?? "");
+  const chosenRole = roles.find((role) => role.id === roleId);
   const [teamId, setTeamId] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +46,7 @@ export function AddTeamMemberModal({
         first_name: firstName,
         last_name: lastName,
         email,
-        user_role: role,
+        role_id: canChooseRole && roleId ? roleId : undefined,
         team_id: teamId || undefined,
       });
       setCreated(result);
@@ -181,27 +183,32 @@ export function AddTeamMemberModal({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@manzil.com"
+                  placeholder="name@company.com"
                   className={inputClass}
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="member-role" className="text-sm text-muted">
-                  Role
-                  <span className="text-hot"> *</span>
-                </label>
-                <Select
-                  id="member-role"
-                  value={role}
-                  onChange={(v) => setRole(v as "admin" | "agent")}
-                  options={ROLE_OPTIONS}
-                />
+              {canChooseRole ? (
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="member-role" className="text-sm text-muted">
+                    Role
+                    <span className="text-hot"> *</span>
+                  </label>
+                  <Select
+                    id="member-role"
+                    value={roleId}
+                    onChange={setRoleId}
+                    options={roles.map((role) => ({ id: role.id, name: role.name }))}
+                    placeholder="Select role"
+                  />
+                  {chosenRole?.description && <p className="text-xs text-muted">{chosenRole.description}</p>}
+                </div>
+              ) : (
                 <p className="text-xs text-muted">
-                  Admins see every lead, customer and listing. Agents see only what&apos;s assigned
-                  to them.
+                  They&apos;ll start with the {defaultRole?.name ?? "default"} role. Someone who manages roles
+                  can change it later.
                 </p>
-              </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="member-team" className="text-sm text-muted">

@@ -98,7 +98,7 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = "" }: Forg
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@manzil.com"
+                placeholder="you@company.com"
                 className="w-full rounded-lg border border-border bg-white px-[17px] py-[15px] text-base text-ink placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-ink/20"
               />
             </div>

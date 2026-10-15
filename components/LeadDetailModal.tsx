@@ -10,7 +10,6 @@ import {
   getAgents,
   getCategories,
   getInterests,
-  isAdmin,
   setFollowUpCompleted,
   updateLead,
   getFollowUps,
@@ -18,7 +17,10 @@ import {
   type Lead,
   type LeadTemperature,
 } from "@/lib/api";
-import { LEAD_STAGES } from "@/lib/leads";
+import { LEAD_STAGES, needsPayment } from "@/lib/leads";
+import { useCan } from "@/lib/session";
+import { StagePaymentFields, emptyStagePayment, toStagePayment, type StagePaymentDraft } from "@/components/leads/StagePayment";
+import { PaymentError } from "@/components/leads/PaymentError";
 
 const STAGES = LEAD_STAGES;
 
@@ -59,10 +61,13 @@ type LeadDetailModalProps = {
 };
 
 export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalProps) {
-  const admin = isAdmin();
+  const canAssign = useCan("leads.assign");
+  const canSchedule = useCan("tasks.manage");
+  const canDelete = useCan("leads.delete");
   const [currentLead, setCurrentLead] = useState(lead);
 
   const [draftStage, setDraftStage] = useState(lead?.stage ?? "");
+  const [paymentDraft, setPaymentDraft] = useState<StagePaymentDraft>(() => emptyStagePayment(lead?.stage ?? ""));
   const [draftInterestId, setDraftInterestId] = useState(lead?.interest_id ?? "");
   const [draftCategoryId, setDraftCategoryId] = useState(lead?.category_id ?? "");
   const [draftTemperature, setDraftTemperature] = useState<LeadTemperature>(lead?.temperature ?? "WARM");
@@ -82,26 +87,26 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
   const [newTime, setNewTime] = useState("");
   const [isAddingFollowUp, setIsAddingFollowUp] = useState(false);
 
-  // Admin-only: these lists feed the edit dropdowns. Names for display come nested
-  // on the lead itself, so an agent never fetches them.
+  // Only for leads.assign: these lists feed the edit dropdowns. Names for display come nested
+  // on the lead itself, so nobody else fetches them.
   useEffect(() => {
-    if (!lead || !admin) return;
+    if (!lead || !canAssign) return;
     Promise.all([getInterests(), getCategories()])
       .then(([interestList, categoryList]) => {
         setInterests(interestList);
         setCategories(categoryList);
       })
       .catch(() => {});
-  }, [lead, admin]);
+  }, [lead, canAssign]);
 
   useEffect(() => {
-    if (!lead || !admin) return;
+    if (!lead || !canAssign) return;
     getAgents()
       .then((list) =>
         setAgents(list.map((a) => ({ id: String(a.id), name: `${a.first_name} ${a.last_name}` }))),
       )
       .catch(() => {});
-  }, [lead, admin]);
+  }, [lead, canAssign]);
 
   async function loadFollowUps(leadId: string) {
     try {
@@ -122,6 +127,8 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
 
   if (!currentLead) return null;
 
+  const paymentNeeded = needsPayment(currentLead.stage, draftStage);
+
   const isDirty =
     draftStage !== currentLead.stage ||
     draftInterestId !== (currentLead.interest_id ?? "") ||
@@ -136,6 +143,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
     try {
       const fresh = await updateLead(currentLead.id, {
         stage: draftStage,
+        payment: paymentNeeded ? toStagePayment(paymentDraft) : undefined,
         interest_id: draftInterestId || undefined,
         category_id: draftCategoryId || undefined,
         temperature: draftTemperature,
@@ -264,12 +272,15 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
               <Select
                 id="stage"
                 value={draftStage}
-                onChange={setDraftStage}
+                onChange={(next) => {
+                  setDraftStage(next);
+                  setPaymentDraft(emptyStagePayment(next));
+                }}
                 options={STAGES.map((s) => ({ id: s.id, name: s.label }))}
               />
             </Field>
             <Field label="Interest" htmlFor="interest">
-              {admin ? (
+              {canAssign ? (
                 <Select
                   id="interest"
                   value={draftInterestId}
@@ -283,9 +294,17 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
             </Field>
           </div>
 
+          {paymentNeeded && (
+            <section className="flex flex-col gap-3 rounded-xl border border-border bg-white/60 p-4">
+              <p className="text-sm font-bold text-ink">Payment received</p>
+              <p className="-mt-2 text-xs text-muted">Moving to this stage records the payment and sends it for verification.</p>
+              <StagePaymentFields idPrefix="lead-payment" value={paymentDraft} onChange={setPaymentDraft} />
+            </section>
+          )}
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Category" htmlFor="category">
-              {admin ? (
+              {canAssign ? (
                 <Select
                   id="category"
                   value={draftCategoryId}
@@ -298,7 +317,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
               )}
             </Field>
             <Field label="Assigned to" htmlFor="assigned-to">
-              {admin ? (
+              {canAssign ? (
                 <Select
                   id="assigned-to"
                   value={draftAssignedTo}
@@ -362,7 +381,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
               ))}
             </div>
 
-            {admin && (
+            {canSchedule && (
               <div className="flex flex-col gap-2">
                 <input
                   type="text"
@@ -397,10 +416,10 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
             )}
           </div>
 
-          {error && <p className="text-sm text-hot">{error}</p>}
+          <PaymentError error={error} customerId={currentLead.customer_id} />
 
           <div className="flex items-center justify-between gap-3 pt-2 sm:gap-4">
-            {admin ? (
+            {canDelete ? (
               <button
                 type="button"
                 onClick={handleDelete}

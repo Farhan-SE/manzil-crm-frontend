@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, ViewTransition, type SubmitEvent } from "react";
 import { DotLottieReact, type DotLottie } from "@lottiefiles/dotlottie-react";
-import { login } from "@/lib/api";
+import { getSessionUser, login } from "@/lib/api";
 import { ForgotPasswordModal } from "@/components/ForgotPasswordModal";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -22,7 +22,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!dotLottie) return;
-    const handleComplete = () => router.push("/dashboard");
+    const handleComplete = () => router.push(getSessionUser()?.role === "super_admin" ? "/platform" : "/dashboard");
     dotLottie.addEventListener("complete", handleComplete);
     return () => dotLottie.removeEventListener("complete", handleComplete);
   }, [dotLottie, router]);
@@ -46,33 +46,7 @@ export default function LoginPage() {
   return (
     <ViewTransition>
       <div className="flex h-dvh w-full overflow-hidden">
-        <div className="relative hidden flex-1 items-start justify-center overflow-hidden md:flex">
-          <Image
-            src="/login/hero.jpg"
-            alt=""
-            fill
-            priority
-            sizes="50vw"
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/40" />
-          <div className="relative flex h-full w-full flex-col items-start justify-between p-12">
-            <p
-              className="font-serif text-[28px] font-bold tracking-[-0.7px] text-white"
-              style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
-            >
-              manzil.com
-            </p>
-            <blockquote
-              className="max-w-[448px] font-serif text-[30px] leading-[1.25] text-white"
-              style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
-            >
-              &quot;Every great deal starts with the right follow-up.&quot;
-            </blockquote>
-          </div>
-        </div>
-
-        <div className="flex flex-1 items-center justify-center overflow-y-auto bg-cream p-8 md:p-12">
+        <div className="flex flex-1 flex-col items-center justify-center gap-10 overflow-y-auto bg-cream p-8 md:p-12">
           <div className="relative w-full max-w-[448px]">
             <form
               onSubmit={handleSubmit}
@@ -80,7 +54,7 @@ export default function LoginPage() {
                 }`}
             >
               <h1
-                className="font-serif text-3xl font-semibold tracking-[-1px] text-ink md:text-[40px]"
+                className="text-center font-serif text-3xl font-semibold tracking-[-1px] text-ink md:text-[40px]"
                 style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
               >
                 Welcome back
@@ -100,7 +74,7 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@manzil.com"
+                    placeholder="you@company.com"
                     className="w-full rounded-lg border border-border bg-white px-[17px] py-[15px] text-base text-ink placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-ink/20"
                   />
                 </div>

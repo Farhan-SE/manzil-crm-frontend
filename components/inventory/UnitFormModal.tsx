@@ -2,7 +2,7 @@
 
 import { useState, type SubmitEvent } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
-import type { Unit, UnitInput, UnitStatus } from "@/lib/api";
+import type { InventoryType, Unit, UnitInput, UnitStatus } from "@/lib/api";
 import { UNIT_STATUS_OPTIONS } from "@/lib/inventory";
 
 const inputClass =
@@ -13,6 +13,12 @@ type UnitFormModalProps = {
   /** Preselected for a new unit when the list is already filtered to one project. */
   defaultProjectId: string;
   projects: SelectOption[];
+  /** Project owners by project id. Passed for admins only. */
+  owners?: Record<string, { name: string | null; phone: string | null }>;
+  /** Which inventory a new unit joins. */
+  inventoryType: InventoryType;
+  /** A unit added without inventory.approve waits for someone who has it. */
+  needsApproval: boolean;
   unitTypes: string[];
   isSaving: boolean;
   error: string | null;
@@ -24,6 +30,9 @@ export function UnitFormModal({
   initial,
   defaultProjectId,
   projects,
+  owners,
+  inventoryType,
+  needsApproval,
   unitTypes,
   isSaving,
   error,
@@ -46,6 +55,7 @@ export function UnitFormModal({
     if (!projectId) return setLocalError("Select the project this unit belongs to.");
     setLocalError(null);
     onSubmit({
+      ...(initial ? {} : { inventory_type: inventoryType }),
       project_id: projectId,
       unit_number: unitNumber,
       // Text fields go even when empty so clearing one on an edit actually clears it.
@@ -83,6 +93,11 @@ export function UnitFormModal({
         </div>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:px-6">
+          {!initial && needsApproval && (
+            <p className="rounded-xl bg-warm/15 px-4 py-3 text-sm text-ink">
+              A manager approves this unit before it is listed for sale. You can follow it in Management.
+            </p>
+          )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="unit-project" className="text-sm text-muted">
@@ -96,6 +111,12 @@ export function UnitFormModal({
                 options={projects}
                 placeholder="Select project"
               />
+              {owners && projectId && (
+                <p className="text-xs text-muted">
+                  Owner: {owners[projectId]?.name || "not recorded"}
+                  {owners[projectId]?.phone ? ` · ${owners[projectId]?.phone}` : ""}
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label htmlFor="unit-number" className="text-sm text-muted">

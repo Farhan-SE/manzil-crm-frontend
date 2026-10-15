@@ -10,7 +10,6 @@ import { StatusBadge } from "@/components/list/StatusBadge";
 import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
 import { TablePagination } from "@/components/list/TablePagination";
 import {
-  checkboxClass,
   headCellClass,
   headRowClass,
   rowClass,
@@ -33,7 +32,7 @@ import {
 } from "@/lib/api";
 import { downloadCsv } from "@/lib/csv";
 import { DISPUTE_STATUSES, disputeCode, resolutionNote } from "@/lib/disputes";
-import { useIsAdmin } from "@/lib/session";
+import { useCan } from "@/lib/session";
 import { formatDay } from "@/lib/time";
 
 type Filters = { search: string; ownerId: string; status: string; createdFrom: string; createdTo: string };
@@ -50,7 +49,7 @@ const TABS: { id: DisputeTab; label: string }[] = [
 
 const EXPORT_LIMIT = 1000;
 
-const COLUMN_COUNT = 9;
+const COLUMN_COUNT = 8;
 
 const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
@@ -62,7 +61,7 @@ function personName(person: SalesDispute["raised_by"]) {
 }
 
 export default function SalesDisputesPage() {
-  const admin = useIsAdmin();
+  const canManage = useCan("disputes.manage");
 
   const [disputes, setDisputes] = useState<SalesDispute[]>([]);
   const [total, setTotal] = useState(0);
@@ -77,7 +76,6 @@ export default function SalesDisputesPage() {
   const [sort, setSort] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [owners, setOwners] = useState<TeamMember[]>([]);
   const [isNewOpen, setIsNewOpen] = useState(false);
 
@@ -155,19 +153,9 @@ export default function SalesDisputesPage() {
 
   function resetPaging() {
     setPage(1);
-    setSelected(new Set());
-  }
-
-  function toggleSelected(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
   }
 
   const isFiltered = Object.values(filters).some(Boolean) || favouritesOnly || tab !== "all";
-  const allSelected = disputes.length > 0 && disputes.every((dispute) => selected.has(dispute.id));
 
   return (
     <ViewTransition>
@@ -282,17 +270,6 @@ export default function SalesDisputesPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th scope="col" className="hidden w-8 lg:table-cell">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all cases"
-                    checked={allSelected}
-                    onChange={() =>
-                      setSelected(allSelected ? new Set() : new Set(disputes.map((dispute) => dispute.id)))
-                    }
-                    className={checkboxClass}
-                  />
-                </th>
                 <th scope="col" className={`${headCellClass} w-[92px] lg:w-[10%]`}>Case ID</th>
                 <th scope="col" className={headCellClass}>Dispute / Client</th>
                 <th scope="col" className={`${headCellClass} hidden w-[15%] lg:table-cell`}>Project</th>
@@ -327,20 +304,11 @@ export default function SalesDisputesPage() {
               {!isLoading &&
                 disputes.map((dispute) => {
                   const status = DISPUTE_STATUSES.find((entry) => entry.id === dispute.status);
-                  // Mirrors the server rule: an admin or the case's reviewer moves it along.
-                  const canReview = admin || dispute.review_owner?.id === sessionUserId;
+                  // Mirrors the server rule: the case's reviewer, or a role with disputes.manage, moves it along.
+                  const canReview = canManage || dispute.review_owner?.id === sessionUserId;
                   const note = resolutionNote(dispute);
                   return (
                     <tr key={dispute.id} className={`${rowClass} !h-[94px]`}>
-                      <td className="hidden lg:table-cell">
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${disputeCode(dispute)}`}
-                          checked={selected.has(dispute.id)}
-                          onChange={() => toggleSelected(dispute.id)}
-                          className={checkboxClass}
-                        />
-                      </td>
                       <td className="pr-3">
                         <p>{disputeCode(dispute)}</p>
                         <p className={subTextClass}>{formatDay(dispute.created_at)}</p>

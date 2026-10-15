@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type SubmitEvent } from "react";
 import { ViewTransition } from "react";
-import { FilterBar, FilterField, FilterSelect } from "@/components/list/FilterBar";
+import { FilterBar, FilterDate, FilterField, FilterSelect } from "@/components/list/FilterBar";
 import { RowMenu } from "@/components/list/RowMenu";
 import { SortButton, StatusTabs } from "@/components/list/StatusTabs";
 import { TablePagination } from "@/components/list/TablePagination";
@@ -11,6 +11,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   generateReport,
+  getAgents,
   getProjectOptions,
   getPipeline,
   getReports,
@@ -26,12 +27,11 @@ import {
 } from "@/lib/api";
 import { downloadCsv } from "@/lib/csv";
 import { formatMillions, formatMoney } from "@/lib/money";
-import { recentMonths } from "@/lib/payments";
-import { useIsAdmin } from "@/lib/session";
+import { useCan } from "@/lib/session";
 import { formatClock, formatDay } from "@/lib/time";
 
 type Tab = ReportCategory | "all";
-type Filters = { period: string; category: string; region: string; projectId: string };
+type Filters = { from: string; to: string; category: string; region: string; projectId: string; staffId: string };
 
 const CATEGORIES: { id: ReportCategory; label: string }[] = [
   { id: "sales", label: "Sales" },
@@ -66,8 +66,11 @@ function monthLabel(period: string, style: "short" | "long" = "short") {
   });
 }
 
-function shortPeriod(period: string) {
-  return new Date(`${period}-01T00:00:00`).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+/** "Oct 01 – Oct 14, 2026", or a single day. */
+function rangeLabel(from: string, to: string) {
+  const day = (value: string, withYear: boolean) =>
+    new Date(`${value}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: withYear ? "numeric" : undefined });
+  return from === to ? day(from, true) : `${day(from, from.slice(0, 4) !== to.slice(0, 4))} – ${day(to, true)}`;
 }
 
 function TargetsModal({
@@ -170,17 +173,21 @@ function TargetsModal({
 }
 
 export default function ReportsPage() {
-  const admin = useIsAdmin();
-  const [months] = useState(recentMonths);
-  const currentPeriod = months[0].id;
+  const canSetTargets = useCan("targets.manage");
+  const [initialFilters] = useState<Filters>(() => {
+    const today = new Date().toLocaleDateString("en-CA");
+    return { from: `${today.slice(0, 8)}01`, to: today, category: "", region: "", projectId: "", staffId: "" };
+  });
 
   const [reports, setReports] = useState<Report[] | null>(null);
   const [sales, setSales] = useState<SalesMonth[] | null>(null);
   const [targets, setTargets] = useState<TargetProgress[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [draft, setDraft] = useState<Filters>({ period: currentPeriod, category: "", region: "", projectId: "" });
-  const [filters, setFilters] = useState<Filters>({ period: currentPeriod, category: "", region: "", projectId: "" });
+  const [draft, setDraft] = useState<Filters>(initialFilters);
+  const [filters, setFilters] = useState<Filters>(initialFilters);
+  // Targets are monthly, so they follow the month the range ends in.
+  const targetPeriod = filters.to.slice(0, 7);
   const [tab, setTab] = useState<Tab>("all");
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
@@ -188,6 +195,7 @@ export default function ReportsPage() {
 
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
+  const [staff, setStaff] = useState<{ id: string; name: string }[]>([]);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [isTargetsOpen, setIsTargetsOpen] = useState(false);
 
@@ -206,6 +214,9 @@ export default function ReportsPage() {
       .then(setSales)
       .catch(() => setSales([]));
     getProjectOptions().then(setProjects).catch(() => {});
+    getAgents()
+      .then((list) => setStaff(list.map((agent) => ({ id: String(agent.id), name: `${agent.first_name} ${agent.last_name}` }))))
+      .catch(() => {});
     // The pipeline response carries every region staff are assigned to.
     getPipeline({ per_stage: 1 })
       .then((res) => setRegions(res.regions))
@@ -213,21 +224,23 @@ export default function ReportsPage() {
   }, [loadReports]);
 
   useEffect(() => {
-    getTargets(filters.period)
+    getTargets(targetPeriod)
       .then(setTargets)
       .catch(() => setTargets([]));
-  }, [filters.period]);
+  }, [targetPeriod]);
 
   async function download(report: Report) {
     setBusyKey(report.key);
     setError(null);
     try {
       const res = await generateReport(report.key, {
-        period: filters.period,
+        from: filters.from,
+        to: filters.to,
         project_id: filters.projectId || undefined,
         region: filters.region || undefined,
+        staff_id: filters.staffId ? Number(filters.staffId) : undefined,
       });
-      downloadCsv(`${report.key.replace(/_/g, "-")}-${res.period}.csv`, [
+      downloadCsv(`${report.key.replace(/_/g, "-")}-${filters.from}-to-${filters.to}.csv`, [
         res.columns,
         ...res.rows.map((row) => row.map((cell) => (cell == null ? "" : String(cell)))),
       ]);
@@ -240,7 +253,7 @@ export default function ReportsPage() {
   }
 
   function exportSummary() {
-    downloadCsv(`reports-summary-${filters.period}.csv`, [
+    downloadCsv(`reports-summary-${filters.from}-to-${filters.to}.csv`, [
       ["Month", "Closed sales (PKR)", "Deals"],
       ...(sales ?? []).map((entry) => [entry.month, String(entry.total), String(entry.count)]),
       [""],
@@ -288,11 +301,31 @@ export default function ReportsPage() {
             setPage(1);
           }}
         >
-          <FilterField label="Period">
-            <FilterSelect value={draft.period} onChange={(e) => setDraft({ ...draft, period: e.target.value })}>
-              {months.map((month) => (
-                <option key={month.id} value={month.id}>
-                  {month.name}
+          <FilterField label="From">
+            <FilterDate
+              value={draft.from}
+              max={draft.to || undefined}
+              onChange={(e) => e.target.value && setDraft({ ...draft, from: e.target.value })}
+              placeholder="Start date"
+            />
+          </FilterField>
+          <FilterField label="To">
+            <FilterDate
+              value={draft.to}
+              min={draft.from || undefined}
+              onChange={(e) => e.target.value && setDraft({ ...draft, to: e.target.value })}
+              placeholder="End date"
+            />
+          </FilterField>
+          <FilterField label="Staff">
+            <FilterSelect
+              value={draft.staffId}
+              onChange={(e) => setDraft({ ...draft, staffId: e.target.value })}
+              placeholder="All Staff"
+            >
+              {staff.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
                 </option>
               ))}
             </FilterSelect>
@@ -389,7 +422,7 @@ export default function ReportsPage() {
               <h2 className="font-serif text-sm font-bold text-ink" style={headingStyle}>
                 Target achievement
               </h2>
-              <p className="shrink-0 text-[11px] text-muted">{monthLabel(filters.period, "long")}</p>
+              <p className="shrink-0 text-[11px] text-muted">{monthLabel(targetPeriod, "long")}</p>
             </div>
             {!targets && <Skeleton className="h-24 w-full" />}
             {targets?.map((entry) => {
@@ -410,7 +443,7 @@ export default function ReportsPage() {
                 </div>
               );
             })}
-            {admin && targets && targets.length > 0 && (
+            {canSetTargets && targets && targets.length > 0 && (
               <button
                 type="button"
                 onClick={() => setIsTargetsOpen(true)}
@@ -482,7 +515,7 @@ export default function ReportsPage() {
                   <td className="hidden pr-3 lg:table-cell">
                     {CATEGORIES.find((category) => category.id === report.category)?.label}
                   </td>
-                  <td className="hidden pr-3 sm:table-cell">{shortPeriod(filters.period)}</td>
+                  <td className="hidden pr-3 sm:table-cell">{rangeLabel(filters.from, filters.to)}</td>
                   <td className="hidden truncate pr-3 lg:table-cell">
                     {report.last_generated_at
                       ? `${formatDay(report.last_generated_at)} · ${formatClock(report.last_generated_at)}`
@@ -526,7 +559,7 @@ export default function ReportsPage() {
 
       {isTargetsOpen && targets && (
         <TargetsModal
-          period={filters.period}
+          period={targetPeriod}
           targets={targets}
           onClose={() => setIsTargetsOpen(false)}
           onSaved={setTargets}

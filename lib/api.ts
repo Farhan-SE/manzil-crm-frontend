@@ -42,12 +42,16 @@ export function getValidToken(): string | null {
   return token;
 }
 
-/** Presence flag for proxy.ts, which runs on the server and can't read web storage. */
+/**
+ * Presence flag for proxy.ts, which runs on the server and can't read web storage. Its value only
+ * steers routing (platform admins to /platform); the API still checks every request itself.
+ */
 function setSessionCookie(token: string, remember: boolean) {
   const exp = decodeJwtExp(token);
   // Mirrors the storage choice: "keep me signed in" lasts until the token expires, otherwise it ends with the browser session.
   const maxAge = remember && exp ? `; max-age=${Math.max(0, Math.floor((exp - Date.now()) / 1000))}` : "";
-  document.cookie = `session=1; path=/; SameSite=Lax${maxAge}`;
+  const kind = decodeJwtPayload(token)?.role === "super_admin" ? "platform" : "1";
+  document.cookie = `session=${kind}; path=/; SameSite=Lax${maxAge}`;
 }
 
 export function setToken(token: string, remember: boolean) {
@@ -66,12 +70,16 @@ export function clearToken() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+  // The cached role and permissions from lib/session.ts, and WelcomeGate's record of a finished first-login flow.
+  sessionStorage.removeItem("access");
+  sessionStorage.removeItem("welcome_done");
   document.cookie = "session=; path=/; max-age=0";
 }
 
 export type SessionUser = {
   id: number;
   email: string;
+  /** "super_admin" for a platform admin. For company staff, what they may do comes from getMe(), not this. */
   role: string;
   first_name: string;
   last_name: string;
@@ -94,10 +102,6 @@ export function getSessionUser(): SessionUser | null {
     // Tokens issued before this claim existed shouldn't force the first-login flow.
     password_changed: payload.password_changed ?? true,
   };
-}
-
-export function isAdmin(): boolean {
-  return getSessionUser()?.role === "admin";
 }
 
 function onUnauthorized() {
@@ -174,13 +178,162 @@ export async function forgotPassword(email: string): Promise<ForgotPasswordRespo
   return res.json();
 }
 
+// ── Access ────────────────────────────────────────────────────────────────────
+
+/** How far a scoped permission reaches: the user's own records, their team's, or everyone's. */
+export type Scope = "own" | "team" | "all";
+
+/** Scope for a scoped permission, true for a plain one. A missing key means not allowed. */
+export type Permissions = Record<string, Scope | true>;
+
+/** A path the API serves, such as a company logo, as a full URL. */
+export const apiAssetUrl = (path: string) => `${API_URL}${path}`;
+
+export type CompanyBranding = { id: string; name: string; logo_url: string | null };
+
+export type Me = TeamMember & {
+  tenant_id: string | null;
+  company: CompanyBranding | null;
+  role: { id: string; name: string; is_system: boolean } | null;
+  permissions: Permissions;
+};
+
+export const getMe = () => apiFetch<Me>("/auth/me");
+
+export type PermissionDef = { key: string; module: string; label: string; scoped: boolean };
+
+export type PermissionModule = { module: string; permissions: PermissionDef[] };
+
+export type RoleGrant = { permission: string; scope: Scope | null };
+
+export type Role = {
+  id: string;
+  name: string;
+  description: string | null;
+  /** The company's Admin role: full access, can't be edited or deleted. */
+  is_system: boolean;
+  /** The role new staff get when whoever adds them can't choose one. */
+  is_default: boolean;
+  user_count: number;
+  permissions: RoleGrant[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type RoleInput = { name: string; description?: string; permissions: RoleGrant[]; is_default?: boolean };
+
+export const getPermissionCatalogue = () => apiFetch<PermissionModule[]>("/roles/permissions");
+
+export const getRoles = () => apiFetch<Role[]>("/roles");
+
+export const createRole = (dto: RoleInput) =>
+  apiFetch<Role>("/roles", { method: "POST", body: JSON.stringify(dto) });
+
+export const updateRole = (id: string, dto: Partial<RoleInput>) =>
+  apiFetch<Role>(`/roles/${id}`, { method: "PATCH", body: JSON.stringify(dto) });
+
+export async function deleteRole(id: string) {
+  // 204 has no body, so this can't go through apiFetch's res.json().
+  const token = getValidToken();
+  const res = await fetch(`${API_URL}/roles/${id}`, {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (res.status === 401) {
+    onUnauthorized();
+    throw new Error("Unauthorized");
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const msg = body?.message ?? res.statusText;
+    throw new Error(Array.isArray(msg) ? msg[0] : msg);
+  }
+}
+
+// ── Platform (super admin) ────────────────────────────────────────────────────
+
+export type CompanyStatus = "active" | "suspended";
+
+export type Company = {
+  id: string;
+  name: string;
+  slug: string;
+  status: CompanyStatus;
+  /** Relative to the API; pass it through apiAssetUrl. Null when no logo is set. */
+  logo_url: string | null;
+  /** The company's longest-standing admin, who the platform contacts about it. */
+  admin: { id: number; first_name: string; last_name: string; email: string } | null;
+  user_count: number;
+  active_user_count: number;
+  lead_count: number;
+  customer_count: number;
+  last_activity_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CompaniesQuery = { search?: string; status?: CompanyStatus; page?: number; limit?: number };
+
+export type CompaniesResponse = { data: Company[]; total: number; page: number; limit: number };
+
+export const getCompanies = (params: CompaniesQuery = {}) =>
+  apiFetch<CompaniesResponse>(`/platform/companies${buildQueryString(params)}`);
+
+export type CompanyInput = {
+  name: string;
+  slug?: string;
+  admin_first_name: string;
+  admin_last_name: string;
+  admin_email: string;
+};
+
+/** The admin's generated password comes back once, in this response. */
+export const createCompany = (dto: CompanyInput) =>
+  apiFetch<{ company: Company; admin: { id: number; first_name: string; last_name: string; email: string }; password: string }>(
+    "/platform/companies",
+    { method: "POST", body: JSON.stringify(dto) },
+  );
+
+export const updateCompany = (id: string, dto: { name?: string; status?: CompanyStatus }) =>
+  apiFetch<Company>(`/platform/companies/${id}`, { method: "PATCH", body: JSON.stringify(dto) });
+
+export const COMPANY_LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"];
+export const COMPANY_LOGO_MAX_BYTES = 1024 * 1024;
+
+/** PNG, JPG or WebP up to 1 MB. */
+export async function uploadCompanyLogo(id: string, file: File): Promise<Company> {
+  const form = new FormData();
+  form.append("logo", file);
+  // No Content-Type header: the browser sets the multipart boundary itself.
+  const token = getValidToken();
+  const res = await fetch(`${API_URL}/platform/companies/${id}/logo`, {
+    method: "PUT",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (res.status === 401) {
+    onUnauthorized();
+    throw new Error("Unauthorized");
+  }
+  if (res.status === 413) throw new Error("The logo must be 1 MB or smaller.");
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const msg = body?.message ?? res.statusText;
+    throw new Error(Array.isArray(msg) ? msg[0] : msg);
+  }
+  return res.json();
+}
+
+export const removeCompanyLogo = (id: string) =>
+  apiFetch<Company>(`/platform/companies/${id}/logo`, { method: "DELETE" });
+
 // ── Leads ─────────────────────────────────────────────────────────────────────
 
 export type TaxonomyRef = { id: string; name: string };
 
 export type LeadTemperature = "HOT" | "WARM" | "COLD";
 
-export type LeadTab = "all" | "new" | "recommended" | "watchlist";
+export type LeadTab = "all" | "new" | "favourites";
 
 export type DueWindow = "overdue" | "today" | "tomorrow" | "week";
 
@@ -248,6 +401,8 @@ export type LeadsQuery = {
   search?: string;
   search_by?: "lead_id" | "name" | "number" | "city";
   project_id?: string;
+  /** Only this client's leads. */
+  customer_id?: string;
   /** Leads with an open task due in this window. */
   task_due?: DueWindow;
   /** Leads whose most recent task is of this type. */
@@ -334,11 +489,29 @@ export type CreateLeadInput = {
 export const createLead = (dto: CreateLeadInput) =>
   apiFetch<Lead>("/leads", { method: "POST", body: JSON.stringify(dto) });
 
-export type UpdateLeadInput = Partial<Omit<CreateLeadInput, "customer_id">> & { stage?: string };
+/** The payment that has to accompany a move forward into Pre-Closure or Sold. */
+export type StagePayment = {
+  payment_type: string;
+  amount: number;
+  method: string;
+  reference?: string;
+  /** YYYY-MM-DD. */
+  received_on: string;
+  note?: string;
+};
+
+export type UpdateLeadInput = Partial<Omit<CreateLeadInput, "customer_id">> & { stage?: string; payment?: StagePayment };
 
 /** Returns the updated lead, so callers can refresh their copy without a follow-up GET. */
 export const updateLead = (id: string, dto: UpdateLeadInput) =>
   apiFetch<Lead>(`/leads/${id}`, { method: "PATCH", body: JSON.stringify(dto) });
+
+/** Admin-only. Hands the leads to one staff member. */
+export const bulkAssignLeads = (ids: string[], assignedToId: number) =>
+  apiFetch<{ updated: number }>("/leads/bulk-assign", {
+    method: "POST",
+    body: JSON.stringify({ ids, assigned_to_id: assignedToId }),
+  });
 
 export const setLeadStarred = (id: string, isStarred: boolean) =>
   apiFetch<{ id: string; is_starred: boolean }>(`/leads/${id}/star`, {
@@ -384,7 +557,9 @@ export type TeamMember = {
   first_name: string;
   last_name: string;
   email: string;
+  /** Mirrors the role for older screens: "admin" for the Admin role, "agent" for any other. */
   user_role: string;
+  role_id: string | null;
   team_id: string | null;
   /** The linked team's name, shown under the agent's name, e.g. "Sales - Lahore". */
   team: string | null;
@@ -459,6 +634,13 @@ export type StaffProfileInput = {
 export const updateStaffProfile = (id: number, dto: StaffProfileInput) =>
   apiFetch<TeamMember>(`/auth/users/${id}/profile`, { method: "PATCH", body: JSON.stringify(dto) });
 
+/** Admin-only. Moves every lead and client of one member to another. */
+export const transferLeads = (fromUserId: number, toUserId: number) =>
+  apiFetch<{ leads: number; customers: number }>(`/auth/users/${fromUserId}/transfer-leads`, {
+    method: "POST",
+    body: JSON.stringify({ to_user_id: toUserId }),
+  });
+
 export const setUserSuspended = (id: number, suspended: boolean) =>
   apiFetch<TeamMember>(`/auth/users/${id}/suspend`, {
     method: "PATCH",
@@ -475,7 +657,8 @@ export type AddUserInput = {
   first_name: string;
   last_name: string;
   email: string;
-  user_role: "admin" | "agent";
+  /** Needs roles.manage; left out, the member gets the company's default role. */
+  role_id?: string;
   team_id?: string;
 };
 
@@ -583,10 +766,10 @@ export const setUserBlocked = (id: number, blocked: boolean) =>
     body: JSON.stringify({ blocked }),
   });
 
-export const setUserRole = (id: number, userRole: "admin" | "agent") =>
+export const setUserRole = (id: number, roleId: string) =>
   apiFetch<TeamMember>(`/auth/users/${id}/role`, {
     method: "PATCH",
-    body: JSON.stringify({ user_role: userRole }),
+    body: JSON.stringify({ role_id: roleId }),
   });
 
 /** The new password only takes effect on the next login — the current token keeps working. */
@@ -656,6 +839,9 @@ export type PartnerProject = {
   id: string;
   project_name: string;
   developer: string | null;
+  /** Admins only: the server leaves these out for agents. */
+  owner_name?: string | null;
+  owner_phone?: string | null;
   category_id: string | null;
   interest_id: string | null;
   city: string | null;
@@ -682,6 +868,8 @@ export type PartnerProject = {
 export type PartnerProjectInput = {
   project_name: string;
   developer?: string;
+  owner_name?: string;
+  owner_phone?: string;
   category_id?: string;
   interest_id?: string;
   city?: string;
@@ -749,6 +937,9 @@ export type Unit = {
   price: number | null;
   area_sqft: number | null;
   status: UnitStatus;
+  inventory_type: InventoryType;
+  /** An agent's unit is `pending` until an admin approves it for sale. */
+  approval_status: "approved" | "pending" | "rejected";
   is_starred: boolean;
   /** The lead that has paid towards this unit; null while it's available. */
   lead: { id: string; lead_no: number; client_name: string } | null;
@@ -766,7 +957,11 @@ export type UnitsResponse = {
   unit_types: string[];
 };
 
+/** The company's own stock, or a sales partner's. */
+export type InventoryType = "direct" | "partner";
+
 export type UnitsQuery = {
+  inventory_type?: InventoryType;
   project_id?: string;
   unit_type?: string;
   search?: string;
@@ -778,6 +973,7 @@ export type UnitsQuery = {
 };
 
 export type UnitInput = {
+  inventory_type?: InventoryType;
   project_id: string;
   unit_number: string;
   unit_type?: string;
@@ -907,8 +1103,17 @@ export type Approval = {
   due_date: string | null;
   review_comment: string | null;
   decided_at: string | null;
+  /** What the requester added when sending a returned request back. */
+  requester_note: string | null;
+  resubmitted_at: string | null;
   is_starred: boolean;
-  lead: { id: string; lead_no: number; client_name: string; project: TaxonomyRef | null };
+  lead: { id: string; lead_no: number; client_name: string; project: TaxonomyRef | null } | null;
+  /** The payment a payment verification would confirm. */
+  payment: { id: string; payment_no: number; payment_type: string; amount: number; method: string | null; reference: string | null } | null;
+  /** The unit an inventory approval would put on sale. */
+  unit: { id: string; unit_number: string; inventory_type: string; project: TaxonomyRef | null } | null;
+  /** Who a lead transfer hands the lead to. */
+  target_user: ApprovalPerson | null;
   submitted_by: ApprovalPerson | null;
   reviewer: ApprovalPerson | null;
   created_at: string;
@@ -942,6 +1147,8 @@ export const getApprovals = (params: ApprovalsQuery = {}) =>
 export type ApprovalInput = {
   type: string;
   lead_id: string;
+  /** Required for a lead transfer. */
+  target_user_id?: number;
   summary: string;
   priority?: string;
   due_date?: string;
@@ -949,6 +1156,10 @@ export type ApprovalInput = {
 
 export const createApproval = (dto: ApprovalInput) =>
   apiFetch<Approval>("/approvals", { method: "POST", body: JSON.stringify(dto) });
+
+/** The requester answers a returned request, which puts it back in the pending queue. */
+export const resubmitApproval = (id: string, note: string) =>
+  apiFetch<Approval>(`/approvals/${id}/resubmit`, { method: "PATCH", body: JSON.stringify({ note }) });
 
 /** Admin-only. */
 export const decideApproval = (id: string, decision: ApprovalDecision, comment?: string) =>
@@ -1081,7 +1292,8 @@ export type Report = {
 
 export const getReports = () => apiFetch<Report[]>("/reports");
 
-export type ReportFilters = { period?: string; project_id?: string; region?: string };
+/** `from` and `to` are inclusive YYYY-MM-DD days. */
+export type ReportFilters = { from?: string; to?: string; project_id?: string; region?: string; staff_id?: number };
 
 /** Runs the report. `rows` are in the order of `columns`. */
 export const generateReport = (key: string, filters: ReportFilters = {}) =>
@@ -1328,6 +1540,9 @@ export type LogTaskInput = {
   project_id?: string;
   unit_id?: string;
   temperature: LeadTemperature;
+  /** Moves the lead to this stage with the task. */
+  stage?: string;
+  payment?: StagePayment;
 };
 
 /** Records the task just done, schedules the next one and updates the lead in one request. */
@@ -1361,8 +1576,14 @@ export type Customer = {
   is_starred: boolean;
   /** Leads linked to this customer. */
   lead_count: number;
+  /** The project of the client's most recent lead. */
+  project: { id: string; name: string } | null;
+  /** The lead a stage change with a payment is recorded against. */
+  latest_lead_id: string | null;
   customer_name: string;
-  cnic_number: string;
+  first_name: string | null;
+  last_name: string | null;
+  cnic_number: string | null;
   contact_number: string;
   gender: Gender | null;
   alternate_contact_number: string | null;
@@ -1391,12 +1612,14 @@ export type CustomersQuery = {
   page?: number;
   limit?: number;
   search?: string;
-  search_by?: "cell" | "name" | "client_id" | "cnic";
+  search_by?: "cell" | "name" | "client_id" | "cnic" | "project";
   /** The day the client was added, as YYYY-MM-DD. */
   created_date?: string;
   /** Clients with at least one lead on this project. */
   project_id?: string;
   starred?: "true";
+  /** Clients with exactly this many leads. */
+  lead_count?: number;
   stage?: CustomerStage;
   sort?: "asc" | "desc";
   relation_type?: string;
@@ -1406,8 +1629,11 @@ export type CustomersQuery = {
 };
 
 export type CustomerInput = {
-  customer_name: string;
-  cnic_number: string;
+  first_name: string;
+  last_name?: string;
+  cnic_number?: string;
+  /** Opens a lead on this project together with the client. */
+  project_id: string;
   contact_number: string;
   gender?: Gender;
   alternate_contact_number?: string;
@@ -1435,6 +1661,13 @@ export const createCustomer = (dto: CustomerInput) =>
 export const updateCustomer = (id: string, dto: Partial<CustomerInput>) =>
   apiFetch<Customer>(`/customers/${id}`, { method: "PATCH", body: JSON.stringify(dto) });
 
+/** Admin-only. Hands the clients, and their leads, to one staff member. */
+export const bulkAssignCustomers = (ids: string[], assignedToId: number) =>
+  apiFetch<{ updated: number; leads: number }>("/customers/bulk-assign", {
+    method: "POST",
+    body: JSON.stringify({ ids, assigned_to_id: assignedToId }),
+  });
+
 export const setCustomerStarred = (id: string, isStarred: boolean) =>
   apiFetch<{ id: string; is_starred: boolean }>(`/customers/${id}/star`, {
     method: "PATCH",
@@ -1448,7 +1681,8 @@ export const deleteCustomer = (id: string) =>
 
 /** `scope` is "system" for admins, "own" for agents — the server decides, not the client. */
 export type DashboardStats = {
-  scope: "system" | "own";
+  /** "system" when the role reaches every lead, otherwise its leads.view scope. */
+  scope: "system" | "own" | "team";
   open_leads: number;
   pipeline_value: number;
   closed_volume: number;
@@ -1630,7 +1864,8 @@ export type PendingPayment = {
 
 export type Performance = {
   date: string;
-  scope: "system" | "own";
+  /** "system" when the role reaches every lead, otherwise its leads.view scope. */
+  scope: "system" | "own" | "team";
   profile: {
     first_name: string;
     last_name: string;

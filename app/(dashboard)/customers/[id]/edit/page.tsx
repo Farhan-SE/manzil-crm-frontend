@@ -58,7 +58,8 @@ export default function EditCustomerPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
 
-  const [customerName, setCustomerName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [cnic, setCnic] = useState("");
   const [contactNumber, setContactNumber] = useState("");
   const [altContactNumber, setAltContactNumber] = useState("");
@@ -95,8 +96,9 @@ export default function EditCustomerPage() {
         ]);
         if (cancelled) return;
 
-        setCustomerName(customer.customer_name);
-        setCnic(customer.cnic_number);
+        setFirstName(customer.first_name ?? customer.customer_name);
+        setLastName(customer.last_name ?? "");
+        setCnic(customer.cnic_number ?? "");
         setContactNumber(customer.contact_number);
         setAltContactNumber(customer.alternate_contact_number ?? "");
         setEmail(customer.email ?? "");
@@ -140,7 +142,8 @@ export default function EditCustomerPage() {
     setIsSubmitting(true);
     try {
       await updateCustomer(params.id, {
-        customer_name: customerName,
+        first_name: firstName,
+        last_name: lastName,
         cnic_number: cnic,
         contact_number: contactNumber,
         alternate_contact_number: altContactNumber || undefined,
@@ -197,7 +200,7 @@ export default function EditCustomerPage() {
         href={`/customers/${params.id}`}
         className="w-fit text-sm text-muted transition-colors hover:text-ink"
       >
-        ← {customerName}
+        ← {[firstName, lastName].filter(Boolean).join(" ")}
       </Link>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -208,7 +211,7 @@ export default function EditCustomerPage() {
           >
             Edit customer
           </h1>
-          <p className="mt-1 text-sm text-muted">{customerName}</p>
+          <p className="mt-1 text-sm text-muted">{[firstName, lastName].filter(Boolean).join(" ")}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
@@ -239,22 +242,31 @@ export default function EditCustomerPage() {
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-8">
           <Section title="Identity">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Full name" htmlFor="customer-name" required>
+              <Field label="First name" htmlFor="customer-first-name" required>
                 <input
-                  id="customer-name"
+                  id="customer-first-name"
                   type="text"
                   required
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Full name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="First name"
                   className={inputClass}
                 />
               </Field>
-              <Field label="CNIC" htmlFor="customer-cnic" required>
+              <Field label="Last name" htmlFor="customer-last-name">
+                <input
+                  id="customer-last-name"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last name"
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="CNIC" htmlFor="customer-cnic">
                 <input
                   id="customer-cnic"
                   type="text"
-                  required
                   value={cnic}
                   onChange={(e) => setCnic(e.target.value)}
                   placeholder="42101-1234567-1"
@@ -406,7 +418,7 @@ export default function EditCustomerPage() {
     </div>
 
     {isSuccess && (
-      <SuccessModal title="Changes saved" message={`${customerName}'s details are up to date.`} />
+      <SuccessModal title="Changes saved" message={`${[firstName, lastName].filter(Boolean).join(" ")}'s details are up to date.`} />
     )}
     </ViewTransition>
   );

@@ -4,12 +4,12 @@ import { use, useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
 import { PlusIcon } from "@/components/icons/DashboardIcons";
 import { FilterBar, FilterDate, FilterField, FilterInput, FilterSelect } from "@/components/list/FilterBar";
+import { StagePill } from "@/components/leads/StagePill";
 import { RowMenu } from "@/components/list/RowMenu";
 import { StatusBadge, type StatusTone } from "@/components/list/StatusBadge";
 import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
 import { TablePagination } from "@/components/list/TablePagination";
 import {
-  checkboxClass,
   headCellClass,
   headRowClass,
   rowClass,
@@ -31,7 +31,7 @@ import {
   type TaskTab,
 } from "@/lib/api";
 import { downloadCsv } from "@/lib/csv";
-import { useIsAdmin } from "@/lib/session";
+import { useCan, useScope } from "@/lib/session";
 import { NEXT_TASKS, TASK_TYPES, taskLabel } from "@/lib/tasks";
 import { formatClock, formatDay } from "@/lib/time";
 
@@ -90,7 +90,10 @@ export default function TasksPage({
 }
 
 function TasksList({ linkedSearch }: { linkedSearch: string }) {
-  const admin = useIsAdmin();
+  const leadScope = useScope("leads.view");
+  // Only someone who sees other people's leads has anyone to filter by.
+  const canFilterStaff = leadScope === "team" || leadScope === "all";
+  const canAddTask = useCan("tasks.manage");
 
   const [tasks, setTasks] = useState<FollowUp[]>([]);
   const [total, setTotal] = useState(0);
@@ -106,13 +109,12 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
 
   useEffect(() => {
-    if (!admin) return;
+    if (!canFilterStaff) return;
     getAgents().then(setAgents).catch(() => {});
-  }, [admin]);
+  }, [canFilterStaff]);
 
   const buildQuery = useCallback(
     (): TasksQuery => ({
@@ -182,19 +184,9 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
 
   function resetPaging() {
     setPage(1);
-    setSelected(new Set());
-  }
-
-  function toggleSelected(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
   }
 
   const isFiltered = Object.values(filters).some(Boolean) || favouritesOnly || tab !== "all";
-  const allSelected = tasks.length > 0 && tasks.every((task) => selected.has(task.id));
 
   return (
     <ViewTransition>
@@ -205,12 +197,12 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
               Tasks
             </h1>
             <p className="text-[11px] text-muted">
-              {admin ? "All tasks" : "Tasks on your leads"} ·{" "}
+              {leadScope === "all" ? "All tasks" : leadScope === "team" ? "Tasks on your team's leads" : "Tasks on your leads"} ·{" "}
               {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {admin && (
+            {canAddTask && (
               <button type="button" onClick={() => setIsNewTaskOpen(true)} className={headerActionClass}>
                 <PlusIcon className="size-2.5" />
                 Add task
@@ -241,7 +233,7 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
               placeholder="Task ID or subject"
             />
           </FilterField>
-          {admin && (
+          {canFilterStaff && (
             <FilterField label="Assigned Staff">
               <FilterSelect
                 value={draft.assignedToId}
@@ -316,19 +308,11 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th scope="col" className="hidden w-8 lg:table-cell">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all tasks"
-                    checked={allSelected}
-                    onChange={() => setSelected(allSelected ? new Set() : new Set(tasks.map((task) => task.id)))}
-                    className={checkboxClass}
-                  />
-                </th>
                 <th scope="col" className={`${headCellClass} w-[96px] lg:w-[13%]`}>Task ID / Type</th>
                 <th scope="col" className={headCellClass}>Subject / Project</th>
-                <th scope="col" className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Client / Lead</th>
-                <th scope="col" className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Staff (Assignee)</th>
+                <th scope="col" className={`${headCellClass} hidden w-[15%] lg:table-cell`}>Client / Lead</th>
+                <th scope="col" className={`${headCellClass} hidden w-[10%] md:table-cell`}>Stage</th>
+                <th scope="col" className={`${headCellClass} hidden w-[15%] lg:table-cell`}>Staff (Assignee)</th>
                 <th scope="col" className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Due date</th>
                 <th scope="col" className={`${headCellClass} w-[96px] lg:w-[11%]`}>Status</th>
                 <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
@@ -361,15 +345,6 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
                   const agent = task.lead.assigned_to;
                   return (
                     <tr key={task.id} className={`${rowClass} !h-[74px]`}>
-                      <td className="hidden lg:table-cell">
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${taskId(task)}`}
-                          checked={selected.has(task.id)}
-                          onChange={() => toggleSelected(task.id)}
-                          className={checkboxClass}
-                        />
-                      </td>
                       <td className="pr-3">
                         <p>{taskId(task)}</p>
                         <p className={subTextClass}>{task.task_type ? taskLabel(task) : "Follow-up"}</p>
@@ -381,6 +356,9 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
                       <td className="hidden pr-3 lg:table-cell">
                         <p className="truncate">{task.lead.client_name}</p>
                         <p className={subTextClass}>Lead {task.lead.lead_no}</p>
+                      </td>
+                      <td className="hidden pr-3 md:table-cell">
+                        <StagePill stage={task.lead.stage} />
                       </td>
                       <td className="hidden pr-3 lg:table-cell">
                         <p className="truncate">{assigneeName(task)}</p>

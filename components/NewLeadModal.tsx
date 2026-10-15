@@ -12,6 +12,7 @@ import {
   getSources,
   type Customer,
 } from "@/lib/api";
+import { useCan } from "@/lib/session";
 
 type Temperature = "HOT" | "WARM" | "COLD";
 type Option = SelectOption;
@@ -33,6 +34,7 @@ const inputClass =
   "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
 export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
+  const canAssign = useCan("leads.assign");
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [interestId, setInterestId] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -66,7 +68,8 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
           getInterests(),
           getCategories(),
           getSources(),
-          getAgents(),
+          // Without leads.assign the lead is the creator's own, so there's no assignee to pick.
+          canAssign ? getAgents() : Promise.resolve([]),
         ]);
         setInterests(interestList);
         setCategories(categoryList);
@@ -79,7 +82,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
       }
     }
     void loadOptions();
-  }, [isOpen]);
+  }, [isOpen, canAssign]);
 
   if (!isOpen) return null;
 
@@ -307,18 +310,22 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="assign-to" className="text-sm text-muted">
-              Assign to
-            </label>
-            <Select
-              id="assign-to"
-              value={assignTo}
-              onChange={setAssignTo}
-              options={assigneeOptions}
-              placeholder={isLoadingOptions ? "Loading..." : "Select agent"}
-            />
-          </div>
+          {canAssign ? (
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="assign-to" className="text-sm text-muted">
+                Assign to
+              </label>
+              <Select
+                id="assign-to"
+                value={assignTo}
+                onChange={setAssignTo}
+                options={assigneeOptions}
+                placeholder={isLoadingOptions ? "Loading..." : "Select agent"}
+              />
+            </div>
+          ) : (
+            <p className="text-xs text-muted">This lead is assigned to you.</p>
+          )}
 
           {error && <p className="text-sm text-hot">{error}</p>}
 

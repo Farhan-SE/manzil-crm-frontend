@@ -13,7 +13,7 @@ import {
   getSources,
   type TaxonomyKind,
 } from "@/lib/api";
-import { useIsAdmin, useSessionFullName } from "@/lib/session";
+import { useAccess, useCan, useSessionFullName } from "@/lib/session";
 
 const inputClass =
   "w-full min-w-0 rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink placeholder:text-placeholder focus:outline-none";
@@ -157,7 +157,8 @@ const TAXONOMIES: { title: string; kind: TaxonomyKind; hint: string }[] = [
 ];
 
 export default function SettingsPage() {
-  const admin = useIsAdmin();
+  const roleName = useAccess()?.role?.name;
+  const canManageOptions = useCan("settings.manage");
   const fullName = useSessionFullName();
 
   const [managing, setManaging] = useState<TaxonomyKind | null>(null);
@@ -275,13 +276,13 @@ export default function SettingsPage() {
               <InfoRow label="Email">
                 <span className="break-all">{getSessionUser()?.email ?? "—"}</span>
               </InfoRow>
-              <InfoRow label="Role">{admin ? "Admin" : "Agent"}</InfoRow>
+              <InfoRow label="Role">{roleName ?? "—"}</InfoRow>
             </div>
           </Section>
         </div>
       </div>
 
-      {admin && (
+      {canManageOptions && (
         <div className="flex flex-col gap-4">
           <div>
             <h2

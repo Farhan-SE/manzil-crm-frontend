@@ -15,6 +15,8 @@ import {
   type Unit,
 } from "@/lib/api";
 import { UNIT_STATUSES } from "@/lib/inventory";
+import { LEAD_STAGES, leadStageLabel, needsPayment } from "@/lib/leads";
+import { StagePaymentFields, emptyStagePayment, toStagePayment, type StagePaymentDraft } from "@/components/leads/StagePayment";
 import {
   NEXT_TASKS,
   PAYMENT_SUB_TASKS,
@@ -25,6 +27,7 @@ import {
   TERMINAL_NEXT_TASKS,
   taskLabel,
 } from "@/lib/tasks";
+import { PaymentError } from "@/components/leads/PaymentError";
 
 const inputClass =
   "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
@@ -119,6 +122,8 @@ export function LogTaskModal({
   const [unitId, setUnitId] = useState(lead.unit_id ?? "");
   const [units, setUnits] = useState<Unit[]>([]);
   const [temperature, setTemperature] = useState<LeadTemperature>(lead.temperature);
+  const [stage, setStage] = useState<string>(lead.stage);
+  const [paymentDraft, setPaymentDraft] = useState<StagePaymentDraft>(() => emptyStagePayment(lead.stage));
 
   const [history, setHistory] = useState<FollowUp[]>([]);
   const [projects, setProjects] = useState<SelectOption[]>([]);
@@ -190,6 +195,9 @@ export function LogTaskModal({
   const plannedNext = history.find((f) => !f.completed);
 
   const isTerminal = TERMINAL_NEXT_TASKS.includes(nextTask);
+  // Closing the deal is a move to Sold, whatever the stage picker says.
+  const targetStage = nextTask === "closed_won" ? "sold" : stage;
+  const paymentNeeded = needsPayment(lead.stage, targetStage);
   const week = Array.from({ length: 7 }, (_, i) => new Date(now.getTime() + i * 86_400_000));
 
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
@@ -214,6 +222,8 @@ export function LogTaskModal({
         project_id: projectId || undefined,
         unit_id: unitId || undefined,
         temperature,
+        stage: targetStage !== lead.stage ? targetStage : undefined,
+        payment: paymentNeeded ? toStagePayment(paymentDraft) : undefined,
       });
       onSaved();
       onClose();
@@ -406,6 +416,17 @@ export function LogTaskModal({
                   <p className="text-xs text-muted">This lead&apos;s stage will be set to Sold.</p>
                 )}
               </Field>
+              <Field label="Stage" htmlFor="task-stage">
+                <Select
+                  id="task-stage"
+                  value={targetStage}
+                  onChange={(next) => {
+                    setStage(next);
+                    setPaymentDraft(emptyStagePayment(next));
+                  }}
+                  options={LEAD_STAGES.map((entry) => ({ id: entry.id, name: entry.label }))}
+                />
+              </Field>
 
               {!isTerminal && (
                 <div className="grid grid-cols-2 gap-4">
@@ -507,7 +528,17 @@ export function LogTaskModal({
             </div>
           </section>
 
-          {error && <p className="text-sm text-hot">{error}</p>}
+          {paymentNeeded && (
+            <section className="flex flex-col gap-4">
+              <SectionTitle>Payment received</SectionTitle>
+              <p className="-mt-2 text-xs text-muted">
+                Moving this lead to {leadStageLabel(targetStage)} records the payment and sends it for verification.
+              </p>
+              <StagePaymentFields idPrefix="task-payment" value={paymentDraft} onChange={setPaymentDraft} />
+            </section>
+          )}
+
+          <PaymentError error={error} customerId={lead.customer_id} />
 
           <div className="flex items-center justify-end gap-4">
             <button

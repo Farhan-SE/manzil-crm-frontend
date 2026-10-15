@@ -13,8 +13,8 @@ import {
   LeadFiltersBar,
   type LeadListFilters,
 } from "@/components/list/LeadFiltersBar";
-import { RowMenu } from "@/components/list/RowMenu";
-import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
+import { SortButton, StatusTabs } from "@/components/list/StatusTabs";
+import { BulkBar } from "@/components/list/BulkBar";
 import { TablePagination } from "@/components/list/TablePagination";
 import {
   checkboxClass,
@@ -27,20 +27,23 @@ import {
 import { NewLeadModal } from "@/components/NewLeadModal";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getLeads, getSessionUser, setLeadStarred, type Lead, type LeadTab } from "@/lib/api";
+import { bulkAssignLeads, getLeads, getSessionUser, setLeadStarred, type Lead, type LeadTab } from "@/lib/api";
+import { downloadCsv } from "@/lib/csv";
+import { leadStageLabel } from "@/lib/leads";
 import { whatsappUrl } from "@/lib/customers";
-import { useIsAdmin } from "@/lib/session";
+import { reaches, useCan, useScope } from "@/lib/session";
 import { taskLabel } from "@/lib/tasks";
-import { formatDay, genderLabel, timeAgo } from "@/lib/time";
+import { formatDay, timeAgo } from "@/lib/time";
 
 const TABS: { id: LeadTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "new", label: "New" },
-  { id: "recommended", label: "Recommended" },
-  { id: "watchlist", label: "Watchlist" },
+  { id: "favourites", label: "Favourites" },
 ];
 
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 9;
+
+const actionClass = "size-8 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-110";
 
 const headerActionClass =
   "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
@@ -54,7 +57,10 @@ export default function LeadsPage() {
 }
 
 function LeadsDirectory() {
-  const admin = useIsAdmin();
+  const canCreate = useCan("leads.create");
+  const canImport = useCan("leads.import");
+  const canAssign = useCan("leads.assign");
+  const editScope = useScope("leads.edit");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isNewLeadOpen, setIsNewLeadOpen] = useState(false);
   // Seeded from ?search= so other screens can land here on a lead.
@@ -66,7 +72,6 @@ function LeadsDirectory() {
   const [pageSize, setPageSize] = useState(10);
   const [tab, setTab] = useState<LeadTab>("all");
   const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [favouritesOnly, setFavouritesOnly] = useState(false);
   const [filters, setFilters] = useState<LeadListFilters>(() => initialLeadListFilters(initialSearch));
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -79,7 +84,6 @@ function LeadsDirectory() {
       limit: pageSize,
       tab,
       sort,
-      starred: favouritesOnly ? "true" : undefined,
       search: filters.search || undefined,
       search_by: filters.search ? filters.search_by : undefined,
       project_id: filters.project_id || undefined,
@@ -103,13 +107,33 @@ function LeadsDirectory() {
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
-  }, [page, pageSize, tab, sort, favouritesOnly, filters]);
+  }, [page, pageSize, tab, sort, filters]);
 
   useEffect(() => {
     load();
     window.addEventListener("leads:changed", load);
     return () => window.removeEventListener("leads:changed", load);
   }, [load]);
+
+  function exportSelected(rows: Lead[]) {
+    downloadCsv(`leads-${new Date().toLocaleDateString("en-CA")}.csv`, [
+      ["Lead ID", "Client", "Phone", "City", "Area", "Project", "Interest", "Stage", "Temperature", "Source", "Allocated to", "Created"],
+      ...rows.map((lead) => [
+        String(lead.lead_no),
+        lead.client_name,
+        lead.client_number,
+        lead.city ?? "",
+        lead.area ?? "",
+        lead.project?.name ?? "",
+        lead.interest?.name ?? "",
+        leadStageLabel(lead.stage),
+        lead.temperature,
+        lead.source?.name ?? "",
+        lead.assigned_to ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}` : "",
+        lead.created_at.slice(0, 10),
+      ]),
+    ]);
+  }
 
   async function handleStarToggle(lead: Lead) {
     const next = !lead.is_starred;
@@ -118,7 +142,7 @@ function LeadsDirectory() {
     apply(next);
     try {
       await setLeadStarred(lead.id, next);
-      // Refreshes the Watchlist count, and drops the row when unstarring inside that tab.
+      // Refreshes the Favourites count, and drops the row when unstarring inside that tab.
       load();
     } catch {
       apply(!next);
@@ -140,7 +164,7 @@ function LeadsDirectory() {
 
   const sessionUserId = getSessionUser()?.id;
   const allSelected = leads.length > 0 && leads.every((lead) => selected.has(lead.id));
-  const isFiltered = hasLeadListFilters(filters) || favouritesOnly || tab !== "all";
+  const isFiltered = hasLeadListFilters(filters) || tab !== "all";
 
   return (
     <ViewTransition>
@@ -162,24 +186,17 @@ function LeadsDirectory() {
             resetPaging();
           }}
         >
-          {admin && (
-            <>
-              <button type="button" onClick={() => setIsImportOpen(true)} className={headerActionClass}>
-                Import
-              </button>
-              <button type="button" onClick={() => setIsNewLeadOpen(true)} className={headerActionClass}>
-                <PlusIcon className="size-2.5" />
-                Add lead
-              </button>
-            </>
+          {canImport && (
+            <button type="button" onClick={() => setIsImportOpen(true)} className={headerActionClass}>
+              Import
+            </button>
           )}
-          <FavouritesButton
-            active={favouritesOnly}
-            onChange={(next) => {
-              setFavouritesOnly(next);
-              resetPaging();
-            }}
-          />
+          {canCreate && (
+            <button type="button" onClick={() => setIsNewLeadOpen(true)} className={headerActionClass}>
+              <PlusIcon className="size-2.5" />
+              Add lead
+            </button>
+          )}
           <SortButton
             sort={sort}
             onChange={(next) => {
@@ -188,6 +205,26 @@ function LeadsDirectory() {
             }}
           />
         </StatusTabs>
+
+        {selected.size > 0 && (
+          <BulkBar
+            count={selected.size}
+            noun="lead"
+            canAssign={canAssign}
+            onAssign={async (userId) => {
+              await bulkAssignLeads([...selected], userId);
+              setSelected(new Set());
+              load();
+            }}
+            onFavourite={async () => {
+              await Promise.all(leads.filter((lead) => selected.has(lead.id) && !lead.is_starred).map((lead) => setLeadStarred(lead.id, true)));
+              setSelected(new Set());
+              load();
+            }}
+            onExport={() => exportSelected(leads.filter((lead) => selected.has(lead.id)))}
+            onClear={() => setSelected(new Set())}
+          />
+        )}
 
         <div className="px-4 sm:px-8">
           <table className={tableClass}>
@@ -202,13 +239,14 @@ function LeadsDirectory() {
                     className={checkboxClass}
                   />
                 </th>
-                <th scope="col" className={`${headCellClass} w-[112px] pl-10 lg:w-[12%]`}>Lead ID</th>
-                <th scope="col" className={headCellClass}>Client</th>
-                <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Last task</th>
-                <th scope="col" className={`${headCellClass} hidden w-[19%] lg:table-cell`}>Interest</th>
-                <th scope="col" className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Source</th>
-                <th scope="col" className={`${headCellClass} hidden w-[16%] lg:table-cell`}>Allocated to</th>
-                <th scope="col" className={`${headCellClass} w-[44px] lg:w-[14%]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[112px] pl-10 lg:w-[10%]`}>Lead ID</th>
+                <th scope="col" className={`${headCellClass} lg:w-[13%]`}>Client</th>
+                <th scope="col" className={`${headCellClass} hidden w-[9%] lg:table-cell`}>City</th>
+                <th scope="col" className={`${headCellClass} hidden w-[11%] lg:table-cell`}>Last task</th>
+                <th scope="col" className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Interest</th>
+                <th scope="col" className={`${headCellClass} hidden w-[9%] lg:table-cell`}>Source</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Allocated to</th>
+                <th scope="col" className={`${headCellClass} w-[84px] sm:w-[124px] lg:w-[160px]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -235,12 +273,10 @@ function LeadsDirectory() {
               {!isLoading &&
                 leads.map((lead) => {
                   const interestLine = [lead.interest?.name, lead.category?.name].filter(Boolean).join(" · ");
-                  const location = [lead.area, lead.city].filter(Boolean).join(", ");
                   const agentName = lead.assigned_to
                     ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}`
                     : "Unassigned";
-                  // Mirrors the server rule: admins for any lead, agents only for their own.
-                  const canAddTask = admin || lead.assigned_to?.id === sessionUserId;
+                  const canAddTask = reaches(editScope, lead.assigned_to?.id, sessionUserId);
 
                   return (
                     <tr
@@ -265,7 +301,7 @@ function LeadsDirectory() {
                               e.stopPropagation();
                               void handleStarToggle(lead);
                             }}
-                            aria-label={lead.is_starred ? "Remove from watchlist" : "Add to watchlist"}
+                            aria-label={lead.is_starred ? "Remove from favourites" : "Add to favourites"}
                             aria-pressed={lead.is_starred}
                             className="shrink-0 text-warm-ink"
                           >
@@ -279,7 +315,10 @@ function LeadsDirectory() {
                       </td>
                       <td className="pr-3">
                         <p className="truncate">{lead.client_name}</p>
-                        <p className={subTextClass}>▣&nbsp; {genderLabel(lead.customer?.gender)}</p>
+                      </td>
+                      <td className="hidden pr-3 lg:table-cell">
+                        <p className="truncate">{lead.city || "—"}</p>
+                        {lead.area && <p className={subTextClass}>{lead.area}</p>}
                       </td>
                       <td className="hidden pr-3 lg:table-cell">
                         {lead.last_task ? (
@@ -296,7 +335,7 @@ function LeadsDirectory() {
                       <td className="hidden pr-3 lg:table-cell">
                         <p className="truncate">{lead.project?.name ?? "—"}</p>
                         <p className={`${subTextClass} line-clamp-2 whitespace-normal`}>
-                          {interestLine || location || "—"}
+                          {interestLine || "—"}
                         </p>
                       </td>
                       <td className="hidden pr-3 lg:table-cell">
@@ -308,24 +347,45 @@ function LeadsDirectory() {
                         {lead.assigned_to?.team && <p className={subTextClass}>{lead.assigned_to.team}</p>}
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-2 text-primary lg:gap-[19px]">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => setSelectedLead(lead)}
                             aria-label={`Open lead ${lead.lead_no}`}
-                            className="hidden lg:block"
+                            title="Open lead"
+                            className={`${actionClass} hidden bg-cold/10 text-cold lg:flex`}
                           >
-                            <Icon name="link" className="block size-4" />
+                            <Icon name="link" className="size-3.5" />
                           </button>
-                          <RowMenu
-                            label={`More actions for lead ${lead.lead_no}`}
-                            items={[
-                              { label: "View lead", onClick: () => setSelectedLead(lead) },
-                              ...(canAddTask ? [{ label: "Add task", onClick: () => setTaskLead(lead) }] : []),
-                              { label: "WhatsApp client", href: whatsappUrl(lead.client_number), external: true },
-                              { label: "Call client", href: `tel:${lead.client_number}`, external: true },
-                            ]}
-                          />
+                          {canAddTask && (
+                            <button
+                              type="button"
+                              onClick={() => setTaskLead(lead)}
+                              aria-label={`Add task to lead ${lead.lead_no}`}
+                              title="Add task"
+                              className={`${actionClass} hidden bg-badge-neutral text-primary sm:flex`}
+                            >
+                              <Icon name="tasks" className="size-3.5" />
+                            </button>
+                          )}
+                          <a
+                            href={whatsappUrl(lead.client_number)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`WhatsApp ${lead.client_name}`}
+                            title="WhatsApp"
+                            className={`${actionClass} flex bg-success/15 text-success`}
+                          >
+                            <Icon name="whatsapp" className="size-3.5" />
+                          </a>
+                          <a
+                            href={`tel:${lead.client_number}`}
+                            aria-label={`Call ${lead.client_name}`}
+                            title={`Call ${lead.client_number}`}
+                            className={`${actionClass} flex bg-attention/15 text-attention`}
+                          >
+                            <Icon name="phone" className="size-3.5" />
+                          </a>
                         </div>
                       </td>
                     </tr>

@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { ViewTransition } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import { SuccessModal } from "@/components/ui/SuccessModal";
+import { useCan } from "@/lib/session";
 import { COUNTRIES, CUSTOMER_STAGES } from "@/lib/customers";
-import { createCustomer, getAgents, getSources, type CustomerStage } from "@/lib/api";
+import { createCustomer, getAgents, getProjectOptions, getSources, type CustomerStage } from "@/lib/api";
 
 const inputClass =
   "w-full min-w-0 rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink placeholder:text-placeholder focus:outline-none";
@@ -59,9 +60,12 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 export default function NewCustomerPage() {
   const router = useRouter();
+  const canAssign = useCan("customers.assign");
 
-  const [customerName, setCustomerName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [cnic, setCnic] = useState("");
+  const [projectId, setProjectId] = useState("");
   const [contactNumber, setContactNumber] = useState("");
   const [altContactNumber, setAltContactNumber] = useState("");
   const [email, setEmail] = useState("");
@@ -78,6 +82,7 @@ export default function NewCustomerPage() {
 
   const [agents, setAgents] = useState<SelectOption[]>([]);
   const [sources, setSources] = useState<SelectOption[]>([]);
+  const [projects, setProjects] = useState<SelectOption[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,8 +93,14 @@ export default function NewCustomerPage() {
     let cancelled = false;
     async function loadOptions() {
       try {
-        const [agentList, sourceList] = await Promise.all([getAgents(), getSources()]);
+        // Only someone who can reassign clients picks an owner, so only they need the staff list.
+        const [agentList, sourceList, projectList] = await Promise.all([
+          canAssign ? getAgents() : Promise.resolve([]),
+          getSources(),
+          getProjectOptions(),
+        ]);
         if (cancelled) return;
+        setProjects(projectList.map((project) => ({ id: project.id, name: project.project_name })));
         setAgents(
           agentList.map((agent) => ({
             id: String(agent.id),
@@ -107,18 +118,21 @@ export default function NewCustomerPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [canAssign]);
 
   const assigneeOptions: SelectOption[] = [{ id: UNASSIGNED_ID, name: "Unassigned" }, ...agents];
 
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!projectId) return setError("Select the project this client is interested in.");
     setError(null);
     setIsSubmitting(true);
     try {
       const customer = await createCustomer({
-        customer_name: customerName,
-        cnic_number: cnic,
+        first_name: firstName,
+        last_name: lastName || undefined,
+        cnic_number: cnic || undefined,
+        project_id: projectId,
         contact_number: contactNumber,
         alternate_contact_number: altContactNumber || undefined,
         email: email || undefined,
@@ -192,22 +206,31 @@ export default function NewCustomerPage() {
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-8">
           <Section title="Identity">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Full name" htmlFor="customer-name" required>
+              <Field label="First name" htmlFor="customer-first-name" required>
                 <input
-                  id="customer-name"
+                  id="customer-first-name"
                   type="text"
                   required
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Full name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="First name"
                   className={inputClass}
                 />
               </Field>
-              <Field label="CNIC" htmlFor="customer-cnic" required>
+              <Field label="Last name" htmlFor="customer-last-name">
+                <input
+                  id="customer-last-name"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last name"
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="CNIC" htmlFor="customer-cnic">
                 <input
                   id="customer-cnic"
                   type="text"
-                  required
                   value={cnic}
                   onChange={(e) => setCnic(e.target.value)}
                   placeholder="42101-1234567-1"
@@ -294,6 +317,16 @@ export default function NewCustomerPage() {
 
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-4">
           <Section title="Relationship">
+            <Field label="Project" htmlFor="customer-project" required>
+              <Select
+                id="customer-project"
+                value={projectId}
+                onChange={setProjectId}
+                options={projects}
+                placeholder={isLoadingOptions ? "Loading..." : "Select project"}
+              />
+            </Field>
+            {projectId && <p className="-mt-2 text-xs text-muted">A lead on this project is opened with the client.</p>}
             <Field label="Type" htmlFor="customer-type" required>
               <Select
                 id="customer-type"
@@ -340,26 +373,32 @@ export default function NewCustomerPage() {
             </Field>
           </Section>
 
-          <Section title="Ownership">
-            <Field label="Assign to" htmlFor="customer-assign-to">
-              <Select
-                id="customer-assign-to"
-                value={assignTo}
-                onChange={setAssignTo}
-                options={assigneeOptions}
-                placeholder={isLoadingOptions ? "Loading..." : "Select agent"}
-              />
-            </Field>
-            <p className="text-xs text-muted">
-              The agent who owns this relationship. Leave unassigned to decide later.
-            </p>
-          </Section>
+          {canAssign ? (
+            <Section title="Ownership">
+              <Field label="Assign to" htmlFor="customer-assign-to">
+                <Select
+                  id="customer-assign-to"
+                  value={assignTo}
+                  onChange={setAssignTo}
+                  options={assigneeOptions}
+                  placeholder={isLoadingOptions ? "Loading..." : "Select agent"}
+                />
+              </Field>
+              <p className="text-xs text-muted">
+                The agent who owns this relationship. Leave unassigned to decide later.
+              </p>
+            </Section>
+          ) : (
+            <Section title="Ownership">
+              <p className="text-xs text-muted">This client is assigned to you. A manager can reassign it later.</p>
+            </Section>
+          )}
         </div>
       </form>
     </div>
 
     {isSuccess && (
-      <SuccessModal title="Customer added" message={`${customerName} is now in your customer list.`} />
+      <SuccessModal title="Customer added" message={`${[firstName, lastName].filter(Boolean).join(" ")} is now in your customer list.`} />
     )}
     </ViewTransition>
   );

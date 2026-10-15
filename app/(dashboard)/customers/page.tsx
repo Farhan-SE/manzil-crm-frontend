@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ViewTransition } from "react";
 import { PlusIcon } from "@/components/icons/DashboardIcons";
 import { StageSelect } from "@/components/customers/StageSelect";
 import { ImportCsvModal } from "@/components/ImportCsvModal";
+import { StagePaymentModal } from "@/components/leads/StagePayment";
+import { ClientLeads } from "@/components/customers/ClientLeads";
+import { LeadDetailModal } from "@/components/LeadDetailModal";
 import {
   FilterBar,
   FilterDate,
@@ -15,6 +18,8 @@ import {
   MoreFilters,
 } from "@/components/list/FilterBar";
 import { StatusTabs, type StatusTab } from "@/components/list/StatusTabs";
+import { BulkBar } from "@/components/list/BulkBar";
+import { downloadCsv } from "@/lib/csv";
 import { TablePagination } from "@/components/list/TablePagination";
 import { checkboxClass, headCellClass, subTextClass, tableClass } from "@/components/list/tableStyles";
 import { Icon } from "@/components/ui/Icon";
@@ -27,16 +32,20 @@ import {
   getSessionUser,
   getSources,
   setCustomerStarred,
+  bulkAssignCustomers,
   updateCustomer,
+  updateLead,
   type Agent,
   type Customer,
+  type Lead,
   type CustomersQuery,
   type CustomerStage,
   type ProjectOption,
   type Source,
 } from "@/lib/api";
 import { COUNTRIES, CUSTOMER_STAGES, flagUrl, whatsappUrl } from "@/lib/customers";
-import { useIsAdmin } from "@/lib/session";
+import { reaches, useCan, useScope } from "@/lib/session";
+import { needsPayment } from "@/lib/leads";
 import { formatDay } from "@/lib/time";
 
 type SearchField = NonNullable<CustomersQuery["search_by"]>;
@@ -49,6 +58,7 @@ type Filters = {
   projectId: string;
   city: string;
   sourceId: string;
+  leadCount: string;
 };
 
 const EMPTY_FILTERS: Filters = {
@@ -59,6 +69,7 @@ const EMPTY_FILTERS: Filters = {
   projectId: "",
   city: "",
   sourceId: "",
+  leadCount: "",
 };
 
 const SEARCH_FIELDS: { id: SearchField; name: string }[] = [
@@ -66,9 +77,10 @@ const SEARCH_FIELDS: { id: SearchField; name: string }[] = [
   { id: "name", name: "Name" },
   { id: "client_id", name: "Client ID" },
   { id: "cnic", name: "CNIC" },
+  { id: "project", name: "Project" },
 ];
 
-const COLUMN_COUNT = 9;
+const COLUMN_COUNT = 10;
 
 const SORT_OPTIONS = [
   { id: "desc", name: "Client ID Descending" },
@@ -83,7 +95,10 @@ const headerActionClass =
   "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
 
 export default function CustomersPage() {
-  const admin = useIsAdmin();
+  const canCreate = useCan("customers.create");
+  const canImport = useCan("customers.import");
+  const canAssign = useCan("customers.assign");
+  const editScope = useScope("customers.edit");
 
   const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -99,6 +114,11 @@ export default function CustomersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [openLead, setOpenLead] = useState<Lead | null>(null);
+  // Bumped after a lead is edited, so open lead panels fetch again.
+  const [leadsVersion, setLeadsVersion] = useState(0);
+  const [paymentMove, setPaymentMove] = useState<{ customer: Customer; stage: CustomerStage } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -126,6 +146,7 @@ export default function CustomersPage() {
           project_id: filters.projectId || undefined,
           city: filters.city.trim() || undefined,
           source_id: filters.sourceId || undefined,
+          lead_count: filters.leadCount.trim() ? Number(filters.leadCount) : undefined,
           starred: favouritesOnly ? "true" : undefined,
           stage: stageFilter === "all" ? undefined : stageFilter,
           sort,
@@ -168,12 +189,43 @@ export default function CustomersPage() {
 
   async function handleStageChange(customer: Customer, stage: CustomerStage) {
     if (stage === customer.stage) return;
+    if (needsPayment(customer.stage, stage)) {
+      if (!customer.latest_lead_id) return setError(`${customer.customer_name} has no lead yet. Add a lead before moving them forward.`);
+      return setPaymentMove({ customer, stage });
+    }
     try {
       await updateCustomer(customer.id, { stage });
       await load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't change that stage.");
     }
+  }
+
+  function exportSelected(rows: Customer[]) {
+    downloadCsv(`clients-${new Date().toLocaleDateString("en-CA")}.csv`, [
+      ["Client ID", "Name", "Phone", "CNIC", "City", "Project", "Leads", "Stage", "Source", "Allocated to", "Created"],
+      ...rows.map((c) => [
+        String(c.customer_no),
+        c.customer_name,
+        c.contact_number,
+        c.cnic_number ?? "",
+        c.city ?? "",
+        c.project?.name ?? "",
+        String(c.lead_count),
+        CUSTOMER_STAGES.find((s) => s.id === c.stage)?.label ?? c.stage,
+        c.source?.name ?? "",
+        c.assigned_to ? `${c.assigned_to.first_name} ${c.assigned_to.last_name}` : "",
+        c.created_at.slice(0, 10),
+      ]),
+    ]);
+  }
+
+  function toggleExpanded(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   }
 
   function toggleSelected(id: string) {
@@ -256,7 +308,7 @@ export default function CustomersPage() {
               ))}
             </FilterSelect>
           </FilterField>
-          <MoreFilters activeCount={[filters.city, filters.sourceId].filter(Boolean).length}>
+          <MoreFilters activeCount={[filters.city, filters.sourceId, filters.leadCount].filter(Boolean).length}>
             <FilterField label="City">
               <FilterInput
                 value={draft.city}
@@ -277,6 +329,18 @@ export default function CustomersPage() {
                 ))}
               </FilterSelect>
             </FilterField>
+            <FilterField label="Number of Leads">
+              <FilterInput
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                value={draft.leadCount}
+                onChange={(e) => setDraft({ ...draft, leadCount: e.target.value.replace(/\D/g, "") })}
+                placeholder="e.g. 3"
+                aria-label="Clients with exactly this many leads"
+              />
+            </FilterField>
           </MoreFilters>
         </FilterBar>
 
@@ -289,16 +353,16 @@ export default function CustomersPage() {
             resetPaging();
           }}
         >
-          {admin && (
-            <>
-              <button type="button" onClick={() => setIsImportOpen(true)} className={headerActionClass}>
-                Import
-              </button>
-              <Link href="/customers/new" className={headerActionClass}>
-                <PlusIcon className="size-2.5" />
-                Add client
-              </Link>
-            </>
+          {canImport && (
+            <button type="button" onClick={() => setIsImportOpen(true)} className={headerActionClass}>
+              Import
+            </button>
+          )}
+          {canCreate && (
+            <Link href="/customers/new" className={headerActionClass}>
+              <PlusIcon className="size-2.5" />
+              Add client
+            </Link>
           )}
           <button
             type="button"
@@ -337,6 +401,29 @@ export default function CustomersPage() {
           </div>
         </StatusTabs>
 
+        {selected.size > 0 && (
+          <BulkBar
+            count={selected.size}
+            noun="client"
+            canAssign={canAssign}
+            onAssign={async (userId) => {
+              await bulkAssignCustomers([...selected], userId);
+              setSelected(new Set());
+              setLeadsVersion((version) => version + 1);
+              await load(true);
+            }}
+            onFavourite={async () => {
+              await Promise.all(
+                customers.filter((c) => selected.has(c.id) && !c.is_starred).map((c) => setCustomerStarred(c.id, true)),
+              );
+              setSelected(new Set());
+              await load(true);
+            }}
+            onExport={() => exportSelected(customers.filter((c) => selected.has(c.id)))}
+            onClear={() => setSelected(new Set())}
+          />
+        )}
+
         {error && <p className="mx-4 mt-4 rounded-[4px] bg-hot/10 px-4 py-3 text-xs text-hot sm:mx-8">{error}</p>}
 
         <div className="px-4 pt-4 sm:px-8">
@@ -353,13 +440,14 @@ export default function CustomersPage() {
                   />
                 </th>
                 <th scope="col" className="w-9" aria-label="Favourite" />
-                <th scope="col" className={`${headCellClass} hidden w-[96px] font-bold sm:table-cell lg:w-[10%]`}>Client ID</th>
+                <th scope="col" className={`${headCellClass} hidden w-[96px] font-bold sm:table-cell lg:w-[8%]`}>Client ID</th>
                 <th scope="col" className={`${headCellClass} font-bold`}>Full name</th>
-                <th scope="col" className={`${headCellClass} hidden w-[13%] font-bold lg:table-cell`}>Location</th>
-                <th scope="col" className={`${headCellClass} hidden w-[17%] font-bold lg:table-cell`}>Source</th>
-                <th scope="col" className={`${headCellClass} hidden w-[16%] font-bold lg:table-cell`}>Allocation</th>
-                <th scope="col" className={`${headCellClass} w-[108px] font-bold lg:w-[11%]`}>Stage</th>
-                <th scope="col" className={`${headCellClass} w-[84px] font-bold lg:w-[196px]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] font-bold xl:table-cell`}>Project</th>
+                <th scope="col" className={`${headCellClass} hidden w-[9%] font-bold lg:table-cell`}>Location</th>
+                <th scope="col" className={`${headCellClass} hidden w-[12%] font-bold lg:table-cell`}>Source</th>
+                <th scope="col" className={`${headCellClass} hidden w-[13%] font-bold lg:table-cell`}>Allocation</th>
+                <th scope="col" className={`${headCellClass} w-[108px] font-bold lg:w-[10%]`}>Stage</th>
+                <th scope="col" className={`${headCellClass} w-[84px] font-bold lg:w-[188px]`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -389,13 +477,14 @@ export default function CustomersPage() {
                   const agentName = customer.assigned_to
                     ? `${customer.assigned_to.first_name} ${customer.assigned_to.last_name}`
                     : "Unassigned";
-                  // Mirrors the server rule: admins edit anyone, agents only their own customers.
-                  const canEdit = admin || customer.assigned_to?.id === sessionUserId;
+                  const canEdit = reaches(editScope, customer.assigned_to?.id, sessionUserId);
                   const href = `/customers/${customer.id}`;
                   const country = COUNTRIES.find((c) => c.id === customer.country)?.name ?? customer.country;
 
+                  const isExpanded = expanded.has(customer.id);
                   return (
-                    <tr key={customer.id} className={clientRowClass}>
+                    <Fragment key={customer.id}>
+                    <tr className={clientRowClass}>
                       <td className="hidden pl-3 lg:table-cell">
                         <input
                           type="checkbox"
@@ -439,10 +528,29 @@ export default function CustomersPage() {
                             <p className={`${subTextClass} text-[11px]`}>
                               {/* On phones the ID column is dropped to give the name room. */}
                               <span className="sm:hidden">#{customer.customer_no} · </span>
-                              {customer.lead_count} {customer.lead_count === 1 ? "Lead" : "Leads"}
+                              {customer.lead_count > 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpanded(customer.id)}
+                                  aria-expanded={isExpanded}
+                                  aria-controls={`client-leads-${customer.id}`}
+                                  className="-my-1 inline-flex items-center gap-1 py-1 text-cold hover:underline"
+                                >
+                                  {customer.lead_count} {customer.lead_count === 1 ? "Lead" : "Leads"}
+                                  <Icon
+                                    name="chevron-down"
+                                    className={`size-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                                  />
+                                </button>
+                              ) : (
+                                "No leads"
+                              )}
                             </p>
                           </div>
                         </div>
+                      </td>
+                      <td className="hidden pr-3 xl:table-cell">
+                        <p className="truncate">{customer.project?.name ?? "—"}</p>
                       </td>
                       <td className="hidden pr-3 lg:table-cell">
                         <div className="flex items-center gap-2">
@@ -539,6 +647,18 @@ export default function CustomersPage() {
                         </div>
                       </td>
                     </tr>
+                    {isExpanded && (
+                      <tr id={`client-leads-${customer.id}`} className="bg-sidebar">
+                        <td colSpan={COLUMN_COUNT} className="px-3 pb-4 pt-1">
+                          <ClientLeads
+                            key={leadsVersion}
+                            customerId={customer.id}
+                            onOpen={(lead) => setOpenLead(lead)}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })}
             </tbody>
@@ -560,6 +680,32 @@ export default function CustomersPage() {
 
       {isImportOpen && (
         <ImportCsvModal kind="customers" onClose={() => setIsImportOpen(false)} onImported={() => void load()} />
+      )}
+
+      {openLead && (
+        <LeadDetailModal
+          lead={openLead}
+          onClose={() => setOpenLead(null)}
+          onChanged={() => {
+            setLeadsVersion((version) => version + 1);
+            void load(true);
+          }}
+        />
+      )}
+
+      {paymentMove && (
+        <StagePaymentModal
+          clientName={paymentMove.customer.customer_name}
+          customerId={paymentMove.customer.id}
+          stage={paymentMove.stage}
+          onClose={() => setPaymentMove(null)}
+          onSubmit={async (payment) => {
+            // The lead carries the payment; the client's stage follows it on the server.
+            await updateLead(paymentMove.customer.latest_lead_id!, { stage: paymentMove.stage, payment });
+            setPaymentMove(null);
+            await load(true);
+          }}
+        />
       )}
     </ViewTransition>
   );

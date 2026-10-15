@@ -17,6 +17,14 @@ export const LEAD_STAGES: { id: LeadStageId; label: string }[] = [
   { id: "lost", label: "Lost" },
 ];
 
+const PAYMENT_STAGES = ["pre_closure", "sold"];
+
+/** Moving forward into Pre-Closure or Sold must record the payment received. Mirrors the server rule. */
+export function needsPayment(from: string, to: string) {
+  const rank = (stage: string) => PIPELINE_STAGES.findIndex((entry) => entry.id === stage);
+  return PAYMENT_STAGES.includes(to) && rank(to) > rank(from);
+}
+
 export function leadStageLabel(stage: string) {
   return LEAD_STAGES.find((entry) => entry.id === stage)?.label ?? stage;
 }

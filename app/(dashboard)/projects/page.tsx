@@ -23,7 +23,7 @@ import {
   type PartnerProject,
 } from "@/lib/api";
 import { formatCompact, isNewProject, PROJECT_TYPES } from "@/lib/inventory";
-import { useIsAdmin } from "@/lib/session";
+import { useCan } from "@/lib/session";
 
 type Tab = "active" | "inactive";
 type Filters = { search: string; city: string; location: string; unitType: string };
@@ -50,7 +50,7 @@ function distinct(values: (string | null)[]) {
 }
 
 export default function ProjectsPage() {
-  const admin = useIsAdmin();
+  const canManage = useCan("inventory.manage");
 
   const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -234,7 +234,7 @@ export default function ProjectsPage() {
             setPage(1);
           }}
         >
-          {admin && (
+          {canManage && (
             <button type="button" onClick={() => openForm(null)} className={headerActionClass}>
               <PlusIcon className="size-2.5" />
               Add project
@@ -354,7 +354,7 @@ export default function ProjectsPage() {
                           items={[
                             { label: "View project", onClick: () => setOpenProject(project) },
                             { label: "View units", href: `/inventory?project=${project.id}` },
-                            ...(admin ? [{ label: "Edit project", onClick: () => openForm(project) }] : []),
+                            ...(canManage ? [{ label: "Edit project", onClick: () => openForm(project) }] : []),
                           ]}
                         />
                       </td>
@@ -399,7 +399,7 @@ export default function ProjectsPage() {
           project={openProject}
           categoryName={(openProject.category_id && categoryNames[openProject.category_id]) || "Uncategorised"}
           interestName={(openProject.interest_id && interestNames[openProject.interest_id]) || "Any type"}
-          canManage={admin}
+          canManage={canManage}
           onClose={() => setOpenProject(null)}
           onEdit={() => openForm(openProject)}
           onDelete={() => handleDelete(openProject)}

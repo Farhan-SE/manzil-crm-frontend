@@ -31,6 +31,8 @@ export function PartnerFormModal({
 }: PartnerFormModalProps) {
   const [projectName, setProjectName] = useState(initial?.project_name ?? "");
   const [developer, setDeveloper] = useState(initial?.developer ?? "");
+  const [ownerName, setOwnerName] = useState(initial?.owner_name ?? "");
+  const [ownerPhone, setOwnerPhone] = useState(initial?.owner_phone ?? "");
   const [city, setCity] = useState(initial?.city ?? "");
   const [location, setLocation] = useState(initial?.location ?? "");
   const [category, setCategory] = useState(initial?.category_id ?? "");
@@ -49,6 +51,8 @@ export function PartnerFormModal({
     onSubmit({
       project_name: projectName,
       developer: developer || undefined,
+      owner_name: ownerName,
+      owner_phone: ownerPhone,
       category_id: category || undefined,
       interest_id: interest || undefined,
       city: city || undefined,
@@ -123,6 +127,36 @@ export function PartnerFormModal({
               />
             </div>
           </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="partner-owner-name" className="text-sm text-muted">
+                Owner name
+              </label>
+              <input
+                id="partner-owner-name"
+                type="text"
+                value={ownerName}
+                onChange={(e) => setOwnerName(e.target.value)}
+                placeholder="Who owns the project"
+                className={inputClass}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="partner-owner-phone" className="text-sm text-muted">
+                Owner phone
+              </label>
+              <input
+                id="partner-owner-phone"
+                type="tel"
+                value={ownerPhone}
+                onChange={(e) => setOwnerPhone(e.target.value)}
+                placeholder="03xx-xxxxxxx"
+                className={inputClass}
+              />
+            </div>
+          </div>
+          <p className="-mt-3 text-xs text-muted">Only admins see the owner&apos;s name and number.</p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
