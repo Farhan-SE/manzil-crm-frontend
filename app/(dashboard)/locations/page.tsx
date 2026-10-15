@@ -8,7 +8,6 @@ import { StatusBadge } from "@/components/list/StatusBadge";
 import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
 import { TablePagination } from "@/components/list/TablePagination";
 import {
-  checkboxClass,
   headCellClass,
   headRowClass,
   rowClass,
@@ -28,7 +27,7 @@ import {
   type ProjectOption,
 } from "@/lib/api";
 import { downloadCsv } from "@/lib/csv";
-import { useIsAdmin } from "@/lib/session";
+import { useCan } from "@/lib/session";
 
 type Filters = { search: string; city: string; projectId: string; region: string };
 
@@ -42,7 +41,7 @@ const TABS: { id: LocationTab; label: string }[] = [
 
 const EXPORT_LIMIT = 1000;
 
-const COLUMN_COUNT = 9;
+const COLUMN_COUNT = 8;
 
 const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
@@ -55,7 +54,7 @@ function plural(count: number, noun: string) {
 }
 
 export default function LocationsPage() {
-  const admin = useIsAdmin();
+  const canManage = useCan("inventory.manage");
 
   const [locations, setLocations] = useState<Location[]>([]);
   const [total, setTotal] = useState(0);
@@ -72,7 +71,6 @@ export default function LocationsPage() {
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [projects, setProjects] = useState<ProjectOption[]>([]);
 
   useEffect(() => {
@@ -147,19 +145,9 @@ export default function LocationsPage() {
 
   function resetPaging() {
     setPage(1);
-    setSelected(new Set());
-  }
-
-  function toggleSelected(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
   }
 
   const isFiltered = Object.values(filters).some(Boolean) || favouritesOnly || tab !== "all";
-  const allSelected = locations.length > 0 && locations.every((location) => selected.has(location.id));
 
   return (
     <ViewTransition>
@@ -262,17 +250,6 @@ export default function LocationsPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th scope="col" className="hidden w-8 lg:table-cell">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all locations"
-                    checked={allSelected}
-                    onChange={() =>
-                      setSelected(allSelected ? new Set() : new Set(locations.map((location) => location.id)))
-                    }
-                    className={checkboxClass}
-                  />
-                </th>
                 <th scope="col" className={headCellClass}>Location</th>
                 <th scope="col" className={`${headCellClass} w-[24%] lg:w-[10%]`}>City</th>
                 <th scope="col" className={`${headCellClass} hidden w-[21%] lg:table-cell`}>Project coverage</th>
@@ -309,15 +286,6 @@ export default function LocationsPage() {
               {!isLoading &&
                 locations.map((location) => (
                   <tr key={location.id} className={`${rowClass} !h-[74px]`}>
-                    <td className="hidden lg:table-cell">
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${locationCode(location)}`}
-                        checked={selected.has(location.id)}
-                        onChange={() => toggleSelected(location.id)}
-                        className={checkboxClass}
-                      />
-                    </td>
                     <td className="pr-3">
                       <p>{locationCode(location)}</p>
                       <p className={subTextClass}>{location.name}</p>
@@ -348,7 +316,7 @@ export default function LocationsPage() {
                             label: location.is_starred ? "Remove from favourites" : "Add to favourites",
                             onClick: () => void run(setLocationStarred(location.id, !location.is_starred)),
                           },
-                          ...(admin
+                          ...(canManage
                             ? [
                                 {
                                   label: location.is_active ? "Mark inactive" : "Mark active",

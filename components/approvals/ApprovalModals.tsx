@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, type ReactNode, type SubmitEvent } from "react";
+import { useEffect, useState, type ReactNode, type SubmitEvent } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import { LeadPicker } from "@/components/ui/LeadPicker";
-import { createApproval, decideApproval, type Approval, type ApprovalDecision } from "@/lib/api";
-import { APPROVAL_TYPES, approvalCode, approvalTypeLabel } from "@/lib/approvals";
+import { createApproval, decideApproval, getAgents, resubmitApproval, type Approval, type ApprovalDecision } from "@/lib/api";
+import { REQUESTABLE_TYPES, approvalCode, approvalSubject, approvalTypeLabel } from "@/lib/approvals";
 import { formatClock, formatDay } from "@/lib/time";
 
 const inputClass =
@@ -45,7 +45,15 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
 }
 
 export function NewApprovalModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [type, setType] = useState(APPROVAL_TYPES[0].id);
+  const [type, setType] = useState(REQUESTABLE_TYPES[0].id);
+  const [targetUserId, setTargetUserId] = useState("");
+  const [staff, setStaff] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    getAgents()
+      .then((list) => setStaff(list.map((agent) => ({ id: String(agent.id), name: `${agent.first_name} ${agent.last_name}` }))))
+      .catch(() => {});
+  }, []);
   const [leadId, setLeadId] = useState("");
   const [summary, setSummary] = useState("");
   const [priority, setPriority] = useState("normal");
@@ -59,10 +67,21 @@ export function NewApprovalModal({ onClose, onCreated }: { onClose: () => void; 
       setError("Pick the lead this request is about.");
       return;
     }
+    if (type === "lead_transfer" && !targetUserId) {
+      setError("Pick who the lead should go to.");
+      return;
+    }
     setError(null);
     setIsSubmitting(true);
     try {
-      await createApproval({ type, lead_id: leadId, summary, priority, due_date: dueDate || undefined });
+      await createApproval({
+        type,
+        lead_id: leadId,
+        target_user_id: type === "lead_transfer" ? Number(targetUserId) : undefined,
+        summary,
+        priority,
+        due_date: dueDate || undefined,
+      });
       onCreated();
       onClose();
     } catch (err) {
@@ -78,7 +97,7 @@ export function NewApprovalModal({ onClose, onCreated }: { onClose: () => void; 
           <label htmlFor="approval-type" className="text-sm text-muted">
             Request type
           </label>
-          <Select id="approval-type" value={type} onChange={setType} options={APPROVAL_TYPES} />
+          <Select id="approval-type" value={type} onChange={setType} options={REQUESTABLE_TYPES} />
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="approval-lead" className="text-sm text-muted">
@@ -87,6 +106,15 @@ export function NewApprovalModal({ onClose, onCreated }: { onClose: () => void; 
           </label>
           <LeadPicker id="approval-lead" value={leadId} onChange={setLeadId} onError={setError} />
         </div>
+        {type === "lead_transfer" && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="approval-target" className="text-sm text-muted">
+              Transfer to
+              <span className="text-hot"> *</span>
+            </label>
+            <Select id="approval-target" value={targetUserId} onChange={setTargetUserId} options={staff} placeholder="Select staff member" />
+          </div>
+        )}
         <div className="flex flex-col gap-1.5">
           <label htmlFor="approval-summary" className="text-sm text-muted">
             What needs approving
@@ -155,15 +183,35 @@ const DECISIONS: { id: ApprovalDecision; label: string; primary?: boolean }[] = 
 export function ReviewApprovalModal({
   approval,
   canDecide,
+  canResubmit,
   onClose,
   onDecided,
 }: {
   approval: Approval;
   canDecide: boolean;
+  /** The requester may answer a request that was returned to them. */
+  canResubmit: boolean;
   onClose: () => void;
   onDecided: () => void;
 }) {
   const [comment, setComment] = useState("");
+  const [response, setResponse] = useState("");
+  // Someone who can decide requests and raised this one simply decides it instead.
+  const showResubmit = canResubmit && !canDecide && approval.status === "returned";
+
+  async function resubmit() {
+    if (!response.trim()) return setError("Add the information that was asked for.");
+    setError(null);
+    setBusy("returned");
+    try {
+      await resubmitApproval(approval.id, response);
+      onDecided();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setBusy(null);
+    }
+  }
   const [busy, setBusy] = useState<ApprovalDecision | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Approved and rejected requests are closed; a returned one can be decided again.
@@ -184,8 +232,11 @@ export function ReviewApprovalModal({
 
   const details = [
     ["Request", `${approvalCode(approval)} · ${approvalTypeLabel(approval.type)}`],
-    ["Client / lead", `${approval.lead.client_name} · ${approval.lead.lead_no}`],
-    ["Project", approval.lead.project?.name ?? "—"],
+    ["About", approvalSubject(approval).detail],
+    ["Project", approvalSubject(approval).title],
+    ...(approval.payment
+      ? [["Payment", `PAY-${String(approval.payment.payment_no).padStart(4, "0")} · ${approval.payment.method ?? "—"}${approval.payment.reference ? ` · ${approval.payment.reference}` : ""}`]]
+      : []),
     [
       "Requester",
       approval.submitted_by ? `${approval.submitted_by.first_name} ${approval.submitted_by.last_name}` : "—",
@@ -196,6 +247,9 @@ export function ReviewApprovalModal({
       ? [["Reviewer", `${approval.reviewer.first_name} ${approval.reviewer.last_name}`]]
       : []),
     ...(approval.review_comment ? [["Review comment", approval.review_comment]] : []),
+    ...(approval.requester_note
+      ? [["Requester's response", `${approval.requester_note}${approval.resubmitted_at ? ` (${formatDay(approval.resubmitted_at)})` : ""}`]]
+      : []),
   ];
 
   return (
@@ -227,10 +281,45 @@ export function ReviewApprovalModal({
           </div>
         )}
 
+        {showResubmit && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="approval-response" className="text-sm text-muted">
+              Your response
+              <span className="text-hot"> *</span>
+            </label>
+            <textarea
+              id="approval-response"
+              rows={3}
+              value={response}
+              onChange={(e) => setResponse(e.target.value)}
+              placeholder="Add what the reviewer asked for, then send it back."
+              className={inputClass}
+            />
+          </div>
+        )}
+
         {error && <p className="text-sm text-hot">{error}</p>}
 
         <div className="flex flex-wrap items-center justify-end gap-3">
-          {canDecide && isOpen ? (
+          {showResubmit ? (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink hover:bg-dash-bg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={busy !== null}
+                onClick={() => void resubmit()}
+                className="rounded-xl bg-ink px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {busy ? "Sending..." : "Resubmit for approval"}
+              </button>
+            </>
+          ) : canDecide && isOpen ? (
             DECISIONS.map((decision) => (
               <button
                 key={decision.id}

@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { clearToken } from "@/lib/api";
-import { useIsAdmin, useSessionFullName } from "@/lib/session";
+import { useAccess, useSessionFullName } from "@/lib/session";
 import { CloseIcon, LogoutIcon, MenuIcon, SettingsIcon } from "@/components/icons/DashboardIcons";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { UNREAD_EVENT } from "@/components/NotificationToasts";
 import { Icon } from "@/components/ui/Icon";
-import { HELP_ITEM, NAV_SECTIONS, findActiveSection, isActivePath, sectionHref } from "@/lib/navigation";
+import { CompanyMark } from "@/components/CompanyMark";
+import { HELP_ITEM, findActiveSection, isActivePath, sectionHref, visibleSections } from "@/lib/navigation";
 
 function initials(name: string) {
   return name
@@ -21,8 +22,6 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-const wordmarkStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
-
 const iconButtonClass =
   "flex size-8 shrink-0 items-center justify-center rounded-md text-nav-idle transition-colors hover:bg-border/40";
 
@@ -31,7 +30,8 @@ const drawerRowClass = "flex items-center gap-3 rounded-lg px-3 py-2 text-sm tra
 export function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const admin = useIsAdmin();
+  const access = useAccess();
+  const sections = visibleSections(access?.permissions);
   const fullName = useSessionFullName();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -102,17 +102,13 @@ export function TopNav() {
           <MenuIcon className="h-3.5 w-[18px]" />
         </button>
 
-        <Link
-          href="/dashboard"
-          className="shrink-0 font-serif text-2xl font-bold tracking-[-0.48px] text-ink"
-          style={wordmarkStyle}
-        >
-          manzil.com
+        <Link href="/dashboard" className="shrink-0">
+          <CompanyMark />
         </Link>
 
         {/* Auto margins centre the tabs yet still let them scroll from the first one when they overflow. */}
         <nav className="hide-scrollbar hidden h-full min-w-0 flex-1 items-center gap-4 overflow-x-auto lg:flex xl:gap-6 [&>*:first-child]:ml-auto [&>*:last-child]:mr-auto">
-          {NAV_SECTIONS.map((section) => {
+          {sections.map((section) => {
             const href = sectionHref(section);
             if (!href) {
               return (
@@ -126,7 +122,7 @@ export function TopNav() {
                 </span>
               );
             }
-            const isActive = section === activeSection;
+            const isActive = section.label === activeSection?.label;
             return (
               <Link
                 key={section.label}
@@ -181,7 +177,7 @@ export function TopNav() {
               <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-56 overflow-hidden rounded-md border border-border bg-white py-1 shadow-lg">
                 <div className="border-b border-border px-4 py-3">
                   <p className="truncate text-sm font-semibold capitalize text-ink">{fullName}</p>
-                  <p className="text-xs text-nav-idle">{admin ? "Admin" : "Agent"}</p>
+                  <p className="text-xs text-nav-idle">{access?.role?.name ?? " "}</p>
                 </div>
                 <Link
                   href="/settings"
@@ -219,9 +215,7 @@ export function TopNav() {
         }`}
       >
         <div className="flex items-center justify-between pb-6 pt-2">
-          <p className="font-serif text-2xl font-bold tracking-[-0.48px] text-ink" style={wordmarkStyle}>
-            manzil.com
-          </p>
+          <CompanyMark />
           <button
             type="button"
             onClick={() => setIsDrawerOpen(false)}
@@ -233,7 +227,7 @@ export function TopNav() {
         </div>
 
         <nav className="hide-scrollbar flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-          {[...NAV_SECTIONS, { label: "Support", items: [HELP_ITEM] }].map((section) => (
+          {[...sections, { label: "Support", items: [HELP_ITEM] }].map((section) => (
             <div key={section.label} className="flex flex-col gap-1">
               {section.items.length > 1 && (
                 <p className="px-3 text-[11px] font-bold uppercase tracking-[1px] text-nav-idle">{section.label}</p>

@@ -10,7 +10,6 @@ import { StatusBadge } from "@/components/list/StatusBadge";
 import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
 import { TablePagination } from "@/components/list/TablePagination";
 import {
-  checkboxClass,
   headCellClass,
   headRowClass,
   rowClass,
@@ -34,7 +33,7 @@ import {
 import { downloadCsv } from "@/lib/csv";
 import { formatMillions } from "@/lib/money";
 import { PAYMENT_STATUSES, PAYMENT_TYPES, paymentCode, paymentTypeLabel, recentMonths } from "@/lib/payments";
-import { useIsAdmin } from "@/lib/session";
+import { useCan } from "@/lib/session";
 import { formatDay } from "@/lib/time";
 
 type Filters = { search: string; projectId: string; paymentType: string; period: string };
@@ -51,7 +50,7 @@ const TABS: { id: PaymentTab; label: string }[] = [
 
 const EXPORT_LIMIT = 1000;
 
-const COLUMN_COUNT = 9;
+const COLUMN_COUNT = 8;
 
 const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
@@ -92,7 +91,9 @@ function buildMetrics(summary: PaymentsSummary) {
 }
 
 export default function AccountsPage() {
-  const admin = useIsAdmin();
+  const canCreate = useCan("payments.create");
+  const canRecord = useCan("payments.record");
+  const canVerify = useCan("payments.verify");
 
   const [summary, setSummary] = useState<PaymentsSummary | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -108,7 +109,6 @@ export default function AccountsPage() {
   const [sort, setSort] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [months] = useState(recentMonths);
@@ -187,19 +187,9 @@ export default function AccountsPage() {
 
   function resetPaging() {
     setPage(1);
-    setSelected(new Set());
-  }
-
-  function toggleSelected(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
   }
 
   const isFiltered = Object.values(filters).some(Boolean) || favouritesOnly || tab !== "all";
-  const allSelected = payments.length > 0 && payments.every((payment) => selected.has(payment.id));
 
   return (
     <ViewTransition>
@@ -214,7 +204,7 @@ export default function AccountsPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {admin && (
+            {canCreate && (
               <button type="button" onClick={() => setIsNewOpen(true)} className={headerActionClass}>
                 <PlusIcon className="size-2.5" />
                 Add payment
@@ -337,17 +327,6 @@ export default function AccountsPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th scope="col" className="hidden w-8 lg:table-cell">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all transactions"
-                    checked={allSelected}
-                    onChange={() =>
-                      setSelected(allSelected ? new Set() : new Set(payments.map((payment) => payment.id)))
-                    }
-                    className={checkboxClass}
-                  />
-                </th>
                 <th scope="col" className={`${headCellClass} w-[104px] lg:w-[14%]`}>Reference / Type</th>
                 <th scope="col" className={headCellClass}>Client / Project</th>
                 <th scope="col" className={`${headCellClass} hidden w-[11%] lg:table-cell`}>Due date</th>
@@ -381,15 +360,6 @@ export default function AccountsPage() {
                   const status = PAYMENT_STATUSES[payment.status];
                   return (
                     <tr key={payment.id} className={`${rowClass} !h-[65px]`}>
-                      <td className="hidden lg:table-cell">
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${paymentCode(payment)}`}
-                          checked={selected.has(payment.id)}
-                          onChange={() => toggleSelected(payment.id)}
-                          className={checkboxClass}
-                        />
-                      </td>
                       <td className="pr-3">
                         <p>{paymentCode(payment)}</p>
                         <p className={subTextClass}>{paymentTypeLabel(payment.payment_type)}</p>
@@ -409,10 +379,10 @@ export default function AccountsPage() {
                         <RowMenu
                           label={`More actions for ${paymentCode(payment)}`}
                           items={[
-                            ...(payment.balance > 0
+                            ...(canRecord && payment.balance > 0
                               ? [{ label: "Record payment", onClick: () => setRecording(payment) }]
                               : []),
-                            ...(admin && payment.status === "unverified"
+                            ...(canVerify && payment.status === "unverified"
                               ? [{ label: "Verify receipt", onClick: () => void run(verifyPayment(payment.id)) }]
                               : []),
                             {

@@ -7,7 +7,7 @@ import { ViewTransition } from "react";
 import { EmailIcon, MapPinIcon, TrashIcon } from "@/components/icons/DashboardIcons";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { deleteCustomer, getCustomer, type Customer } from "@/lib/api";
-import { useIsAdmin } from "@/lib/session";
+import { reaches, useCan, useScope } from "@/lib/session";
 import { getSessionUser } from "@/lib/api";
 import { COUNTRIES, CUSTOMER_STAGES } from "@/lib/customers";
 
@@ -57,7 +57,9 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const admin = useIsAdmin();
+  const canDelete = useCan("customers.delete");
+  const canAssign = useCan("customers.assign");
+  const editScope = useScope("customers.edit");
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,7 +138,7 @@ export default function CustomerDetailPage() {
     ? `${customer.assigned_to.first_name} ${customer.assigned_to.last_name}`
     : null;
   const fullAddress = [customer.address, customer.city].filter(Boolean).join(", ");
-  const canEdit = admin || customer.assigned_to?.id === getSessionUser()?.id;
+  const canEdit = reaches(editScope, customer.assigned_to?.id, getSessionUser()?.id);
 
   return (
     <ViewTransition>
@@ -185,7 +187,7 @@ export default function CustomerDetailPage() {
               Edit customer
             </Link>
           )}
-          {admin && (
+          {canDelete && (
             <button
               type="button"
               onClick={handleDelete}
@@ -308,7 +310,7 @@ export default function CustomerDetailPage() {
             ) : (
               <div className="flex flex-col items-start gap-3">
                 <p className="text-sm text-placeholder">No agent assigned yet.</p>
-                {admin && (
+                {canAssign && (
                   <Link
                     href={`/customers/${customer.id}/edit`}
                     className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-dash-bg"

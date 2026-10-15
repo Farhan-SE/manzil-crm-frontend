@@ -21,7 +21,7 @@ import {
 import { downloadCsv } from "@/lib/csv";
 import { PIPELINE_STAGES } from "@/lib/leads";
 import { formatMoney } from "@/lib/money";
-import { useIsAdmin } from "@/lib/session";
+import { useScope } from "@/lib/session";
 import { formatClock } from "@/lib/time";
 
 type View = "board" | "summary" | "mine";
@@ -53,7 +53,9 @@ function recentMonths() {
 }
 
 export default function PipelinePage() {
-  const admin = useIsAdmin();
+  const leadScope = useScope("leads.view");
+  // Only someone who sees other people's leads has anyone to filter by.
+  const canFilterStaff = leadScope === "team" || leadScope === "all";
   const [pipeline, setPipeline] = useState<PipelineResponse | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,9 +77,9 @@ export default function PipelinePage() {
   }, []);
 
   useEffect(() => {
-    if (!admin) return;
+    if (!canFilterStaff) return;
     getAgents().then(setAgents).catch(() => {});
-  }, [admin]);
+  }, [canFilterStaff]);
 
   const buildQuery = useCallback(
     (): PipelineQuery => ({
@@ -170,7 +172,7 @@ export default function PipelinePage() {
               ))}
             </FilterSelect>
           </FilterField>
-          {admin && (
+          {canFilterStaff && (
             <FilterField label="Allocated To">
               <FilterSelect
                 value={draft.assignedToId}

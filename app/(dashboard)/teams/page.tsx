@@ -9,7 +9,6 @@ import { StatusBadge } from "@/components/list/StatusBadge";
 import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
 import { TablePagination } from "@/components/list/TablePagination";
 import {
-  checkboxClass,
   headCellClass,
   headRowClass,
   rowClass,
@@ -33,7 +32,7 @@ import {
   type TeamTab,
 } from "@/lib/api";
 import { downloadCsv } from "@/lib/csv";
-import { useIsAdmin } from "@/lib/session";
+import { useCan } from "@/lib/session";
 
 type Filters = { search: string; department: string; region: string; leadId: string };
 
@@ -48,7 +47,7 @@ const TABS: { id: TeamTab; label: string }[] = [
 const EXPORT_LIMIT = 1000;
 const SUMMARY_LIMIT = 50;
 
-const COLUMN_COUNT = 9;
+const COLUMN_COUNT = 8;
 
 const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
@@ -64,7 +63,7 @@ function leadName(team: Team) {
 }
 
 export default function TeamsPage() {
-  const admin = useIsAdmin();
+  const canManage = useCan("teams.manage");
 
   const [teams, setTeams] = useState<Team[]>([]);
   const [total, setTotal] = useState(0);
@@ -80,7 +79,6 @@ export default function TeamsPage() {
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const [everyone, setEveryone] = useState<TeamMember[]>([]);
   // The team whose members the summary panel lists; falls back to the first row.
@@ -187,15 +185,6 @@ export default function TeamsPage() {
 
   function resetPaging() {
     setPage(1);
-    setSelected(new Set());
-  }
-
-  function toggleSelected(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
   }
 
   function openForm(team: Team | null) {
@@ -204,7 +193,6 @@ export default function TeamsPage() {
   }
 
   const isFiltered = Object.values(filters).some(Boolean) || favouritesOnly;
-  const allSelected = teams.length > 0 && teams.every((team) => selected.has(team.id));
   const tabNoun = tab === "all" ? "teams" : `${tab} teams`;
 
   return (
@@ -218,7 +206,7 @@ export default function TeamsPage() {
             <p className="text-[11px] text-muted">Team groupings · Staff assignments and coverage</p>
           </div>
           <div className="flex items-center gap-3">
-            {admin && (
+            {canManage && (
               <button type="button" onClick={() => openForm(null)} className={headerActionClass}>
                 <PlusIcon className="size-2.5" />
                 Add team
@@ -316,15 +304,6 @@ export default function TeamsPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th scope="col" className="hidden w-8 lg:table-cell">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all teams"
-                    checked={allSelected}
-                    onChange={() => setSelected(allSelected ? new Set() : new Set(teams.map((team) => team.id)))}
-                    className={checkboxClass}
-                  />
-                </th>
                 <th scope="col" className={headCellClass}>Team</th>
                 <th scope="col" className={`${headCellClass} hidden w-[15%] sm:table-cell`}>Team lead</th>
                 <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Region</th>
@@ -363,15 +342,6 @@ export default function TeamsPage() {
                     onClick={() => setSummaryTeamId(team.id)}
                     className={`${rowClass} cursor-pointer hover:bg-white/60`}
                   >
-                    <td className="hidden lg:table-cell" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${team.name}`}
-                        checked={selected.has(team.id)}
-                        onChange={() => toggleSelected(team.id)}
-                        className={checkboxClass}
-                      />
-                    </td>
                     <td className="pr-3">
                       <p className="truncate">{team.name}</p>
                       <p className={subTextClass}>{teamCode(team)}</p>
@@ -401,7 +371,7 @@ export default function TeamsPage() {
                             label: team.is_starred ? "Remove from favourites" : "Add to favourites",
                             onClick: () => void run(setTeamStarred(team.id, !team.is_starred)),
                           },
-                          ...(admin
+                          ...(canManage
                             ? [
                                 { label: "Edit team", onClick: () => openForm(team) },
                                 {
@@ -450,7 +420,7 @@ export default function TeamsPage() {
                       {member.first_name} {member.last_name}
                     </p>
                     <p className={subTextClass}>
-                      E.ID: {member.id} · {member.designation ?? (member.user_role === "admin" ? "Admin" : "Agent")}
+                      E.ID: {member.id}{member.designation ? ` · ${member.designation}` : ""}
                     </p>
                     <p className="mt-[5px] text-[11px]">
                       Allocated {member.allocated_leads.toLocaleString()} · Direct{" "}

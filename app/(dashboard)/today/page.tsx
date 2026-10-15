@@ -3,6 +3,7 @@
 import { use, useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
 import { FilterBar, FilterDate, FilterField, FilterInput, FilterSelect } from "@/components/list/FilterBar";
+import { StagePill } from "@/components/leads/StagePill";
 import { RowMenu } from "@/components/list/RowMenu";
 import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
 import { TablePagination } from "@/components/list/TablePagination";
@@ -27,7 +28,7 @@ import {
   type TodoWindow,
 } from "@/lib/api";
 import { whatsappUrl } from "@/lib/customers";
-import { useIsAdmin } from "@/lib/session";
+import { useScope } from "@/lib/session";
 import { NEXT_TASKS, TASK_TYPES, taskLabel } from "@/lib/tasks";
 import { formatClock, formatDay, genderLabel, timeAgo } from "@/lib/time";
 
@@ -71,7 +72,7 @@ const TODO_TYPES = [...NEXT_TASKS, ...TASK_TYPES].filter(
   (option, i, all) => option.id !== "do_nothing" && all.findIndex((other) => other.id === option.id) === i,
 );
 
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 9;
 
 export default function TodosPage({
   searchParams,
@@ -87,7 +88,9 @@ export default function TodosPage({
   const linkedRange: DueRange = { before: dayParam(params.due_before), after: dayParam(params.due_after) };
   const isLinked = Boolean(linked.taskType || linked.dueDate || linkedRange.before || linkedRange.after);
 
-  const admin = useIsAdmin();
+  const leadScope = useScope("leads.view");
+  // Only someone who sees other people's leads has anyone to filter by.
+  const canFilterStaff = leadScope === "team" || leadScope === "all";
   const [todos, setTodos] = useState<FollowUp[]>([]);
   const [total, setTotal] = useState(0);
   const [windowCounts, setWindowCounts] = useState<Record<TodoWindow, number> | null>(null);
@@ -106,9 +109,9 @@ export default function TodosPage({
   const [agents, setAgents] = useState<Agent[]>([]);
 
   useEffect(() => {
-    if (!admin) return;
+    if (!canFilterStaff) return;
     getAgents().then(setAgents).catch(() => {});
-  }, [admin]);
+  }, [canFilterStaff]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -185,7 +188,7 @@ export default function TodosPage({
               ))}
             </FilterSelect>
           </FilterField>
-          {admin && (
+          {canFilterStaff && (
             <FilterField label="Assigned Staff">
               <FilterSelect
                 value={draft.assignedToId}
@@ -278,7 +281,8 @@ export default function TodosPage({
                 <th scope="col" className={`${headCellClass} hidden w-[15%] lg:table-cell`}>Staff (Assignee)</th>
                 <th scope="col" className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Lead ID</th>
                 <th scope="col" className={`${headCellClass} w-[34%] lg:w-[13%]`}>Client</th>
-                <th scope="col" className={`${headCellClass} hidden w-[15%] sm:table-cell`}>Interest</th>
+                <th scope="col" className={`${headCellClass} hidden w-[11%] md:table-cell`}>Stage</th>
+                <th scope="col" className={`${headCellClass} hidden w-[13%] sm:table-cell`}>Interest</th>
                 <th scope="col" className="w-[60px] lg:w-[11%]" />
               </tr>
             </thead>
@@ -346,6 +350,9 @@ export default function TodosPage({
                       <td className="pr-3">
                         <p className="truncate">{todo.lead.client_name}</p>
                         <p className={subTextClass}>▣&nbsp; {genderLabel(todo.lead.gender)}</p>
+                      </td>
+                      <td className="hidden pr-3 md:table-cell">
+                        <StagePill stage={todo.lead.stage} />
                       </td>
                       <td className="hidden pr-3 sm:table-cell">
                         <p className="truncate">{todo.lead.project?.name ?? "—"}</p>

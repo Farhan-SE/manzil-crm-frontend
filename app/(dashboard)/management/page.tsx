@@ -9,7 +9,6 @@ import { StatusBadge } from "@/components/list/StatusBadge";
 import { FavouritesButton, StatusTabs } from "@/components/list/StatusTabs";
 import { TablePagination } from "@/components/list/TablePagination";
 import {
-  checkboxClass,
   headCellClass,
   headRowClass,
   rowClass,
@@ -21,14 +20,15 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import {
   getApprovals,
   getManagementOverview,
+  getSessionUser,
   setApprovalStarred,
   type Approval,
   type ApprovalTab,
   type ManagementOverview,
 } from "@/lib/api";
-import { APPROVAL_TYPES, approvalCode, approvalTypeLabel } from "@/lib/approvals";
+import { APPROVAL_TYPES, approvalCode, approvalSubject, approvalTypeLabel } from "@/lib/approvals";
 import { downloadCsv } from "@/lib/csv";
-import { useIsAdmin } from "@/lib/session";
+import { useCan } from "@/lib/session";
 import { formatClock } from "@/lib/time";
 
 const TABS: { id: ApprovalTab; label: string }[] = [
@@ -39,7 +39,7 @@ const TABS: { id: ApprovalTab; label: string }[] = [
 
 const EXPORT_LIMIT = 1000;
 
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 7;
 
 const headingStyle = { fontVariationSettings: '"SOFT" 0, "WONK" 1' };
 
@@ -62,7 +62,7 @@ function plural(count: number, noun: string) {
 }
 
 export default function ManagementPage() {
-  const admin = useIsAdmin();
+  const canDecide = useCan("approvals.decide");
 
   const [overview, setOverview] = useState<ManagementOverview | null>(null);
   const [approvals, setApprovals] = useState<Approval[]>([]);
@@ -76,7 +76,6 @@ export default function ManagementPage() {
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [reviewing, setReviewing] = useState<Approval | null>(null);
   const [isNewOpen, setIsNewOpen] = useState(false);
 
@@ -100,9 +99,9 @@ export default function ManagementPage() {
     } finally {
       setIsLoading(false);
     }
-    // The overview is management-only; an agent just sees their own requests below.
-    if (admin) getManagementOverview().then(setOverview).catch(() => {});
-  }, [tab, favouritesOnly, sort, page, pageSize, admin]);
+    // The overview is for whoever decides requests; anyone else just sees their requests below.
+    if (canDecide) getManagementOverview().then(setOverview).catch(() => {});
+  }, [tab, favouritesOnly, sort, page, pageSize, canDecide]);
 
   useEffect(() => {
     void load();
@@ -117,9 +116,9 @@ export default function ManagementPage() {
           approvalCode(approval),
           approvalTypeLabel(approval.type),
           approval.summary,
-          approval.lead.project?.name ?? "",
-          approval.lead.client_name,
-          String(approval.lead.lead_no),
+          approvalSubject(approval).title,
+          approval.lead?.client_name ?? "",
+          approval.lead ? String(approval.lead.lead_no) : "",
           approval.submitted_by ? submitterName(approval) : "",
           approval.created_at,
           approval.priority,
@@ -133,18 +132,8 @@ export default function ManagementPage() {
 
   function resetPaging() {
     setPage(1);
-    setSelected(new Set());
   }
 
-  function toggleSelected(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
-  }
-
-  const allSelected = approvals.length > 0 && approvals.every((approval) => selected.has(approval.id));
   const busiest = Math.max(...(overview?.staff_workload ?? []).map((member) => member.open_tasks), 1);
 
   const metrics = overview && [
@@ -186,7 +175,7 @@ export default function ManagementPage() {
               Management overview
             </h1>
             <p className="text-[11px] text-muted">
-              {admin ? "Operations" : "Your approval requests"} ·{" "}
+              {canDecide ? "Operations" : "Your approval requests"} ·{" "}
               {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </p>
           </div>
@@ -207,7 +196,7 @@ export default function ManagementPage() {
           </div>
         </div>
 
-        {admin && (
+        {canDecide && (
           <div className="grid grid-cols-2 gap-3 px-4 py-4 sm:gap-5 sm:px-8 lg:grid-cols-4">
             {!metrics &&
               Array.from({ length: 4 }).map((_, i) => (
@@ -263,17 +252,6 @@ export default function ManagementPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th scope="col" className="hidden w-8 lg:table-cell">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all requests"
-                    checked={allSelected}
-                    onChange={() =>
-                      setSelected(allSelected ? new Set() : new Set(approvals.map((approval) => approval.id)))
-                    }
-                    className={checkboxClass}
-                  />
-                </th>
                 <th scope="col" className={headCellClass}>Request</th>
                 <th scope="col" className={`${headCellClass} hidden w-[21%] lg:table-cell`}>Project / Client</th>
                 <th scope="col" className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Submitted by</th>
@@ -304,15 +282,6 @@ export default function ManagementPage() {
               {!isLoading &&
                 approvals.map((approval) => (
                   <tr key={approval.id} className={`${rowClass} !h-[61px]`}>
-                    <td className="hidden lg:table-cell">
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${approvalCode(approval)}`}
-                        checked={selected.has(approval.id)}
-                        onChange={() => toggleSelected(approval.id)}
-                        className={checkboxClass}
-                      />
-                    </td>
                     <td className="pr-3">
                       <p className="truncate">
                         {approvalCode(approval)} · {approvalTypeLabel(approval.type)}
@@ -320,8 +289,8 @@ export default function ManagementPage() {
                       <p className={subTextClass}>{approval.summary}</p>
                     </td>
                     <td className="hidden pr-3 lg:table-cell">
-                      <p className="truncate">{approval.lead.project?.name ?? "—"}</p>
-                      <p className={subTextClass}>{approval.lead.client_name}</p>
+                      <p className="truncate">{approvalSubject(approval).title}</p>
+                      <p className={subTextClass}>{approvalSubject(approval).detail}</p>
                     </td>
                     <td className="hidden truncate pr-3 lg:table-cell">{submitterName(approval)}</td>
                     <td className="hidden truncate pr-3 sm:table-cell">{submittedAt(approval)}</td>
@@ -368,7 +337,7 @@ export default function ManagementPage() {
           }}
         />
 
-        {admin && overview && (
+        {canDecide && overview && (
           <div className="flex flex-col gap-6 px-4 sm:px-8 lg:flex-row lg:items-start">
             <div className={`flex min-w-0 flex-col gap-4 lg:flex-1 ${panelClass}`}>
               <div className="flex items-center justify-between leading-[1.4]">
@@ -422,7 +391,8 @@ export default function ManagementPage() {
       {reviewing && (
         <ReviewApprovalModal
           approval={reviewing}
-          canDecide={admin}
+          canDecide={canDecide}
+          canResubmit={reviewing.submitted_by?.id === getSessionUser()?.id}
           onClose={() => setReviewing(null)}
           onDecided={() => void load()}
         />

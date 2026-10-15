@@ -8,7 +8,6 @@ import { RowMenu } from "@/components/list/RowMenu";
 import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
 import { TablePagination } from "@/components/list/TablePagination";
 import {
-  checkboxClass,
   headCellClass,
   headRowClass,
   rowClass,
@@ -17,23 +16,26 @@ import {
 } from "@/components/list/tableStyles";
 import { AddTeamMemberModal } from "@/components/team/AddTeamMemberModal";
 import { EditTeamMemberModal } from "@/components/team/EditTeamMemberModal";
+import { DeactivateMemberModal } from "@/components/team/DeactivateMemberModal";
+import { ChangeRoleModal } from "@/components/team/ChangeRoleModal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
+  getRoles,
   getSessionUser,
   getStaff,
   getTeams,
   getUsers,
   setUserBlocked,
-  setUserRole,
   setUserStarred,
   setUserSuspended,
+  type Role,
   type StaffMember,
   type StaffQuery,
   type StaffTab,
   type Team,
   type TeamMember,
 } from "@/lib/api";
-import { useIsAdmin } from "@/lib/session";
+import { useCan } from "@/lib/session";
 
 type SearchField = NonNullable<StaffQuery["search_by"]>;
 
@@ -68,7 +70,7 @@ const TABS: { id: StaffTab; label: string }[] = [
   { id: "blocked", label: "Blocked" },
 ];
 
-const COLUMN_COUNT = 9;
+const COLUMN_COUNT = 8;
 
 const headerActionClass =
   "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
@@ -93,7 +95,8 @@ function tenure(member: TeamMember) {
 }
 
 export default function StaffPage() {
-  const admin = useIsAdmin();
+  const canManageStaff = useCan("staff.manage");
+  const canManageRoles = useCan("roles.manage");
 
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [total, setTotal] = useState(0);
@@ -109,18 +112,21 @@ export default function StaffPage() {
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const [everyone, setEveryone] = useState<TeamMember[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [deactivating, setDeactivating] = useState<{ member: StaffMember; action: "suspend" | "block" } | null>(null);
   const [editing, setEditing] = useState<TeamMember | null>(null);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [changingRole, setChangingRole] = useState<TeamMember | null>(null);
 
   const currentUserId = getSessionUser()?.id;
 
   const loadLookups = useCallback(() => {
     getUsers().then(setEveryone).catch(() => {});
     getTeams().then(setTeams).catch(() => {});
+    getRoles().then(setRoles).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -173,19 +179,9 @@ export default function StaffPage() {
 
   function resetPaging() {
     setPage(1);
-    setSelected(new Set());
-  }
-
-  function toggleSelected(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
   }
 
   const isFiltered = Object.values({ ...filters, searchBy: "" }).some(Boolean) || favouritesOnly;
-  const allSelected = staff.length > 0 && staff.every((member) => selected.has(member.id));
   const tabNoun = `${tab} employees`;
 
   return (
@@ -289,7 +285,7 @@ export default function StaffPage() {
             resetPaging();
           }}
         >
-          {admin && (
+          {canManageStaff && (
             <button type="button" onClick={() => setIsAddOpen(true)} className={headerActionClass}>
               <PlusIcon className="size-2.5" />
               Add member
@@ -317,15 +313,6 @@ export default function StaffPage() {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th scope="col" className="hidden w-8 lg:table-cell">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all staff"
-                    checked={allSelected}
-                    onChange={() => setSelected(allSelected ? new Set() : new Set(staff.map((member) => member.id)))}
-                    className={checkboxClass}
-                  />
-                </th>
                 <th scope="col" className={headCellClass}>Employee detail</th>
                 <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Department</th>
                 <th scope="col" className={`${headCellClass} hidden w-[9%] lg:table-cell`}>Tenure</th>
@@ -363,21 +350,12 @@ export default function StaffPage() {
                   const isSelf = member.id === currentUserId;
                   return (
                     <tr key={member.id} className={`${rowClass} !h-[170px]`}>
-                      <td className="hidden lg:table-cell">
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${member.first_name} ${member.last_name}`}
-                          checked={selected.has(member.id)}
-                          onChange={() => toggleSelected(member.id)}
-                          className={checkboxClass}
-                        />
-                      </td>
                       <td className="pr-3">
                         <p className="truncate">
                           {member.first_name} {member.last_name}
                         </p>
                         <p className={subTextClass}>
-                          E.ID: {member.id} · {member.designation ?? (member.user_role === "admin" ? "Admin" : "Agent")}
+                          E.ID: {member.id} · {member.designation ?? roles.find((role) => role.id === member.role_id)?.name ?? "—"}
                         </p>
                       </td>
                       <td className="hidden truncate pr-3 lg:table-cell">{member.department ?? "—"}</td>
@@ -405,26 +383,28 @@ export default function StaffPage() {
                               label: member.is_starred ? "Remove from favourites" : "Add to favourites",
                               onClick: () => void run(setUserStarred(member.id, !member.is_starred)),
                             },
-                            ...(admin
+                            ...(canManageRoles && !isSelf
+                              ? [{ label: "Change role", onClick: () => setChangingRole(member) }]
+                              : []),
+                            ...(canManageStaff
                               ? [
                                   { label: "Edit member", onClick: () => setEditing(member) },
                                   ...(isSelf
                                     ? []
                                     : [
                                         {
-                                          label: member.user_role === "admin" ? "Make agent" : "Make admin",
-                                          onClick: () =>
-                                            void run(
-                                              setUserRole(member.id, member.user_role === "admin" ? "agent" : "admin"),
-                                            ),
-                                        },
-                                        {
                                           label: member.suspended ? "Lift suspension" : "Suspend",
-                                          onClick: () => void run(setUserSuspended(member.id, !member.suspended)),
+                                          onClick: () =>
+                                            !member.suspended && member.allocated_leads > 0
+                                              ? setDeactivating({ member, action: "suspend" })
+                                              : void run(setUserSuspended(member.id, !member.suspended)),
                                         },
                                         {
                                           label: member.blocked ? "Unblock" : "Block",
-                                          onClick: () => void run(setUserBlocked(member.id, !member.blocked)),
+                                          onClick: () =>
+                                            !member.blocked && member.allocated_leads > 0
+                                              ? setDeactivating({ member, action: "block" })
+                                              : void run(setUserBlocked(member.id, !member.blocked)),
                                         },
                                       ]),
                                 ]
@@ -455,6 +435,8 @@ export default function StaffPage() {
       {isAddOpen && (
         <AddTeamMemberModal
           teams={teams}
+          roles={roles}
+          canChooseRole={canManageRoles}
           onClose={() => setIsAddOpen(false)}
           onCreated={() => {
             void load();
@@ -462,6 +444,27 @@ export default function StaffPage() {
           }}
         />
       )}
+      {deactivating && (
+        <DeactivateMemberModal
+          member={deactivating.member}
+          action={deactivating.action}
+          onClose={() => setDeactivating(null)}
+          onDone={() => void load()}
+        />
+      )}
+
+      {changingRole && (
+        <ChangeRoleModal
+          member={changingRole}
+          roles={roles}
+          onClose={() => setChangingRole(null)}
+          onUpdated={() => {
+            void load();
+            loadLookups();
+          }}
+        />
+      )}
+
       {editing && (
         <EditTeamMemberModal
           member={editing}

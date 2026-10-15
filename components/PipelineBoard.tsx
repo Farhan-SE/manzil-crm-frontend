@@ -19,9 +19,10 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { RowMenu } from "@/components/list/RowMenu";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { updateLead, type PipelineLead, type PipelineStage } from "@/lib/api";
+import { StagePaymentModal } from "@/components/leads/StagePayment";
+import { updateLead, type PipelineLead, type PipelineStage, type StagePayment } from "@/lib/api";
 import { whatsappUrl } from "@/lib/customers";
-import { PIPELINE_STAGES, type PipelineStageId } from "@/lib/leads";
+import { PIPELINE_STAGES, needsPayment, type PipelineStageId } from "@/lib/leads";
 import { formatMoney } from "@/lib/money";
 import { taskLabel } from "@/lib/tasks";
 import { formatClock } from "@/lib/time";
@@ -210,6 +211,7 @@ export function PipelineBoard({
   onError,
 }: PipelineBoardProps) {
   const [board, setBoard] = useState<PipelineLead[]>(() => stages.flatMap((stage) => stage.leads));
+  const [pendingMove, setPendingMove] = useState<{ lead: PipelineLead; stage: PipelineStageId; from: string } | null>(null);
   const [activeLead, setActiveLead] = useState<PipelineLead | null>(null);
   // Touch needs press-and-hold: with a distance trigger the browser claims the swipe as a scroll
   // and cancels the gesture, so cards never pick up on a phone.
@@ -230,14 +232,24 @@ export function PipelineBoard({
     return board.find((lead) => lead.id === id)?.stage as PipelineStageId | undefined;
   }
 
-  async function moveLead(lead: PipelineLead, stage: PipelineStageId) {
-    const previousStage = lead.stage;
+  async function moveLead(lead: PipelineLead, stage: PipelineStageId, from = lead.stage) {
+    if (needsPayment(from, stage)) {
+      // The card waits in its new column while the payment is entered; cancelling puts it back.
+      setBoard((prev) => prev.map((l) => (l.id === lead.id ? { ...l, stage } : l)));
+      setPendingMove({ lead, stage, from });
+      return;
+    }
+    await commitMove(lead, stage, from);
+  }
+
+  async function commitMove(lead: PipelineLead, stage: PipelineStageId, from: string, payment?: StagePayment) {
     setBoard((prev) => prev.map((l) => (l.id === lead.id ? { ...l, stage } : l)));
     try {
-      await updateLead(lead.id, { stage });
+      await updateLead(lead.id, { stage, payment });
       onMoved();
     } catch (err) {
-      setBoard((prev) => prev.map((l) => (l.id === lead.id ? { ...l, stage: previousStage } : l)));
+      setBoard((prev) => prev.map((l) => (l.id === lead.id ? { ...l, stage: from } : l)));
+      if (payment) throw err;
       onError(err instanceof Error ? err.message : "Could not move that lead.");
     }
   }
@@ -263,7 +275,7 @@ export function PipelineBoard({
 
     const overStage = findStage(String(event.over.id));
     // `dragged` still holds the stage the card was picked up from; the board already shows the new one.
-    if (overStage && overStage !== dragged.stage) void moveLead(dragged, overStage);
+    if (overStage && overStage !== dragged.stage) void moveLead(dragged, overStage, dragged.stage);
   }
 
   if (isLoading) {
@@ -304,6 +316,24 @@ export function PipelineBoard({
         ))}
       </div>
       <DragOverlay>{activeLead ? <DealCard lead={activeLead} /> : null}</DragOverlay>
+      {pendingMove && (
+        <StagePaymentModal
+          clientName={pendingMove.lead.client_name}
+          customerId={pendingMove.lead.customer_id}
+          stage={pendingMove.stage}
+          onClose={() => {
+            const { lead, from } = pendingMove;
+            setBoard((prev) => prev.map((l) => (l.id === lead.id && l.stage !== from ? { ...l, stage: from } : l)));
+            setPendingMove(null);
+          }}
+          onSubmit={async (payment) => {
+            const { lead, stage, from } = pendingMove;
+            await commitMove(lead, stage, from, payment);
+            // Already saved, so closing must not move the card back.
+            setPendingMove(null);
+          }}
+        />
+      )}
     </DndContext>
   );
 }

@@ -19,7 +19,7 @@ import {
   type DueWindow,
   type LeadsQuery,
 } from "@/lib/api";
-import { useIsAdmin } from "@/lib/session";
+import { useScope } from "@/lib/session";
 import { NEXT_TASKS, TASK_TYPES } from "@/lib/tasks";
 
 export type LeadListFilters = LeadFilters & {
@@ -75,7 +75,9 @@ export function LeadFiltersBar({
   initialSearch?: string;
   onApply: (filters: LeadListFilters) => void;
 }) {
-  const admin = useIsAdmin();
+  const leadScope = useScope("leads.view");
+  // Only someone who sees other people's leads has anyone to filter by.
+  const canFilterStaff = leadScope === "team" || leadScope === "all";
   const [draft, setDraft] = useState<LeadListFilters>(() => initialLeadListFilters(initialSearch));
   const [applied, setApplied] = useState<LeadListFilters>(() => initialLeadListFilters(initialSearch));
   const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -111,13 +113,13 @@ export function LeadFiltersBar({
   }, []);
 
   useEffect(() => {
-    if (!admin) return;
+    if (!canFilterStaff) return;
     getAgents()
       .then((list) =>
         setAgents(list.map((a) => ({ id: String(a.id), name: `${a.first_name} ${a.last_name}` }))),
       )
       .catch(() => {});
-  }, [admin]);
+  }, [canFilterStaff]);
 
   function apply(next: LeadListFilters) {
     const trimmed = { ...next, search: next.search.trim() };
@@ -161,7 +163,7 @@ export function LeadFiltersBar({
           ))}
         </FilterSelect>
       </FilterField>
-      {admin && (
+      {canFilterStaff && (
         <FilterField label="Allocated To">
           <FilterSelect
             value={draft.assigned_to_id}
@@ -237,7 +239,7 @@ export function LeadFiltersBar({
             categories={categories}
             sources={sources}
             agents={agents}
-            showAssignee={admin}
+            showAssignee={canFilterStaff}
           />
         )}
       </div>
