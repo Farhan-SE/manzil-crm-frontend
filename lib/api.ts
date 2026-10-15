@@ -1730,6 +1730,10 @@ export type ImportResult = {
   added: number;
   skipped: number;
   errors: { row: number; reason: string }[];
+  /** Client imports only: projects created because no project had a name close to it. */
+  projects_created?: string[];
+  /** Client imports only: names spelt differently from the existing project they were joined to. */
+  projects_matched?: { from: string; to: string }[];
 };
 
 /** Multipart upload — no Content-Type header, the browser sets the boundary itself. */

@@ -23,23 +23,28 @@ export function ImportCsvModal({
   const [result, setResult] = useState<ImportResult | null>(null);
 
   const headers = {
-    customers: "Name, CNIC, Phone, Alt phone, Email, Address, City, Type, Since, Source, Notes",
+    customers: "Name, CNIC, Phone, Alt phone, Email, Address, City, Type, Since, Source, Notes, Project",
     leads: "Name, Phone, Interest, Category, Source, City, Area, Budget, Temperature, Stage",
     units: "Unit, Type, Features, Floor, Beds, Price, Area, Status",
   }[kind];
 
   const note = {
-    customers: "Duplicate phone numbers are skipped.",
+    customers:
+      "Duplicate phone numbers are skipped. Each client joins the project named in its row — an existing one even if the name is slightly misspelt, otherwise a new one. No leads are opened.",
     leads: "The same number can appear more than once — one client may raise several leads.",
     units: `Every row is added to ${projectName ?? "the selected project"}. Unit numbers it already has are skipped.`,
   }[kind];
 
+  // Only the client import reads Excel workbooks; leads and units still take CSV.
+  const acceptsExcel = kind === "customers";
+
   function pickFile(picked: File) {
     setError("");
     setResult(null);
-    if (!picked.name.toLowerCase().endsWith(".csv")) {
+    const name = picked.name.toLowerCase();
+    if (!name.endsWith(".csv") && !(acceptsExcel && name.endsWith(".xlsx"))) {
       setFile(null);
-      setError("That needs to be a .csv file — export the sheet as CSV first.");
+      setError(acceptsExcel ? "That needs to be a .csv or .xlsx file." : "That needs to be a .csv file — export the sheet as CSV first.");
       return;
     }
     setFile(picked);
@@ -101,10 +106,10 @@ export function ImportCsvModal({
               <span className="text-sm font-semibold text-ink">
                 {file ? file.name : "Choose a file"}
               </span>
-              <span className="text-xs text-muted">.csv — up to 5 MB</span>
+              <span className="text-xs text-muted">{acceptsExcel ? ".csv or .xlsx" : ".csv"} — up to 5 MB</span>
               <input
                 type="file"
-                accept=".csv,text/csv"
+                accept={acceptsExcel ? ".csv,text/csv,.xlsx" : ".csv,text/csv"}
                 className="hidden"
                 onChange={(e) => e.target.files?.[0] && pickFile(e.target.files[0])}
               />
@@ -139,6 +144,27 @@ export function ImportCsvModal({
                 Imported {result.added} of {result.total} rows
                 {result.skipped > 0 ? ` — ${result.skipped} skipped.` : "."}
               </p>
+
+              {result.projects_matched && result.projects_matched.length > 0 && (
+                <div className="rounded-lg border border-border bg-white px-4 py-3 text-sm text-ink">
+                  <p>Matched to existing projects despite the spelling:</p>
+                  <ul className="mt-1.5 flex flex-col gap-1 text-[13px]">
+                    {result.projects_matched.map((match) => (
+                      <li key={match.from}>
+                        <span className="text-muted">{match.from}</span> → <span className="font-semibold">{match.to}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {result.projects_created && result.projects_created.length > 0 && (
+                <p className="rounded-lg border border-border bg-white px-4 py-3 text-sm text-ink">
+                  New project{result.projects_created.length === 1 ? "" : "s"} added:{" "}
+                  <span className="font-semibold">{result.projects_created.join(", ")}</span>. No existing project had a
+                  name close to {result.projects_created.length === 1 ? "it" : "them"}.
+                </p>
+              )}
 
               {result.errors.length > 0 && (
                 <div className="max-h-56 overflow-y-auto rounded-lg border border-border">

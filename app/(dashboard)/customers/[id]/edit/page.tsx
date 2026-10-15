@@ -145,7 +145,6 @@ export default function EditCustomerPage() {
         first_name: firstName,
         last_name: lastName,
         cnic_number: cnic,
-        contact_number: contactNumber,
         alternate_contact_number: altContactNumber || undefined,
         email: email || undefined,
         address: address || undefined,
@@ -282,12 +281,14 @@ export default function EditCustomerPage() {
                 <input
                   id="customer-phone"
                   type="tel"
-                  required
+                  readOnly
+                  aria-describedby="customer-phone-hint"
                   value={contactNumber}
-                  onChange={(e) => setContactNumber(e.target.value)}
-                  placeholder="03xx-xxxxxxx"
-                  className={inputClass}
+                  className={`${inputClass} cursor-not-allowed bg-dash-bg text-muted`}
                 />
+                <p id="customer-phone-hint" className="text-xs text-muted">
+                  The phone number can&apos;t be changed once a client is added.
+                </p>
               </Field>
               <Field label="Alternate phone" htmlFor="customer-alt-phone">
                 <input
