@@ -99,9 +99,15 @@ function subscribeAccess(onChange: () => void) {
   };
 }
 
+// Only the signed-in user's access: after a logout the old object lingers until the next load,
+// and the first render after someone else signs in must not show their menus or logo.
+function accessSnapshot() {
+  return access && access.userId === getSessionUser()?.id ? access : null;
+}
+
 /** The member's role and permissions; null until loaded (and on the server). */
 export function useAccess() {
-  return useSyncExternalStore(subscribeAccess, () => access, () => null);
+  return useSyncExternalStore(subscribeAccess, accessSnapshot, () => null);
 }
 
 /** The member's company name and logo, for the top bar. */
@@ -122,7 +128,7 @@ export function useScope(permission: string): Scope | null {
 
 /** Non-hook check for code that reads permissions once, outside render. */
 export function can(permission: string) {
-  return Boolean(access?.permissions[permission]);
+  return Boolean(accessSnapshot()?.permissions[permission]);
 }
 
 /**

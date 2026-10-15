@@ -73,6 +73,7 @@ export function clearToken() {
   // The cached role and permissions from lib/session.ts, and WelcomeGate's record of a finished first-login flow.
   sessionStorage.removeItem("access");
   sessionStorage.removeItem("welcome_done");
+  projectOptions = null;
   document.cookie = "session=; path=/; max-age=0";
 }
 
@@ -890,13 +891,17 @@ export const getPartnerProjects = (params: InventoryQuery = {}) =>
 export type ProjectOption = { id: string; project_name: string };
 
 const PROJECT_OPTIONS_TTL = 5 * 60_000;
-let projectOptions: { at: number; request: Promise<ProjectOption[]> } | null = null;
+let projectOptions: { at: number; userId: number | undefined; request: Promise<ProjectOption[]> } | null = null;
 
-/** Project names for filter dropdowns. Shared between pages for a few minutes, since every list has one. */
+/**
+ * Project names for filter dropdowns. Shared between pages for a few minutes, since every list has one.
+ * Tied to the signed-in user: another account on the same tab may belong to a different company.
+ */
 export function getProjectOptions() {
-  if (!projectOptions || Date.now() - projectOptions.at > PROJECT_OPTIONS_TTL) {
+  const userId = getSessionUser()?.id;
+  if (!projectOptions || projectOptions.userId !== userId || Date.now() - projectOptions.at > PROJECT_OPTIONS_TTL) {
     const request = apiFetch<ProjectOption[]>("/partner-projects/options");
-    projectOptions = { at: Date.now(), request };
+    projectOptions = { at: Date.now(), userId, request };
     // A failed load must not be remembered.
     request.catch(() => {
       if (projectOptions?.request === request) projectOptions = null;
