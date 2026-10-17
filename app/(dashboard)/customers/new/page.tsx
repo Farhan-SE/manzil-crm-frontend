@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, type ReactNode, type SubmitEvent } from "react";
+import { Suspense, useEffect, useState, type ReactNode, type SubmitEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ViewTransition } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import { SuccessModal } from "@/components/ui/SuccessModal";
+import { PhoneCheckStep } from "@/components/PhoneCheckStep";
 import { useCan } from "@/lib/session";
 import { COUNTRIES, CUSTOMER_STAGES } from "@/lib/customers";
 import { createCustomer, getAgents, getProjectOptions, getSources, type CustomerStage } from "@/lib/api";
@@ -59,7 +60,16 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export default function NewCustomerPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewCustomerForm />
+    </Suspense>
+  );
+}
+
+function NewCustomerForm() {
   const router = useRouter();
+  const phoneFromLink = useSearchParams().get("phone") ?? "";
   const canAssign = useCan("customers.assign");
 
   const [firstName, setFirstName] = useState("");
@@ -67,6 +77,7 @@ export default function NewCustomerPage() {
   const [cnic, setCnic] = useState("");
   const [projectId, setProjectId] = useState("");
   const [contactNumber, setContactNumber] = useState("");
+  const [isCheckingPhone, setIsCheckingPhone] = useState(true);
   const [altContactNumber, setAltContactNumber] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
@@ -243,15 +254,22 @@ export default function NewCustomerPage() {
           <Section title="Contact">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Phone" htmlFor="customer-phone" required>
-                <input
-                  id="customer-phone"
-                  type="tel"
-                  required
-                  value={contactNumber}
-                  onChange={(e) => setContactNumber(e.target.value)}
-                  placeholder="03xx-xxxxxxx"
-                  className={inputClass}
-                />
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-dash-bg px-4 py-2.5">
+                  <input
+                    id="customer-phone"
+                    type="tel"
+                    readOnly
+                    value={contactNumber}
+                    className="min-w-0 flex-1 bg-transparent text-sm text-ink focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsCheckingPhone(true)}
+                    className="shrink-0 text-xs font-semibold text-muted transition-colors hover:text-ink"
+                  >
+                    Change
+                  </button>
+                </div>
               </Field>
               <Field label="Alternate phone" htmlFor="customer-alt-phone">
                 <input
@@ -396,6 +414,36 @@ export default function NewCustomerPage() {
         </div>
       </form>
     </div>
+
+    {isCheckingPhone && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        onClick={() => (contactNumber ? setIsCheckingPhone(false) : router.push("/customers"))}
+      >
+        <div
+          className="w-full max-w-md rounded-xl bg-sidebar shadow-lg"
+          role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
+        >
+          <div className="border-b border-border px-6 py-4">
+            <h2
+              className="font-serif text-2xl font-bold text-ink"
+              style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
+            >
+              New customer
+            </h2>
+          </div>
+          <PhoneCheckStep
+            purpose="customer"
+            initialPhone={contactNumber || phoneFromLink}
+            onCancel={() => (contactNumber ? setIsCheckingPhone(false) : router.push("/customers"))}
+            onAvailable={(phone) => {
+              setContactNumber(phone);
+              setIsCheckingPhone(false);
+            }}
+          />
+        </div>
+      </div>
+    )}
 
     {isSuccess && (
       <SuccessModal title="Customer added" message={`${[firstName, lastName].filter(Boolean).join(" ")} is now in your customer list.`} />
