@@ -1663,6 +1663,15 @@ export const getCustomer = (id: string) => apiFetch<Customer>(`/customers/${id}`
 export const createCustomer = (dto: CustomerInput) =>
   apiFetch<Customer>("/customers", { method: "POST", body: JSON.stringify(dto) });
 
+export type PhoneCheck =
+  | { status: "available" }
+  | { status: "existing"; customer: Customer; added_by: { id: number; first_name: string; last_name: string } | null }
+  | { status: "taken"; message: string };
+
+/** Who already holds a number. Another agent's client comes back as "taken", with no details. */
+export const checkCustomerPhone = (phone: string) =>
+  apiFetch<PhoneCheck>(`/customers/phone-check${buildQueryString({ phone })}`);
+
 export const updateCustomer = (id: string, dto: Partial<CustomerInput>) =>
   apiFetch<Customer>(`/customers/${id}`, { method: "PATCH", body: JSON.stringify(dto) });
 

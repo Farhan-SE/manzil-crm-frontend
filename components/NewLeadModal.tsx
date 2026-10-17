@@ -3,6 +3,7 @@
 import { useEffect, useState, type SubmitEvent } from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { CustomerPicker } from "@/components/CustomerPicker";
+import { clientAgents, PhoneCheckStep } from "@/components/PhoneCheckStep";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import {
   createLead,
@@ -36,6 +37,7 @@ const inputClass =
 export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
   const canAssign = useCan("leads.assign");
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customerAgents, setCustomerAgents] = useState("");
   const [interestId, setInterestId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [city, setCity] = useState("");
@@ -88,6 +90,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
 
   function resetForm() {
     setCustomer(null);
+    setCustomerAgents("");
     setInterestId("");
     setCategoryId("");
     setCity("");
@@ -184,6 +187,16 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
           </button>
         </div>
 
+        {!customer ? (
+          <PhoneCheckStep
+            purpose="lead"
+            onCancel={handleClose}
+            onExisting={(next, addedBy) => {
+              setCustomerAgents(clientAgents(next, addedBy));
+              handleCustomerChange(next);
+            }}
+          />
+        ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-6 py-5">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="lead-customer" className="text-sm text-muted">
@@ -191,6 +204,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
               <span className="text-hot"> *</span>
             </label>
             <CustomerPicker value={customer} onChange={handleCustomerChange} />
+            {customerAgents && <p className="text-xs text-muted">{customerAgents}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -346,6 +360,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
             </button>
           </div>
         </form>
+        )}
         </>
         )}
       </div>
