@@ -9,22 +9,46 @@ export const CUSTOMER_STAGES: { id: CustomerStage; label: string; className: str
   { id: "lost", label: "Closed Lost", className: "bg-stage-lost text-white" },
 ];
 
+/** `dial` is the calling code without the plus. */
 export const COUNTRIES = [
-  { id: "PK", name: "Pakistan" },
-  { id: "AE", name: "United Arab Emirates" },
-  { id: "SA", name: "Saudi Arabia" },
-  { id: "QA", name: "Qatar" },
-  { id: "KW", name: "Kuwait" },
-  { id: "OM", name: "Oman" },
-  { id: "BH", name: "Bahrain" },
-  { id: "GB", name: "United Kingdom" },
-  { id: "US", name: "United States" },
-  { id: "CA", name: "Canada" },
-  { id: "AU", name: "Australia" },
+  { id: "PK", name: "Pakistan", dial: "92" },
+  { id: "AE", name: "United Arab Emirates", dial: "971" },
+  { id: "SA", name: "Saudi Arabia", dial: "966" },
+  { id: "QA", name: "Qatar", dial: "974" },
+  { id: "KW", name: "Kuwait", dial: "965" },
+  { id: "OM", name: "Oman", dial: "968" },
+  { id: "BH", name: "Bahrain", dial: "973" },
+  { id: "GB", name: "United Kingdom", dial: "44" },
+  { id: "US", name: "United States", dial: "1" },
+  { id: "CA", name: "Canada", dial: "1" },
+  { id: "AU", name: "Australia", dial: "61" },
 ];
 
 export function flagUrl(country: string) {
   return `https://flagcdn.com/w20/${country.toLowerCase()}.png`;
+}
+
+/**
+ * Splits a stored number into its country and the rest. "+971 50…" and "00971 50…" name their
+ * country; a number without a code, like the 03xx numbers saved before codes were asked for, is Pakistani.
+ */
+export function splitPhone(phone: string) {
+  const trimmed = phone.trim();
+  if (trimmed.startsWith("+") || trimmed.startsWith("00")) {
+    const digits = trimmed.replace(/\D/g, "").replace(/^00/, "");
+    // Longest code first, so +971 isn't read as some shorter code.
+    const country = [...COUNTRIES].sort((a, b) => b.dial.length - a.dial.length).find((c) => digits.startsWith(c.dial));
+    if (country) return { country: country.id, national: digits.slice(country.dial.length) };
+  }
+  return { country: "PK", national: trimmed };
+}
+
+/** The international form saved for a number, e.g. "+923001234567"; empty when no digits were typed. */
+export function joinPhone(country: string, national: string) {
+  // A trunk 0 (0300…) isn't dialled after the country code.
+  const digits = national.replace(/\D/g, "").replace(/^0+/, "");
+  const dial = COUNTRIES.find((c) => c.id === country)?.dial ?? "92";
+  return digits ? `+${dial}${digits}` : "";
 }
 
 /** wa.me needs the number in international form; local 03xx numbers are assumed to be Pakistani. */

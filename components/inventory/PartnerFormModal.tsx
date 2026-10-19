@@ -2,6 +2,7 @@
 
 import { useState, type SubmitEvent } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import type { PartnerProject, PartnerProjectInput } from "@/lib/api";
 import { PROJECT_TYPES } from "@/lib/inventory";
 
@@ -146,14 +147,7 @@ export function PartnerFormModal({
               <label htmlFor="partner-owner-phone" className="text-sm text-muted">
                 Owner phone
               </label>
-              <input
-                id="partner-owner-phone"
-                type="tel"
-                value={ownerPhone}
-                onChange={(e) => setOwnerPhone(e.target.value)}
-                placeholder="03xx-xxxxxxx"
-                className={inputClass}
-              />
+              <PhoneInput id="partner-owner-phone" value={ownerPhone} onChange={setOwnerPhone} />
             </div>
           </div>
           <p className="-mt-3 text-xs text-muted">Only admins see the owner&apos;s name and number.</p>
