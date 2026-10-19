@@ -1774,6 +1774,52 @@ export const importLeadsCsv = (file: File) => uploadCsv("/leads/import", file);
 export const importUnitsCsv = (file: File, projectId: string) =>
   uploadCsv(`/units/import${buildQueryString({ project_id: projectId })}`, file);
 
+/** A client import running in the background; the page polls it for progress. */
+export type CustomerImportJob = {
+  id: string;
+  file_name: string;
+  status: "uploading" | "queued" | "processing" | "completed" | "failed";
+  /** Null until the worker has read the file. */
+  total_rows: number | null;
+  processed_rows: number;
+  added: number;
+  skipped: number;
+  /** The first skipped rows only; `skipped` is the full count. */
+  errors: { row: number; reason: string }[];
+  projects_created: string[];
+  projects_matched: { from: string; to: string }[];
+  error_message: string | null;
+  created_at: string;
+  finished_at: string | null;
+};
+
+type ImportUpload = { url: string; fields: Record<string, string> };
+
+/** Uploads the file straight to storage, then asks the API to import it in the background. */
+export async function startCustomerImport(file: File): Promise<CustomerImportJob> {
+  const { job, upload } = await apiFetch<{ job: CustomerImportJob; upload: ImportUpload }>("/customers/imports", {
+    method: "POST",
+    body: JSON.stringify({ file_name: file.name }),
+  });
+
+  const form = new FormData();
+  for (const [key, value] of Object.entries(upload.fields)) form.append(key, value);
+  // Storage reads the policy fields first, so the file has to be the last part of the form.
+  form.append("file", file);
+  const res = await fetch(upload.url, { method: "POST", body: form });
+  if (!res.ok) {
+    throw new Error(res.status === 400 ? "That file is too large — the limit is 20 MB." : "The file couldn't be uploaded. Please try again.");
+  }
+
+  return apiFetch<CustomerImportJob>(`/customers/imports/${job.id}/start`, { method: "POST" });
+}
+
+export const getCustomerImport = (id: string) => apiFetch<CustomerImportJob>(`/customers/imports/${id}`);
+
+/** The company's import still running, if any. */
+export const getActiveCustomerImport = () =>
+  apiFetch<{ job: CustomerImportJob | null }>("/customers/imports/active").then((res) => res.job);
+
 // ── Help Center ───────────────────────────────────────────────────────────────
 
 export type HelpTopicId =

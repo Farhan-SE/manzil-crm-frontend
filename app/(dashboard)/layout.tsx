@@ -1,3 +1,4 @@
+import { ImportProgress } from "@/components/ImportProgress";
 import { NotificationToasts } from "@/components/NotificationToasts";
 import { Sidebar } from "@/components/Sidebar";
 import { TopNav } from "@/components/TopNav";
@@ -14,6 +15,7 @@ export default function DashboardLayout({
       <Sidebar />
       <main className="lg:pl-24">{children}</main>
       <NotificationToasts />
+      <ImportProgress />
       <WelcomeGate />
     </div>
   );

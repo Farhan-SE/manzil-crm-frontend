@@ -20,6 +20,7 @@ import {
 import { StatusTabs, type StatusTab } from "@/components/list/StatusTabs";
 import { BulkBar } from "@/components/list/BulkBar";
 import { downloadCsv } from "@/lib/csv";
+import { onCustomerImportFinished } from "@/lib/customer-import";
 import { TablePagination } from "@/components/list/TablePagination";
 import { checkboxClass, headCellClass, subTextClass, tableClass } from "@/components/list/tableStyles";
 import { Icon } from "@/components/ui/Icon";
@@ -172,6 +173,8 @@ export default function CustomersPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => onCustomerImportFinished(() => void load(true)), [load]);
 
   function resetPaging() {
     setPage(1);
@@ -679,7 +682,7 @@ export default function CustomersPage() {
       </div>
 
       {isImportOpen && (
-        <ImportCsvModal kind="customers" onClose={() => setIsImportOpen(false)} onImported={() => void load()} />
+        <ImportCsvModal kind="customers" onClose={() => setIsImportOpen(false)} />
       )}
 
       {openLead && (
