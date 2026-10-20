@@ -7,8 +7,9 @@ import { ViewTransition } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import { SuccessModal } from "@/components/ui/SuccessModal";
 import { PhoneCheckStep } from "@/components/PhoneCheckStep";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useCan } from "@/lib/session";
-import { COUNTRIES, CUSTOMER_STAGES } from "@/lib/customers";
+import { COUNTRIES, CUSTOMER_STAGES, splitPhone } from "@/lib/customers";
 import { createCustomer, getAgents, getProjectOptions, getSources, type CustomerStage } from "@/lib/api";
 
 const inputClass =
@@ -272,13 +273,11 @@ function NewCustomerForm() {
                 </div>
               </Field>
               <Field label="Alternate phone" htmlFor="customer-alt-phone">
-                <input
+                <PhoneInput
                   id="customer-alt-phone"
-                  type="tel"
                   value={altContactNumber}
-                  onChange={(e) => setAltContactNumber(e.target.value)}
+                  onChange={setAltContactNumber}
                   placeholder="Optional"
-                  className={inputClass}
                 />
               </Field>
             </div>
@@ -438,6 +437,8 @@ function NewCustomerForm() {
             onCancel={() => (contactNumber ? setIsCheckingPhone(false) : router.push("/customers"))}
             onAvailable={(phone) => {
               setContactNumber(phone);
+              // The client's country starts as the one their number is from.
+              setCountry(splitPhone(phone).country);
               setIsCheckingPhone(false);
             }}
           />

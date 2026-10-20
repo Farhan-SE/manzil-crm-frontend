@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { importCustomersCsv, importLeadsCsv, importUnitsCsv, type ImportResult } from "@/lib/api";
+import { importLeadsCsv, importUnitsCsv, startCustomerImport, type ImportResult } from "@/lib/api";
+import { trackCustomerImport } from "@/lib/customer-import";
 
 export function ImportCsvModal({
   kind,
@@ -15,7 +16,8 @@ export function ImportCsvModal({
   projectId?: string;
   projectName?: string;
   onClose: () => void;
-  onImported: () => void;
+  /** Leads and units only; a client import finishes in the background and announces itself. */
+  onImported?: () => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
@@ -35,16 +37,16 @@ export function ImportCsvModal({
     units: `Every row is added to ${projectName ?? "the selected project"}. Unit numbers it already has are skipped.`,
   }[kind];
 
-  // Only the client import reads Excel workbooks; leads and units still take CSV.
-  const acceptsExcel = kind === "customers";
+  // Only the client import reads Excel workbooks and runs in the background; leads and units still take CSV.
+  const isClients = kind === "customers";
 
   function pickFile(picked: File) {
     setError("");
     setResult(null);
     const name = picked.name.toLowerCase();
-    if (!name.endsWith(".csv") && !(acceptsExcel && name.endsWith(".xlsx"))) {
+    if (!name.endsWith(".csv") && !(isClients && name.endsWith(".xlsx"))) {
       setFile(null);
-      setError(acceptsExcel ? "That needs to be a .csv or .xlsx file." : "That needs to be a .csv file — export the sheet as CSV first.");
+      setError(isClients ? "That needs to be a .csv or .xlsx file." : "That needs to be a .csv file — export the sheet as CSV first.");
       return;
     }
     setFile(picked);
@@ -55,15 +57,15 @@ export function ImportCsvModal({
     setIsImporting(true);
     setError("");
     try {
-      const res =
-        kind === "customers"
-          ? await importCustomersCsv(file)
-          : kind === "leads"
-            ? await importLeadsCsv(file)
-            : await importUnitsCsv(file, projectId ?? "");
+      if (isClients) {
+        trackCustomerImport(await startCustomerImport(file));
+        onClose();
+        return;
+      }
+      const res = kind === "leads" ? await importLeadsCsv(file) : await importUnitsCsv(file, projectId ?? "");
       setResult(res);
       setFile(null);
-      if (res.added > 0) onImported();
+      if (res.added > 0) onImported?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import failed.");
     } finally {
@@ -71,6 +73,68 @@ export function ImportCsvModal({
     }
   }
 
+  return (
+    <ImportDialog title={`Import ${kind}`} subtitle={`Columns can be in any order. Recognised headers: ${headers}. ${note}`} onClose={onClose}>
+      {!result && (
+        <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border py-12 text-center transition-colors hover:border-muted/50 hover:bg-white/50">
+          <span className="text-sm font-semibold text-ink">
+            {file ? file.name : "Choose a file"}
+          </span>
+          <span className="text-xs text-muted">{isClients ? ".csv or .xlsx — up to 20 MB" : ".csv — up to 5 MB"}</span>
+          <input
+            type="file"
+            accept={isClients ? ".csv,text/csv,.xlsx" : ".csv,text/csv"}
+            className="hidden"
+            onChange={(e) => e.target.files?.[0] && pickFile(e.target.files[0])}
+          />
+        </label>
+      )}
+
+      {error && <p className="text-sm text-hot">{error}</p>}
+
+      {file && !result && (
+        <>
+          {isClients && (
+            <p className="text-xs text-muted">
+              The import carries on in the background — you can close this and keep working while it runs.
+            </p>
+          )}
+          <div className="flex items-center justify-end gap-4">
+            <button
+              type="button"
+              onClick={() => setFile(null)}
+              className="text-sm font-medium text-muted transition-colors hover:text-ink"
+            >
+              Choose another
+            </button>
+            <button
+              type="button"
+              onClick={handleImport}
+              disabled={isImporting}
+              className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isImporting ? (isClients ? "Uploading..." : "Importing...") : "Import"}
+            </button>
+          </div>
+        </>
+      )}
+
+      {result && <ImportResultView result={result} onDone={onClose} />}
+    </ImportDialog>
+  );
+}
+
+export function ImportDialog({
+  title,
+  subtitle,
+  onClose,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
@@ -83,12 +147,9 @@ export function ImportCsvModal({
               className="font-serif text-2xl font-bold text-ink"
               style={{ fontVariationSettings: '"SOFT" 0, "WONK" 1' }}
             >
-              Import {kind}
+              {title}
             </h2>
-            <p className="mt-0.5 text-xs text-muted">
-              Columns can be in any order. Recognised headers: {headers}.{" "}
-              {note}
-            </p>
+            {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
           </div>
           <button
             type="button"
@@ -100,101 +161,74 @@ export function ImportCsvModal({
           </button>
         </div>
 
-        <div className="flex flex-col gap-4 px-4 py-5 sm:px-6">
-          {!result && (
-            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border py-12 text-center transition-colors hover:border-muted/50 hover:bg-white/50">
-              <span className="text-sm font-semibold text-ink">
-                {file ? file.name : "Choose a file"}
-              </span>
-              <span className="text-xs text-muted">{acceptsExcel ? ".csv or .xlsx" : ".csv"} — up to 5 MB</span>
-              <input
-                type="file"
-                accept={acceptsExcel ? ".csv,text/csv,.xlsx" : ".csv,text/csv"}
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && pickFile(e.target.files[0])}
-              />
-            </label>
-          )}
-
-          {error && <p className="text-sm text-hot">{error}</p>}
-
-          {file && !result && (
-            <div className="flex items-center justify-end gap-4">
-              <button
-                type="button"
-                onClick={() => setFile(null)}
-                className="text-sm font-medium text-muted transition-colors hover:text-ink"
-              >
-                Choose another
-              </button>
-              <button
-                type="button"
-                onClick={handleImport}
-                disabled={isImporting}
-                className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isImporting ? "Importing..." : "Import"}
-              </button>
-            </div>
-          )}
-
-          {result && (
-            <>
-              <p className="rounded-lg bg-stage-sold/10 px-4 py-3 text-sm text-stage-sold">
-                Imported {result.added} of {result.total} rows
-                {result.skipped > 0 ? ` — ${result.skipped} skipped.` : "."}
-              </p>
-
-              {result.projects_matched && result.projects_matched.length > 0 && (
-                <div className="rounded-lg border border-border bg-white px-4 py-3 text-sm text-ink">
-                  <p>Matched to existing projects despite the spelling:</p>
-                  <ul className="mt-1.5 flex flex-col gap-1 text-[13px]">
-                    {result.projects_matched.map((match) => (
-                      <li key={match.from}>
-                        <span className="text-muted">{match.from}</span> → <span className="font-semibold">{match.to}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {result.projects_created && result.projects_created.length > 0 && (
-                <p className="rounded-lg border border-border bg-white px-4 py-3 text-sm text-ink">
-                  New project{result.projects_created.length === 1 ? "" : "s"} added:{" "}
-                  <span className="font-semibold">{result.projects_created.join(", ")}</span>. No existing project had a
-                  name close to {result.projects_created.length === 1 ? "it" : "them"}.
-                </p>
-              )}
-
-              {result.errors.length > 0 && (
-                <div className="max-h-56 overflow-y-auto rounded-lg border border-border">
-                  {result.errors.map((issue, i) => (
-                    <div
-                      key={`${issue.row}-${i}`}
-                      className={`flex gap-3 bg-white px-4 py-2 text-[13px] ${
-                        i > 0 ? "border-t border-border" : ""
-                      }`}
-                    >
-                      <span className="shrink-0 font-medium text-muted">Row {issue.row}</span>
-                      <span className="min-w-0 text-ink">{issue.reason}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90"
-                >
-                  Done
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        <div className="flex flex-col gap-4 px-4 py-5 sm:px-6">{children}</div>
       </div>
     </div>
+  );
+}
+
+/** What an import added and skipped, and how its project names were matched. */
+export function ImportResultView({ result, onDone }: { result: ImportResult; onDone: () => void }) {
+  return (
+    <>
+      <p className="rounded-lg bg-stage-sold/10 px-4 py-3 text-sm text-stage-sold">
+        Imported {result.added} of {result.total} rows
+        {result.skipped > 0 ? ` — ${result.skipped} skipped.` : "."}
+      </p>
+
+      {result.projects_matched && result.projects_matched.length > 0 && (
+        <div className="rounded-lg border border-border bg-white px-4 py-3 text-sm text-ink">
+          <p>Matched to existing projects despite the spelling:</p>
+          <ul className="mt-1.5 flex flex-col gap-1 text-[13px]">
+            {result.projects_matched.map((match) => (
+              <li key={match.from}>
+                <span className="text-muted">{match.from}</span> → <span className="font-semibold">{match.to}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {result.projects_created && result.projects_created.length > 0 && (
+        <p className="rounded-lg border border-border bg-white px-4 py-3 text-sm text-ink">
+          New project{result.projects_created.length === 1 ? "" : "s"} added:{" "}
+          <span className="font-semibold">{result.projects_created.join(", ")}</span>. No existing project had a
+          name close to {result.projects_created.length === 1 ? "it" : "them"}.
+        </p>
+      )}
+
+      {result.errors.length > 0 && (
+        <div>
+          <div className="max-h-56 overflow-y-auto rounded-lg border border-border">
+            {result.errors.map((issue, i) => (
+              <div
+                key={`${issue.row}-${i}`}
+                className={`flex gap-3 bg-white px-4 py-2 text-[13px] ${
+                  i > 0 ? "border-t border-border" : ""
+                }`}
+              >
+                <span className="shrink-0 font-medium text-muted">Row {issue.row}</span>
+                <span className="min-w-0 text-ink">{issue.reason}</span>
+              </div>
+            ))}
+          </div>
+          {result.errors.length < result.skipped && (
+            <p className="mt-1.5 text-xs text-muted">
+              Showing the first {result.errors.length} of {result.skipped} skipped rows.
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onDone}
+          className="rounded-xl bg-ink px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90"
+        >
+          Done
+        </button>
+      </div>
+    </>
   );
 }

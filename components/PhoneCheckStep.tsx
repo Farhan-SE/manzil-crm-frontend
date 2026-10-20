@@ -4,9 +4,7 @@ import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import { checkCustomerPhone, type Customer, type PhoneCheck } from "@/lib/api";
 import { useCan } from "@/lib/session";
-
-const inputClass =
-  "w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink placeholder:text-placeholder focus:outline-none";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 
 type AddedBy = Extract<PhoneCheck, { status: "existing" }>["added_by"];
 
@@ -77,19 +75,15 @@ export function PhoneCheckStep({
           Client&apos;s phone number
           <span className="text-hot"> *</span>
         </label>
-        <input
+        <PhoneInput
           id="phone-check"
-          type="tel"
           required
           autoFocus
-          autoComplete="off"
           value={phone}
-          onChange={(e) => {
-            setPhone(e.target.value);
+          onChange={(value) => {
+            setPhone(value);
             setNotice(null);
           }}
-          placeholder="03xx-xxxxxxx"
-          className={inputClass}
         />
         <p className="text-xs text-muted">
           {purpose === "lead"

@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ViewTransition } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import { SuccessModal } from "@/components/ui/SuccessModal";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { COUNTRIES, CUSTOMER_STAGES } from "@/lib/customers";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getAgents, getCustomer, getSources, updateCustomer, type CustomerStage } from "@/lib/api";
@@ -291,13 +292,11 @@ export default function EditCustomerPage() {
                 </p>
               </Field>
               <Field label="Alternate phone" htmlFor="customer-alt-phone">
-                <input
+                <PhoneInput
                   id="customer-alt-phone"
-                  type="tel"
                   value={altContactNumber}
-                  onChange={(e) => setAltContactNumber(e.target.value)}
+                  onChange={setAltContactNumber}
                   placeholder="Optional"
-                  className={inputClass}
                 />
               </Field>
             </div>
