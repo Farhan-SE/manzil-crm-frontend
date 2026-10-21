@@ -179,6 +179,21 @@ export async function forgotPassword(email: string): Promise<ForgotPasswordRespo
   return res.json();
 }
 
+/** Sets a new password with the token from a reset email. Public, like forgotPassword. */
+export async function resetPassword(token: string, newPassword: string): Promise<ForgotPasswordResponse> {
+  const res = await fetch(`${API_URL}/auth/reset-password-token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const msg = body?.message ?? "Something went wrong. Please try again.";
+    throw new Error(Array.isArray(msg) ? msg[0] : msg);
+  }
+  return res.json();
+}
+
 // ── Access ────────────────────────────────────────────────────────────────────
 
 /** How far a scoped permission reaches: the user's own records, their team's, or everyone's. */
