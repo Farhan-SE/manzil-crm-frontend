@@ -9,6 +9,7 @@ import { ImportCsvModal } from "@/components/ImportCsvModal";
 import { StagePaymentModal } from "@/components/leads/StagePayment";
 import { ClientLeads } from "@/components/customers/ClientLeads";
 import { LeadDetailModal } from "@/components/LeadDetailModal";
+import { NewLeadModal } from "@/components/NewLeadModal";
 import {
   FilterBar,
   FilterDate,
@@ -99,6 +100,7 @@ export default function CustomersPage() {
   const canCreate = useCan("customers.create");
   const canImport = useCan("customers.import");
   const canAssign = useCan("customers.assign");
+  const canCreateLead = useCan("leads.create");
   const editScope = useScope("customers.edit");
 
   const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
@@ -117,6 +119,7 @@ export default function CustomersPage() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [openLead, setOpenLead] = useState<Lead | null>(null);
+  const [newLeadFor, setNewLeadFor] = useState<Customer | null>(null);
   // Bumped after a lead is edited, so open lead panels fetch again.
   const [leadsVersion, setLeadsVersion] = useState(0);
   const [paymentMove, setPaymentMove] = useState<{ customer: Customer; stage: CustomerStage } | null>(null);
@@ -175,6 +178,15 @@ export default function CustomersPage() {
   }, [load]);
 
   useEffect(() => onCustomerImportFinished(() => void load(true)), [load]);
+
+  useEffect(() => {
+    function refresh() {
+      setLeadsVersion((version) => version + 1);
+      void load(true);
+    }
+    window.addEventListener("leads:changed", refresh);
+    return () => window.removeEventListener("leads:changed", refresh);
+  }, [load]);
 
   function resetPaging() {
     setPage(1);
@@ -450,7 +462,7 @@ export default function CustomersPage() {
                 <th scope="col" className={`${headCellClass} hidden w-[12%] font-bold lg:table-cell`}>Source</th>
                 <th scope="col" className={`${headCellClass} hidden w-[13%] font-bold lg:table-cell`}>Allocation</th>
                 <th scope="col" className={`${headCellClass} w-[108px] font-bold lg:w-[10%]`}>Stage</th>
-                <th scope="col" className={`${headCellClass} w-[84px] font-bold lg:w-[188px]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[84px] font-bold lg:w-56.5`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -639,6 +651,17 @@ export default function CustomersPage() {
                               <Icon name="file" className="size-3.5" />
                             </Link>
                           )}
+                          {canCreateLead && (
+                            <button
+                              type="button"
+                              onClick={() => setNewLeadFor(customer)}
+                              aria-label={`Add a lead for ${customer.customer_name}`}
+                              title="Add lead"
+                              className={`${actionClass} hidden bg-stage-inquiry/10 text-stage-inquiry lg:flex`}
+                            >
+                              <PlusIcon className="size-3" />
+                            </button>
+                          )}
                           <a
                             href={`tel:${customer.contact_number}`}
                             aria-label={`Call ${customer.customer_name}`}
@@ -683,6 +706,10 @@ export default function CustomersPage() {
 
       {isImportOpen && (
         <ImportCsvModal kind="customers" onClose={() => setIsImportOpen(false)} />
+      )}
+
+      {newLeadFor && (
+        <NewLeadModal isOpen initialCustomer={newLeadFor} onClose={() => setNewLeadFor(null)} />
       )}
 
       {openLead && (
