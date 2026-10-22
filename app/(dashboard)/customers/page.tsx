@@ -27,6 +27,7 @@ import { checkboxClass, headCellClass, subTextClass, tableClass } from "@/compon
 import { Icon } from "@/components/ui/Icon";
 import { Listbox } from "@/components/ui/Listbox";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SpanCell } from "@/components/list/SpanCell";
 import {
   getAgents,
   getCustomers,
@@ -469,20 +470,20 @@ export default function CustomersPage() {
               {isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className={clientRowClass}>
-                    <td colSpan={COLUMN_COUNT} className="px-3">
+                    <SpanCell colSpan={COLUMN_COUNT} className="px-3">
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
                         <Skeleton className="h-2.5 w-1/5" />
                       </div>
-                    </td>
+                    </SpanCell>
                   </tr>
                 ))}
 
               {!isLoading && customers.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
+                  <SpanCell colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? "No clients match those filters." : "No clients yet."}
-                  </td>
+                  </SpanCell>
                 </tr>
               )}
 
@@ -675,13 +676,13 @@ export default function CustomersPage() {
                     </tr>
                     {isExpanded && (
                       <tr id={`client-leads-${customer.id}`} className="bg-sidebar">
-                        <td colSpan={COLUMN_COUNT} className="px-3 pb-4 pt-1">
+                        <SpanCell colSpan={COLUMN_COUNT} className="px-3 pb-4 pt-1">
                           <ClientLeads
                             key={leadsVersion}
                             customerId={customer.id}
                             onOpen={(lead) => setOpenLead(lead)}
                           />
-                        </td>
+                        </SpanCell>
                       </tr>
                     )}
                     </Fragment>

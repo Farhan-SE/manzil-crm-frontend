@@ -19,6 +19,7 @@ import { EditTeamMemberModal } from "@/components/team/EditTeamMemberModal";
 import { DeactivateMemberModal } from "@/components/team/DeactivateMemberModal";
 import { ChangeRoleModal } from "@/components/team/ChangeRoleModal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SpanCell } from "@/components/list/SpanCell";
 import {
   getRoles,
   getSessionUser,
@@ -326,21 +327,21 @@ export default function StaffPage() {
             <tbody>
               {isLoading &&
                 Array.from({ length: 3 }).map((_, i) => (
-                  <tr key={i} className={`${rowClass} !h-[170px]`}>
-                    <td colSpan={COLUMN_COUNT}>
+                  <tr key={i} className={`${rowClass} lg:!h-[170px]`}>
+                    <SpanCell colSpan={COLUMN_COUNT}>
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
                         <Skeleton className="h-2.5 w-1/5" />
                       </div>
-                    </td>
+                    </SpanCell>
                   </tr>
                 ))}
 
               {!isLoading && staff.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
+                  <SpanCell colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? `No ${tabNoun} match those filters.` : `No ${tabNoun}.`}
-                  </td>
+                  </SpanCell>
                 </tr>
               )}
 
@@ -349,7 +350,7 @@ export default function StaffPage() {
                   const joined = tenure(member);
                   const isSelf = member.id === currentUserId;
                   return (
-                    <tr key={member.id} className={`${rowClass} !h-[170px]`}>
+                    <tr key={member.id} className={`${rowClass} lg:!h-[170px]`}>
                       <td className="pr-3">
                         <p className="truncate">
                           {member.first_name} {member.last_name}

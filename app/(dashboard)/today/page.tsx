@@ -17,6 +17,7 @@ import {
 } from "@/components/list/tableStyles";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SpanCell } from "@/components/list/SpanCell";
 import {
   getAgents,
   getTodos,
@@ -290,20 +291,20 @@ export default function TodosPage({
               {isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className={rowClass}>
-                    <td colSpan={COLUMN_COUNT}>
+                    <SpanCell colSpan={COLUMN_COUNT}>
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
                         <Skeleton className="h-2.5 w-1/5" />
                       </div>
-                    </td>
+                    </SpanCell>
                   </tr>
                 ))}
 
               {!isLoading && todos.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
+                  <SpanCell colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? "No todos match those filters." : "Nothing here. All caught up."}
-                  </td>
+                  </SpanCell>
                 </tr>
               )}
 

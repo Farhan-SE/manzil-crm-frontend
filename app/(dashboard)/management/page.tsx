@@ -17,6 +17,7 @@ import {
 } from "@/components/list/tableStyles";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SpanCell } from "@/components/list/SpanCell";
 import {
   getApprovals,
   getManagementOverview,
@@ -258,24 +259,24 @@ export default function ManagementPage() {
                 <th scope="col" className={`${headCellClass} hidden w-[13%] sm:table-cell`}>Submitted</th>
                 <th scope="col" className={`${headCellClass} w-[84px] lg:w-[11%]`}>Priority</th>
                 <th scope="col" className={`${headCellClass} w-[76px] lg:w-[10%]`}>Review</th>
-                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}><span className="sr-only lg:not-sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {isLoading &&
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className={`${rowClass} !h-[61px]`}>
-                    <td colSpan={COLUMN_COUNT}>
+                    <SpanCell colSpan={COLUMN_COUNT}>
                       <Skeleton className="h-3 w-1/3" />
-                    </td>
+                    </SpanCell>
                   </tr>
                 ))}
 
               {!isLoading && approvals.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
+                  <SpanCell colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {tab === "pending" ? "Nothing is waiting for approval." : "No requests here."}
-                  </td>
+                  </SpanCell>
                 </tr>
               )}
 

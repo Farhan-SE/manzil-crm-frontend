@@ -9,6 +9,7 @@ import { TablePagination } from "@/components/list/TablePagination";
 import { headCellClass, headRowClass, rowClass, subTextClass, tableClass } from "@/components/list/tableStyles";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SpanCell } from "@/components/list/SpanCell";
 import {
   generateReport,
   getAgents,
@@ -485,24 +486,24 @@ export default function ReportsPage() {
                 <th scope="col" className={`${headCellClass} hidden w-[18%] lg:table-cell`}>Last generated</th>
                 <th scope="col" className={`${headCellClass} hidden w-[8%] lg:table-cell`}>Format</th>
                 <th scope="col" className={`${headCellClass} w-[110px] lg:w-[11%]`}>Download</th>
-                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[4%]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[4%]`}><span className="sr-only lg:not-sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {!reports &&
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className={`${rowClass} !h-[52px]`}>
-                    <td colSpan={COLUMN_COUNT}>
+                    <SpanCell colSpan={COLUMN_COUNT}>
                       <Skeleton className="h-3 w-1/3" />
-                    </td>
+                    </SpanCell>
                   </tr>
                 ))}
 
               {reports && visible.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
+                  <SpanCell colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     No reports in this category.
-                  </td>
+                  </SpanCell>
                 </tr>
               )}
 
