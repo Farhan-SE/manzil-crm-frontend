@@ -18,6 +18,7 @@ import {
 } from "@/components/list/tableStyles";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SpanCell } from "@/components/list/SpanCell";
 import {
   getSalesDisputes,
   getSessionUser,
@@ -277,27 +278,27 @@ export default function SalesDisputesPage() {
                 <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Review owner</th>
                 <th scope="col" className={`${headCellClass} w-[120px] lg:w-[13%]`}>Status</th>
                 <th scope="col" className={`${headCellClass} hidden w-[13%] sm:table-cell`}>Resolution due</th>
-                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}><span className="sr-only lg:not-sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className={`${rowClass} !h-[94px]`}>
-                    <td colSpan={COLUMN_COUNT}>
+                    <SpanCell colSpan={COLUMN_COUNT}>
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
                         <Skeleton className="h-2.5 w-1/5" />
                       </div>
-                    </td>
+                    </SpanCell>
                   </tr>
                 ))}
 
               {!isLoading && disputes.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
+                  <SpanCell colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? "No cases match those filters." : "No sales disputes yet."}
-                  </td>
+                  </SpanCell>
                 </tr>
               )}
 

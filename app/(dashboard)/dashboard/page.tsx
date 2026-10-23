@@ -262,12 +262,12 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
           {(cards ?? Array.from({ length: 5 }, () => null)).map((card, index) => (
-            <div key={card?.label ?? index} className={`${cardClass} flex min-h-[82px] items-center justify-between gap-3 px-5 py-4`}>
+            <div key={card?.label ?? index} className={`${cardClass} flex min-h-[82px] items-center justify-between gap-3 px-5 py-4 last:col-span-2 lg:last:col-span-1`}>
               {card ? (
                 <>
                   <div className="min-w-0">
                     <p className="flex items-center gap-1.5 text-sm font-bold leading-[1.4] text-ink">
-                      <span className="truncate">{card.label}</span>
+                      <span className="lg:truncate">{card.label}</span>
                       <Hint text={card.hint} />
                     </p>
                     <p className="mt-0.5 text-[11px] leading-[1.4] text-muted">Month To Date</p>

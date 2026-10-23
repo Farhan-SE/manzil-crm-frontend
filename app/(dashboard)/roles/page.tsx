@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/list/StatusBadge";
 import { headCellClass, headRowClass, rowClass, subTextClass, tableClass } from "@/components/list/tableStyles";
 import { RoleFormModal } from "@/components/roles/RoleFormModal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SpanCell } from "@/components/list/SpanCell";
 import {
   deleteRole,
   getPermissionCatalogue,
@@ -116,19 +117,19 @@ export default function RolesPage() {
                 <th scope="col" className={`${headCellClass} hidden w-[34%] lg:table-cell`}>Reach</th>
                 <th scope="col" className={`${headCellClass} w-[20%] lg:w-[10%]`}>Members</th>
                 <th scope="col" className={`${headCellClass} hidden w-[16%] sm:table-cell`}>Permissions</th>
-                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}><span className="sr-only lg:not-sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {isLoading &&
                 Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i} className={rowClass}>
-                    <td colSpan={COLUMN_COUNT}>
+                    <SpanCell colSpan={COLUMN_COUNT}>
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
                         <Skeleton className="h-2.5 w-1/5" />
                       </div>
-                    </td>
+                    </SpanCell>
                   </tr>
                 ))}
 

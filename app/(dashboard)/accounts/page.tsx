@@ -18,6 +18,7 @@ import {
 } from "@/components/list/tableStyles";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SpanCell } from "@/components/list/SpanCell";
 import {
   getProjectOptions,
   getPayments,
@@ -334,24 +335,24 @@ export default function AccountsPage() {
                 <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Received (PKR)</th>
                 <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Balance (PKR)</th>
                 <th scope="col" className={`${headCellClass} w-[96px] lg:w-[10%]`}>Status</th>
-                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}><span className="sr-only lg:not-sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className={`${rowClass} !h-[65px]`}>
-                    <td colSpan={COLUMN_COUNT}>
+                    <SpanCell colSpan={COLUMN_COUNT}>
                       <Skeleton className="h-3 w-1/3" />
-                    </td>
+                    </SpanCell>
                   </tr>
                 ))}
 
               {!isLoading && payments.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
+                  <SpanCell colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? "No transactions match those filters." : "No transactions yet."}
-                  </td>
+                  </SpanCell>
                 </tr>
               )}
 

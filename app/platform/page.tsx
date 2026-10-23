@@ -12,6 +12,7 @@ import { headCellClass, headRowClass, rowClass, subTextClass, tableClass } from 
 import { AddCompanyModal } from "@/components/platform/AddCompanyModal";
 import { EditCompanyModal } from "@/components/platform/EditCompanyModal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SpanCell } from "@/components/list/SpanCell";
 import { apiAssetUrl, getCompanies, updateCompany, type Company, type CompanyStatus } from "@/lib/api";
 
 type Tab = "all" | CompanyStatus;
@@ -141,27 +142,27 @@ export default function CompaniesPage() {
                 <th scope="col" className={`${headCellClass} hidden w-[14%] lg:table-cell`}>Leads · Clients</th>
                 <th scope="col" className={`${headCellClass} hidden w-[12%] lg:table-cell`}>Last activity</th>
                 <th scope="col" className={`${headCellClass} w-[90px] lg:w-[9%]`}>Status</th>
-                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}>Actions</th>
+                <th scope="col" className={`${headCellClass} w-[40px] text-[11px] lg:w-[5%]`}><span className="sr-only lg:not-sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {isLoading &&
                 Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i} className={rowClass}>
-                    <td colSpan={COLUMN_COUNT}>
+                    <SpanCell colSpan={COLUMN_COUNT}>
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
                         <Skeleton className="h-2.5 w-1/5" />
                       </div>
-                    </td>
+                    </SpanCell>
                   </tr>
                 ))}
 
               {!isLoading && companies.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
+                  <SpanCell colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {search ? `No ${tabNoun} match "${search}".` : `No ${tabNoun} yet.`}
-                  </td>
+                  </SpanCell>
                 </tr>
               )}
 

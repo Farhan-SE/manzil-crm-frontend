@@ -12,6 +12,7 @@ import { TablePagination } from "@/components/list/TablePagination";
 import { headCellClass, headRowClass, rowClass, subTextClass, tableClass } from "@/components/list/tableStyles";
 import type { SelectOption } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SpanCell } from "@/components/list/SpanCell";
 import {
   createPartnerProject,
   deletePartnerProject,
@@ -268,21 +269,21 @@ export default function ProjectsPage() {
             <tbody>
               {isLoading &&
                 Array.from({ length: 3 }).map((_, i) => (
-                  <tr key={i} className={`${rowClass} !h-[162px]`}>
-                    <td colSpan={COLUMN_COUNT}>
+                  <tr key={i} className={`${rowClass} lg:!h-[162px]`}>
+                    <SpanCell colSpan={COLUMN_COUNT}>
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
                         <Skeleton className="h-2.5 w-1/5" />
                       </div>
-                    </td>
+                    </SpanCell>
                   </tr>
                 ))}
 
               {!isLoading && visible.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
+                  <SpanCell colSpan={COLUMN_COUNT} className="py-10 text-center text-xs text-placeholder">
                     {isFiltered ? `No ${tab} projects match those filters.` : `No ${tab} projects yet.`}
-                  </td>
+                  </SpanCell>
                 </tr>
               )}
 
@@ -294,7 +295,7 @@ export default function ProjectsPage() {
                     <tr
                       key={project.id}
                       onClick={() => setOpenProject(project)}
-                      className={`${rowClass} !h-[162px] cursor-pointer hover:bg-white/60`}
+                      className={`${rowClass} lg:!h-[162px] cursor-pointer hover:bg-white/60`}
                     >
                       <td>
                         <button

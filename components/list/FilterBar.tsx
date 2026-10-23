@@ -9,15 +9,28 @@ import { Listbox, type ListboxOption } from "@/components/ui/Listbox";
 const controlClass = "-my-2 min-w-0 bg-transparent py-2 text-xs leading-[1.4] focus:outline-none";
 
 export function FilterBar({ children, onSearch }: { children: ReactNode; onSearch: () => void }) {
+  // Below lg the fields fold away behind a toggle, so the list isn't pushed off the first screen.
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        setIsOpen(false);
         onSearch();
       }}
-      className="flex flex-wrap items-end gap-x-6 gap-y-4 bg-cream px-4 py-6 sm:px-8"
+      className="flex flex-wrap items-end gap-x-6 gap-y-4 bg-cream px-4 py-4 sm:px-8 lg:py-6"
     >
-      {children}
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+        className="flex h-9 items-center gap-1.5 text-xs leading-[1.4] text-primary lg:hidden"
+      >
+        <Icon name="search" className="size-4" />
+        Filters
+        <Icon name="chevron-down" className={`size-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      <div className={`${isOpen ? "flex" : "hidden"} order-last w-full flex-col gap-4 lg:contents`}>{children}</div>
       <button
         type="submit"
         className="ml-auto flex h-9 shrink-0 items-center gap-[7px] rounded-[4px] bg-primary px-4 text-xs leading-[1.4] text-white transition-colors hover:bg-primary/90"

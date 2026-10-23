@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ViewTransition } from "react";
-import { EmailIcon, MapPinIcon, TrashIcon } from "@/components/icons/DashboardIcons";
+import { EmailIcon, MapPinIcon, PlusIcon, TrashIcon } from "@/components/icons/DashboardIcons";
+import { ClientLeads } from "@/components/customers/ClientLeads";
+import { LeadDetailModal } from "@/components/LeadDetailModal";
+import { NewLeadModal } from "@/components/NewLeadModal";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { deleteCustomer, getCustomer, type Customer } from "@/lib/api";
+import { deleteCustomer, getCustomer, type Customer, type Lead } from "@/lib/api";
 import { reaches, useCan, useScope } from "@/lib/session";
 import { getSessionUser } from "@/lib/api";
 import { COUNTRIES, CUSTOMER_STAGES } from "@/lib/customers";
@@ -60,11 +63,15 @@ export default function CustomerDetailPage() {
   const canDelete = useCan("customers.delete");
   const canAssign = useCan("customers.assign");
   const editScope = useScope("customers.edit");
+  const canCreateLead = useCan("leads.create");
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isNewLeadOpen, setIsNewLeadOpen] = useState(false);
+  const [openLead, setOpenLead] = useState<Lead | null>(null);
+  const [leadsVersion, setLeadsVersion] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +93,18 @@ export default function CustomerDetailPage() {
       cancelled = true;
     };
   }, [params.id]);
+
+  const refreshLeads = useCallback(() => {
+    setLeadsVersion((version) => version + 1);
+    getCustomer(params.id)
+      .then(setCustomer)
+      .catch(() => {});
+  }, [params.id]);
+
+  useEffect(() => {
+    window.addEventListener("leads:changed", refreshLeads);
+    return () => window.removeEventListener("leads:changed", refreshLeads);
+  }, [refreshLeads]);
 
   async function handleDelete() {
     setIsDeleting(true);
@@ -179,6 +198,16 @@ export default function CustomerDetailPage() {
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-3">
+          {canCreateLead && (
+            <button
+              type="button"
+              onClick={() => setIsNewLeadOpen(true)}
+              className="flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-dash-bg"
+            >
+              <PlusIcon className="size-3" />
+              Add lead
+            </button>
+          )}
           {canEdit && (
             <Link
               href={`/customers/${customer.id}/edit`}
@@ -323,6 +352,18 @@ export default function CustomerDetailPage() {
           </Section>
         </div>
       </div>
+
+      <Section title={`Leads (${customer.lead_count})`}>
+        <ClientLeads key={leadsVersion} customerId={customer.id} onOpen={setOpenLead} />
+      </Section>
+
+      {isNewLeadOpen && (
+        <NewLeadModal isOpen initialCustomer={customer} onClose={() => setIsNewLeadOpen(false)} />
+      )}
+
+      {openLead && (
+        <LeadDetailModal lead={openLead} onClose={() => setOpenLead(null)} onChanged={refreshLeads} />
+      )}
     </div>
     </ViewTransition>
   );

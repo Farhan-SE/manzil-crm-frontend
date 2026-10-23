@@ -21,6 +21,8 @@ type Option = SelectOption;
 type NewLeadModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  /** Skips the phone check and starts the form on this client. Read on mount only. */
+  initialCustomer?: Customer;
 };
 
 const UNASSIGNED_ID = "unassigned";
@@ -34,17 +36,17 @@ const TEMP_STYLES: Record<Temperature, string> = {
 const inputClass =
   "w-full rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
 
-export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
+export function NewLeadModal({ isOpen, onClose, initialCustomer }: NewLeadModalProps) {
   const canAssign = useCan("leads.assign");
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(initialCustomer ?? null);
   const [customerAgents, setCustomerAgents] = useState("");
   const [interestId, setInterestId] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState(initialCustomer?.city ?? "");
   const [area, setArea] = useState("");
   const [budget, setBudget] = useState("");
-  const [sourceId, setSourceId] = useState("");
-  const [subSource, setSubSource] = useState("");
+  const [sourceId, setSourceId] = useState(initialCustomer?.source_id ?? "");
+  const [subSource, setSubSource] = useState(initialCustomer?.sub_source ?? "");
   const [temperature, setTemperature] = useState<Temperature>("WARM");
   const [assignTo, setAssignTo] = useState(UNASSIGNED_ID);
 
