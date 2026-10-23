@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationScroll, useNavigationState } from "@/lib/use-navigation-state";
+
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ViewTransition } from "react";
@@ -69,12 +71,13 @@ function LeadsDirectory() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [total, setTotal] = useState(0);
   const [tabCounts, setTabCounts] = useState<Record<LeadTab, number> | null>(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [tab, setTab] = useState<LeadTab>("all");
-  const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [filters, setFilters] = useState<LeadListFilters>(() => initialLeadListFilters(initialSearch));
+  const [page, setPage] = useNavigationState("page", 1, initialSearch);
+  const [pageSize, setPageSize] = useNavigationState("pageSize", 10, initialSearch);
+  const [tab, setTab] = useNavigationState<LeadTab>("tab", "all", initialSearch);
+  const [sort, setSort] = useNavigationState<"asc" | "desc">("sort", "desc", initialSearch);
+  const [filters, setFilters] = useNavigationState<LeadListFilters>("filters", () => initialLeadListFilters(initialSearch), initialSearch);
   const [isLoading, setIsLoading] = useState(true);
+  useNavigationScroll(!isLoading, initialSearch);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [taskLead, setTaskLead] = useState<Lead | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -108,7 +111,7 @@ function LeadsDirectory() {
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
-  }, [page, pageSize, tab, sort, filters]);
+  }, [page, pageSize, tab, sort, filters, setPage]);
 
   useEffect(() => {
     load();

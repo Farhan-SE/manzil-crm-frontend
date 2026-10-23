@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationScroll, useNavigationState } from "@/lib/use-navigation-state";
+
 import { use, useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
 import { PlusIcon } from "@/components/icons/DashboardIcons";
@@ -100,15 +102,16 @@ function TasksList({ linkedSearch }: { linkedSearch: string }) {
   const [total, setTotal] = useState(0);
   const [statusCounts, setStatusCounts] = useState<Record<TaskTab, number> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  useNavigationScroll(!isLoading, linkedSearch);
   const [error, setError] = useState<string | null>(null);
 
-  const [draft, setDraft] = useState<Filters>({ ...EMPTY_FILTERS, search: linkedSearch });
-  const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS, search: linkedSearch });
-  const [tab, setTab] = useState<TaskTab>("all");
-  const [favouritesOnly, setFavouritesOnly] = useState(false);
-  const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [draft, setDraft] = useNavigationState<Filters>("draft", { ...EMPTY_FILTERS, search: linkedSearch }, linkedSearch);
+  const [filters, setFilters] = useNavigationState<Filters>("filters", { ...EMPTY_FILTERS, search: linkedSearch }, linkedSearch);
+  const [tab, setTab] = useNavigationState<TaskTab>("tab", "all", linkedSearch);
+  const [favouritesOnly, setFavouritesOnly] = useNavigationState("favouritesOnly", false, linkedSearch);
+  const [sort, setSort] = useNavigationState<"asc" | "desc">("sort", "desc", linkedSearch);
+  const [page, setPage] = useNavigationState("page", 1, linkedSearch);
+  const [pageSize, setPageSize] = useNavigationState("pageSize", 10, linkedSearch);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
 

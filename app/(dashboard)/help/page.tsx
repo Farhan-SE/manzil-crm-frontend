@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationState } from "@/lib/use-navigation-state";
+
 import Link from "next/link";
 import { useEffect, useState, ViewTransition } from "react";
 import { headingStyle, outlineButtonClass, solidButtonClass } from "@/components/help/ui";
@@ -27,8 +29,8 @@ function ArticleRow({ article }: { article: HelpArticleSummary }) {
 }
 
 export default function HelpCenterPage() {
-  const [draft, setDraft] = useState("");
-  const [query, setQuery] = useState<Query>({ search: "", topic: "" });
+  const [draft, setDraft] = useNavigationState("draft", "");
+  const [query, setQuery] = useNavigationState<Query>("query", { search: "", topic: "" });
   const [overview, setOverview] = useState<HelpOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
 

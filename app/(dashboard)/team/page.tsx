@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationScroll, useNavigationState } from "@/lib/use-navigation-state";
+
 import { useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
 import { PlusIcon } from "@/components/icons/DashboardIcons";
@@ -104,15 +106,16 @@ export default function StaffPage() {
   const [statusCounts, setStatusCounts] = useState<Record<StaffTab, number> | null>(null);
   const [options, setOptions] = useState({ departments: [] as string[], designations: [] as string[], regions: [] as string[] });
   const [isLoading, setIsLoading] = useState(true);
+  useNavigationScroll(!isLoading);
   const [error, setError] = useState<string | null>(null);
 
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [tab, setTab] = useState<StaffTab>("active");
-  const [favouritesOnly, setFavouritesOnly] = useState(false);
-  const [sort, setSort] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [draft, setDraft] = useNavigationState<Filters>("draft", EMPTY_FILTERS);
+  const [filters, setFilters] = useNavigationState<Filters>("filters", EMPTY_FILTERS);
+  const [tab, setTab] = useNavigationState<StaffTab>("tab", "active");
+  const [favouritesOnly, setFavouritesOnly] = useNavigationState("favouritesOnly", false);
+  const [sort, setSort] = useNavigationState<"asc" | "desc">("sort", "asc");
+  const [page, setPage] = useNavigationState("page", 1);
+  const [pageSize, setPageSize] = useNavigationState("pageSize", 10);
 
   const [everyone, setEveryone] = useState<TeamMember[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);

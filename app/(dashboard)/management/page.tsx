@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationScroll, useNavigationState } from "@/lib/use-navigation-state";
+
 import { useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
 import { NewApprovalModal, ReviewApprovalModal } from "@/components/approvals/ApprovalModals";
@@ -70,13 +72,14 @@ export default function ManagementPage() {
   const [total, setTotal] = useState(0);
   const [tabCounts, setTabCounts] = useState<Record<ApprovalTab, number> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  useNavigationScroll(!isLoading);
   const [error, setError] = useState<string | null>(null);
 
-  const [tab, setTab] = useState<ApprovalTab>("pending");
-  const [favouritesOnly, setFavouritesOnly] = useState(false);
-  const [sort, setSort] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [tab, setTab] = useNavigationState<ApprovalTab>("tab", "pending");
+  const [favouritesOnly, setFavouritesOnly] = useNavigationState("favouritesOnly", false);
+  const [sort, setSort] = useNavigationState<"asc" | "desc">("sort", "asc");
+  const [page, setPage] = useNavigationState("page", 1);
+  const [pageSize, setPageSize] = useNavigationState("pageSize", 10);
   const [reviewing, setReviewing] = useState<Approval | null>(null);
   const [isNewOpen, setIsNewOpen] = useState(false);
 

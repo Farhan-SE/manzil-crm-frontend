@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationScroll, useNavigationState } from "@/lib/use-navigation-state";
+
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ViewTransition } from "react";
@@ -59,19 +61,20 @@ function Inventory({ inventoryType }: { inventoryType: InventoryType }) {
   // Seeded from ?project= so the projects page can link straight to one project's units.
   const initialProject = useSearchParams().get("project") ?? "";
 
-  const [draft, setDraft] = useState<Filters>({ projectId: initialProject, unitType: "", search: "" });
-  const [filters, setFilters] = useState<Filters>({ projectId: initialProject, unitType: "", search: "" });
-  const [status, setStatus] = useState<UnitStatus | "all">("all");
-  const [favouritesOnly, setFavouritesOnly] = useState(false);
-  const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [draft, setDraft] = useNavigationState<Filters>("draft", { projectId: initialProject, unitType: "", search: "" }, initialProject);
+  const [filters, setFilters] = useNavigationState<Filters>("filters", { projectId: initialProject, unitType: "", search: "" }, initialProject);
+  const [status, setStatus] = useNavigationState<UnitStatus | "all">("status", "all", initialProject);
+  const [favouritesOnly, setFavouritesOnly] = useNavigationState("favouritesOnly", false, initialProject);
+  const [sort, setSort] = useNavigationState<"asc" | "desc">("sort", "desc", initialProject);
+  const [page, setPage] = useNavigationState("page", 1, initialProject);
+  const [pageSize, setPageSize] = useNavigationState("pageSize", 10, initialProject);
 
   const [units, setUnits] = useState<Unit[]>([]);
   const [total, setTotal] = useState(0);
   const [statusCounts, setStatusCounts] = useState<Record<UnitStatus, number> | null>(null);
   const [unitTypes, setUnitTypes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  useNavigationScroll(!isLoading, initialProject);
   const [error, setError] = useState<string | null>(null);
 
   const [projects, setProjects] = useState<SelectOption[]>([]);
@@ -114,7 +117,7 @@ function Inventory({ inventoryType }: { inventoryType: InventoryType }) {
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load units."))
       .finally(() => setIsLoading(false));
-  }, [inventoryType, filters, status, favouritesOnly, sort, page, pageSize]);
+  }, [inventoryType, filters, status, favouritesOnly, sort, page, pageSize, setPage]);
 
   useEffect(() => {
     loadUnits();

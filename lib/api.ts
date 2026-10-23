@@ -1,4 +1,36 @@
+import { ApiCache, affectedResources, isCacheableRead, resourceOf } from "./api-cache";
+import { clearNavigationState } from "./navigation-state-store";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const responseCache = new ApiCache();
+
+/** Also used when a background import finishes, after its initial POST has returned. */
+export function invalidateApiCache(path: string) {
+  if (["auth", "roles", "platform"].includes(resourceOf(path))) responseCache.clear();
+  else responseCache.invalidate(affectedResources(path));
+  if (typeof window !== "undefined") {
+    // Other open tabs must discard affected cached reads as well.
+    try { localStorage.setItem("crm:data-changed", JSON.stringify({ path, at: Date.now() })); } catch { /* Storage can be disabled. */ }
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key === "crm:data-changed" && event.newValue) {
+      try {
+        const { path } = JSON.parse(event.newValue);
+        if (typeof path === "string") {
+          if (["auth", "roles", "platform"].includes(resourceOf(path))) responseCache.clear();
+          else responseCache.invalidate(affectedResources(path));
+        }
+      } catch { /* Ignore unrelated or malformed storage data. */ }
+    }
+    if (event.key === "access_token" || event.key === null) {
+      responseCache.clear();
+      clearNavigationState();
+    }
+  });
+}
 
 const ACCESS_TOKEN_KEY = "access_token";
 
@@ -56,6 +88,10 @@ function setSessionCookie(token: string, remember: boolean) {
 
 export function setToken(token: string, remember: boolean) {
   if (typeof window === "undefined") return;
+  if (readStoredToken() !== token) {
+    responseCache.clear();
+    clearNavigationState();
+  }
   if (remember) {
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
     sessionStorage.removeItem(ACCESS_TOKEN_KEY);
@@ -73,7 +109,8 @@ export function clearToken() {
   // The cached role and permissions from lib/session.ts, and WelcomeGate's record of a finished first-login flow.
   sessionStorage.removeItem("access");
   sessionStorage.removeItem("welcome_done");
-  projectOptions = null;
+  responseCache.clear();
+  clearNavigationState();
   document.cookie = "session=; path=/; max-age=0";
 }
 
@@ -116,6 +153,19 @@ function onUnauthorized() {
 /** For routes that need a Bearer token attached — not used by login/forgotPassword below. */
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getValidToken();
+  responseCache.setScope(token);
+  const method = (init?.method ?? "GET").toUpperCase();
+  const load = () => requestJson<T>(path, token, init);
+  if (method === "GET" && token && typeof window !== "undefined" && !init?.signal &&
+      init?.cache !== "no-store" && init?.cache !== "reload" && isCacheableRead(path)) {
+    return responseCache.read(path, load);
+  }
+  const data = await load();
+  if (!["GET", "HEAD", "OPTIONS"].includes(method)) invalidateApiCache(path);
+  return data;
+}
+
+async function requestJson<T>(path: string, token: string | null, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
@@ -137,7 +187,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const msg = body?.message ?? res.statusText;
     throw new Error(Array.isArray(msg) ? msg[0] : msg);
   }
-  return res.json() as Promise<T>;
+  return res.status === 204 ? undefined as T : res.json() as Promise<T>;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -264,6 +314,7 @@ export async function deleteRole(id: string) {
     const msg = body?.message ?? res.statusText;
     throw new Error(Array.isArray(msg) ? msg[0] : msg);
   }
+  invalidateApiCache("/roles");
 }
 
 // ── Platform (super admin) ────────────────────────────────────────────────────
@@ -337,6 +388,7 @@ export async function uploadCompanyLogo(id: string, file: File): Promise<Company
     const msg = body?.message ?? res.statusText;
     throw new Error(Array.isArray(msg) ? msg[0] : msg);
   }
+  invalidateApiCache("/platform/companies");
   return res.json();
 }
 
@@ -905,25 +957,8 @@ export const getPartnerProjects = (params: InventoryQuery = {}) =>
 
 export type ProjectOption = { id: string; project_name: string };
 
-const PROJECT_OPTIONS_TTL = 5 * 60_000;
-let projectOptions: { at: number; userId: number | undefined; request: Promise<ProjectOption[]> } | null = null;
-
-/**
- * Project names for filter dropdowns. Shared between pages for a few minutes, since every list has one.
- * Tied to the signed-in user: another account on the same tab may belong to a different company.
- */
-export function getProjectOptions() {
-  const userId = getSessionUser()?.id;
-  if (!projectOptions || projectOptions.userId !== userId || Date.now() - projectOptions.at > PROJECT_OPTIONS_TTL) {
-    const request = apiFetch<ProjectOption[]>("/partner-projects/options");
-    projectOptions = { at: Date.now(), userId, request };
-    // A failed load must not be remembered.
-    request.catch(() => {
-      if (projectOptions?.request === request) projectOptions = null;
-    });
-  }
-  return projectOptions.request;
-}
+/** Shared with the normal request cache, so project changes also refresh dropdown options. */
+export const getProjectOptions = () => apiFetch<ProjectOption[]>("/partner-projects/options");
 
 export const createPartnerProject = (dto: PartnerProjectInput) =>
   apiFetch<PartnerProject>("/partner-projects", { method: "POST", body: JSON.stringify(dto) });
@@ -1781,6 +1816,7 @@ async function uploadCsv(path: string, file: File): Promise<ImportResult> {
     const msg = payload?.message ?? res.statusText;
     throw new Error(Array.isArray(msg) ? msg[0] : msg);
   }
+  invalidateApiCache(path);
   return res.json() as Promise<ImportResult>;
 }
 
@@ -1921,6 +1957,7 @@ export async function createSupportTicket(input: SupportTicketInput, attachments
     const msg = payload?.message ?? res.statusText;
     throw new Error(Array.isArray(msg) ? msg[0] : msg);
   }
+  invalidateApiCache("/help");
   return res.json() as Promise<SupportTicketReceipt>;
 }
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationState } from "@/lib/use-navigation-state";
+
 import { useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
 import { LeadDetailModal } from "@/components/LeadDetailModal";
@@ -61,12 +63,12 @@ export default function PipelinePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [view, setView] = useState<View>("board");
-  const [favouritesOnly, setFavouritesOnly] = useState(false);
-  const [sort, setSort] = useState<"recent" | "value">("recent");
-  const [showAll, setShowAll] = useState(false);
+  const [draft, setDraft] = useNavigationState<Filters>("draft", EMPTY_FILTERS);
+  const [filters, setFilters] = useNavigationState<Filters>("filters", EMPTY_FILTERS);
+  const [view, setView] = useNavigationState<View>("view", "board");
+  const [favouritesOnly, setFavouritesOnly] = useNavigationState("favouritesOnly", false);
+  const [sort, setSort] = useNavigationState<"recent" | "value">("sort", "recent");
+  const [showAll, setShowAll] = useNavigationState("showAll", false);
 
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);

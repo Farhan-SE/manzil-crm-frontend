@@ -1,4 +1,4 @@
-import type { CustomerImportJob } from "@/lib/api";
+import { invalidateApiCache, type CustomerImportJob } from "@/lib/api";
 
 const STARTED_EVENT = "customer-import:started";
 const FINISHED_EVENT = "customer-import:finished";
@@ -29,6 +29,7 @@ export function forgetTrackedImport() {
 }
 
 export function announceImportFinished(job: CustomerImportJob) {
+  invalidateApiCache("/customers");
   window.dispatchEvent(new CustomEvent<CustomerImportJob>(FINISHED_EVENT, { detail: job }));
 }
 
