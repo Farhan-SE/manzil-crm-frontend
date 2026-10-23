@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationScroll, useNavigationState } from "@/lib/use-navigation-state";
+
 import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ViewTransition } from "react";
@@ -104,18 +106,19 @@ export default function CustomersPage() {
   const canCreateLead = useCan("leads.create");
   const editScope = useScope("customers.edit");
 
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [stageFilter, setStageFilter] = useState<CustomerStage | "all">("all");
-  const [favouritesOnly, setFavouritesOnly] = useState(false);
-  const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [draft, setDraft] = useNavigationState<Filters>("draft", EMPTY_FILTERS);
+  const [filters, setFilters] = useNavigationState<Filters>("filters", EMPTY_FILTERS);
+  const [stageFilter, setStageFilter] = useNavigationState<CustomerStage | "all">("stageFilter", "all");
+  const [favouritesOnly, setFavouritesOnly] = useNavigationState("favouritesOnly", false);
+  const [sort, setSort] = useNavigationState<"asc" | "desc">("sort", "desc");
+  const [page, setPage] = useNavigationState("page", 1);
+  const [pageSize, setPageSize] = useNavigationState("pageSize", 10);
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [stageCounts, setStageCounts] = useState<Record<CustomerStage, number> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  useNavigationScroll(!isLoading);
   const [error, setError] = useState<string | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());

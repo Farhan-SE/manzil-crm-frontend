@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationScroll, useNavigationState } from "@/lib/use-navigation-state";
+
 import { useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
 import { NewDisputeModal } from "@/components/disputes/NewDisputeModal";
@@ -68,15 +70,16 @@ export default function SalesDisputesPage() {
   const [total, setTotal] = useState(0);
   const [tabCounts, setTabCounts] = useState<Record<DisputeTab, number> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  useNavigationScroll(!isLoading);
   const [error, setError] = useState<string | null>(null);
 
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [tab, setTab] = useState<DisputeTab>("all");
-  const [favouritesOnly, setFavouritesOnly] = useState(false);
-  const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [draft, setDraft] = useNavigationState<Filters>("draft", EMPTY_FILTERS);
+  const [filters, setFilters] = useNavigationState<Filters>("filters", EMPTY_FILTERS);
+  const [tab, setTab] = useNavigationState<DisputeTab>("tab", "all");
+  const [favouritesOnly, setFavouritesOnly] = useNavigationState("favouritesOnly", false);
+  const [sort, setSort] = useNavigationState<"asc" | "desc">("sort", "desc");
+  const [page, setPage] = useNavigationState("page", 1);
+  const [pageSize, setPageSize] = useNavigationState("pageSize", 10);
   const [owners, setOwners] = useState<TeamMember[]>([]);
   const [isNewOpen, setIsNewOpen] = useState(false);
 

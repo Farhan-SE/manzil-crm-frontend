@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationScroll, useNavigationState } from "@/lib/use-navigation-state";
+
 import { use, useCallback, useEffect, useState } from "react";
 import { ViewTransition } from "react";
 import { FilterBar, FilterDate, FilterField, FilterInput, FilterSelect } from "@/components/list/FilterBar";
@@ -96,17 +98,18 @@ export default function TodosPage({
   const [total, setTotal] = useState(0);
   const [windowCounts, setWindowCounts] = useState<Record<TodoWindow, number> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  useNavigationScroll(!isLoading, JSON.stringify([linked, linkedRange]));
   const [error, setError] = useState<string | null>(null);
 
-  const [draft, setDraft] = useState<Filters>(linked);
-  const [filters, setFilters] = useState<Filters>(linked);
-  const [dueRange, setDueRange] = useState<DueRange>(linkedRange);
+  const [draft, setDraft] = useNavigationState<Filters>("draft", linked, JSON.stringify([linked, linkedRange]));
+  const [filters, setFilters] = useNavigationState<Filters>("filters", linked, JSON.stringify([linked, linkedRange]));
+  const [dueRange, setDueRange] = useNavigationState<DueRange>("dueRange", linkedRange, JSON.stringify([linked, linkedRange]));
   // A link already says which days it wants, so it opens on the unrestricted tab.
-  const [tab, setTab] = useState<TodoWindow>(isLinked ? "all" : "overdue");
-  const [favouritesOnly, setFavouritesOnly] = useState(false);
-  const [sort, setSort] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [tab, setTab] = useNavigationState<TodoWindow>("tab", isLinked ? "all" : "overdue", JSON.stringify([linked, linkedRange]));
+  const [favouritesOnly, setFavouritesOnly] = useNavigationState("favouritesOnly", false, JSON.stringify([linked, linkedRange]));
+  const [sort, setSort] = useNavigationState<"asc" | "desc">("sort", "asc", JSON.stringify([linked, linkedRange]));
+  const [page, setPage] = useNavigationState("page", 1, JSON.stringify([linked, linkedRange]));
+  const [pageSize, setPageSize] = useNavigationState("pageSize", 10, JSON.stringify([linked, linkedRange]));
   const [agents, setAgents] = useState<Agent[]>([]);
 
   useEffect(() => {

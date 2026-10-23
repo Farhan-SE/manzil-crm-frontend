@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationState } from "@/lib/use-navigation-state";
+
 import { useCallback, useEffect, useState, type SubmitEvent } from "react";
 import { ViewTransition } from "react";
 import { FilterBar, FilterDate, FilterField, FilterSelect } from "@/components/list/FilterBar";
@@ -185,14 +187,14 @@ export default function ReportsPage() {
   const [targets, setTargets] = useState<TargetProgress[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [draft, setDraft] = useState<Filters>(initialFilters);
-  const [filters, setFilters] = useState<Filters>(initialFilters);
+  const [draft, setDraft] = useNavigationState<Filters>("draft", initialFilters);
+  const [filters, setFilters] = useNavigationState<Filters>("filters", initialFilters);
   // Targets are monthly, so they follow the month the range ends in.
   const targetPeriod = filters.to.slice(0, 7);
-  const [tab, setTab] = useState<Tab>("all");
-  const [sort, setSort] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [tab, setTab] = useNavigationState<Tab>("tab", "all");
+  const [sort, setSort] = useNavigationState<"asc" | "desc">("sort", "asc");
+  const [page, setPage] = useNavigationState("page", 1);
+  const [pageSize, setPageSize] = useNavigationState("pageSize", 10);
 
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [regions, setRegions] = useState<string[]>([]);

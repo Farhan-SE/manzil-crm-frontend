@@ -23,6 +23,13 @@ npm run dev     # http://localhost:3000
 | `npm run dev` | Development server |
 | `npm run build` / `npm start` | Production build and server |
 | `npm run lint` | ESLint |
+| `npm run test:cache` | API caching and invalidation regression tests; no server required |
+
+## Navigation data
+
+Authenticated JSON reads share a bounded, in-memory cache for five minutes. Returning to a list or detail reuses its response, and simultaneous identical reads share one request. Successful writes invalidate related resources, including joined lead/customer/task data and summaries. Failed requests are not cached. Background import completion also invalidates affected lists, while notifications, import polling and phone availability checks always reach the API.
+
+List filters, sorting and pagination are retained in memory, separately for linked searches. Scroll positions are restored after rows load. A browser refresh starts fresh; signing out or changing accounts clears retained data and list state. Writes in another tab invalidate the affected API cache in this tab. Changes by other users become visible on the next request after cache expiry or a browser refresh.
 
 ## Layout
 

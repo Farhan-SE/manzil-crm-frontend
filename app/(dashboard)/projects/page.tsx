@@ -1,5 +1,7 @@
 "use client";
 
+import { useNavigationScroll, useNavigationState } from "@/lib/use-navigation-state";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ViewTransition } from "react";
 import { PlusIcon, StarIcon } from "@/components/icons/DashboardIcons";
@@ -53,16 +55,17 @@ function distinct(values: (string | null)[]) {
 export default function ProjectsPage() {
   const canManage = useCan("inventory.manage");
 
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [tab, setTab] = useState<Tab>("active");
-  const [favouritesOnly, setFavouritesOnly] = useState(false);
-  const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [draft, setDraft] = useNavigationState<Filters>("draft", EMPTY_FILTERS);
+  const [filters, setFilters] = useNavigationState<Filters>("filters", EMPTY_FILTERS);
+  const [tab, setTab] = useNavigationState<Tab>("tab", "active");
+  const [favouritesOnly, setFavouritesOnly] = useNavigationState("favouritesOnly", false);
+  const [sort, setSort] = useNavigationState<"asc" | "desc">("sort", "desc");
+  const [page, setPage] = useNavigationState("page", 1);
+  const [pageSize, setPageSize] = useNavigationState("pageSize", 10);
 
   const [projects, setProjects] = useState<PartnerProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  useNavigationScroll(!isLoading);
   const [error, setError] = useState<string | null>(null);
 
   const [categories, setCategories] = useState<SelectOption[]>([]);
