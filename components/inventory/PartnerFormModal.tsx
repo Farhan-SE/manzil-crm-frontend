@@ -5,6 +5,8 @@ import { Select, type SelectOption } from "@/components/ui/Select";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import type { PartnerProject, PartnerProjectInput } from "@/lib/api";
 import { PROJECT_TYPES } from "@/lib/inventory";
+import { useCan } from "@/lib/session";
+import { EMPTY_MEDIA_DRAFT, MediaField, type MediaDraft } from "@/components/inventory/MediaField";
 
 const inputClass =
   "w-full min-w-0 rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
@@ -18,7 +20,7 @@ type PartnerFormModalProps = {
   isSaving: boolean;
   error: string | null;
   onClose: () => void;
-  onSubmit: (draft: PartnerDraft) => void;
+  onSubmit: (draft: PartnerDraft, media: MediaDraft) => void;
 };
 
 export function PartnerFormModal({
@@ -46,6 +48,8 @@ export function PartnerFormModal({
   const [tokenAmount, setTokenAmount] = useState(initial?.token_amount != null ? String(initial.token_amount) : "");
   const [pdpPercent, setPdpPercent] = useState(initial?.pdp_percent != null ? String(initial.pdp_percent) : "");
   const [cdpPercent, setCdpPercent] = useState(initial?.cdp_percent != null ? String(initial.cdp_percent) : "");
+  const [media, setMedia] = useState<MediaDraft>(EMPTY_MEDIA_DRAFT);
+  const canManageMedia = useCan("inventory.manage");
 
   function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -67,7 +71,7 @@ export function PartnerFormModal({
       token_amount: tokenAmount ? Number(tokenAmount) : undefined,
       pdp_percent: pdpPercent ? Number(pdpPercent) : undefined,
       cdp_percent: cdpPercent ? Number(cdpPercent) : undefined,
-    });
+    }, media);
   }
 
   return (
@@ -320,6 +324,10 @@ export function PartnerFormModal({
               className={`${inputClass} resize-y`}
             />
           </div>
+
+          {canManageMedia && (
+            <MediaField owner={initial ? { project_id: initial.id } : null} value={media} onChange={setMedia} />
+          )}
 
           {error && <p className="text-sm text-hot">{error}</p>}
 

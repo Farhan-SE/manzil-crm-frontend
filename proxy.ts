@@ -47,6 +47,7 @@ export const config = {
     "/help/:path*",
     "/settings/:path*",
     "/roles/:path*",
+    "/chatbot/:path*",
     "/platform/:path*",
   ],
 };

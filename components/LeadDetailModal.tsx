@@ -13,7 +13,10 @@ import {
   setFollowUpCompleted,
   updateLead,
   getFollowUps,
+  getMediaLinks,
+  revokeMediaLink,
   type FollowUp,
+  type MediaLink,
   type Lead,
   type LeadTemperature,
 } from "@/lib/api";
@@ -39,8 +42,48 @@ function formatBudget(budget: number | null) {
   return `PKR ${budget.toLocaleString()}`;
 }
 
-function ChatbotMatches({ matches }: { matches: NonNullable<Lead["chatbot_matches"]> }) {
-  const shownOn = new Date(matches.shown_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+const shortDate = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+function PhotoLinkStatus({ link, onRevoke }: { link: MediaLink | undefined; onRevoke: (id: string) => void }) {
+  if (!link) return null;
+  const live = !link.revoked_at && new Date(link.expires_at) > new Date();
+  const opened = link.open_count ? `opened ${link.open_count}×` : "not opened yet";
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted">
+      <span>Photo link sent {shortDate(link.created_at)} · {opened} · {link.revoked_at ? "turned off" : live ? `works until ${shortDate(link.expires_at)}` : "expired"}</span>
+      {live && (
+        <button type="button" onClick={() => onRevoke(link.id)} className="font-bold text-hot hover:underline">
+          Turn off
+        </button>
+      )}
+    </p>
+  );
+}
+
+function ChatbotMatches({ leadId, matches }: { leadId: string; matches: NonNullable<Lead["chatbot_matches"]> }) {
+  const shownOn = shortDate(matches.shown_at);
+  const [links, setLinks] = useState<MediaLink[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getMediaLinks(leadId).then((list) => !cancelled && setLinks(list)).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [leadId]);
+
+  async function revoke(id: string) {
+    if (!window.confirm("Turn off this link? The client won't be able to open it any more.")) return;
+    try {
+      await revokeMediaLink(id);
+      setLinks(await getMediaLinks(leadId));
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Couldn't turn off the link.");
+    }
+  }
+
+  // Newest first from the API, so find() gives each unit's latest link.
+  const latestLink = (unitId: string) => links.find((link) => link.unit_id === unitId);
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-4">
       <div className="flex items-baseline justify-between gap-2">
@@ -58,10 +101,14 @@ function ChatbotMatches({ matches }: { matches: NonNullable<Lead["chatbot_matche
             {matches.units.map((unit) => (
               <li key={unit.unit_id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-white px-4 py-2.5 text-sm">
                 <div className="min-w-0">
-                  <p className="truncate font-bold text-ink">{unit.project} · {unit.unit_number}</p>
+                  <p className="truncate font-bold text-ink">
+                    {unit.project} · {unit.unit_number}
+                    {unit.has_media && <span className="ml-1.5 font-normal" title="Has photos or videos">📷</span>}
+                  </p>
                   <p className="truncate text-xs text-muted">
                     {[unit.unit_type, unit.beds ? `${unit.beds} bed` : null].filter(Boolean).join(" · ") || "—"}
                   </p>
+                  <PhotoLinkStatus link={latestLink(unit.unit_id)} onRevoke={revoke} />
                 </div>
                 <p className="shrink-0 font-bold text-ink">{formatMoney(unit.price)}</p>
               </li>
@@ -393,7 +440,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
             <p className="text-base font-bold text-ink">{formatBudget(currentLead.budget)}</p>
           </div>
 
-          {currentLead.chatbot_matches && <ChatbotMatches matches={currentLead.chatbot_matches} />}
+          {currentLead.chatbot_matches && <ChatbotMatches leadId={currentLead.id} matches={currentLead.chatbot_matches} />}
 
           <div className="flex flex-col gap-3 border-t border-border pt-4">
             <p className="text-xs font-bold uppercase tracking-[0.6px] text-muted">Follow-ups</p>

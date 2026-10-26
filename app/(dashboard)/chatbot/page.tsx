@@ -14,6 +14,19 @@ const inputClass =
 
 const newSessionId = () => crypto.randomUUID();
 
+// Links open in a new tab, as WhatsApp would open them in the browser.
+function WithLinks({ text }: { text: string }) {
+  return text.split(/(https?:\/\/\S+)/g).map((part, i) =>
+    i % 2 ? (
+      <a key={i} href={part} target="_blank" rel="noreferrer" className="break-all font-medium underline">
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  );
+}
+
 function readContact(): { name: string; phone: string } {
   try {
     const saved = JSON.parse(localStorage.getItem(CONTACT_KEY) ?? "null");
@@ -156,7 +169,7 @@ export default function ChatbotTestPage() {
                         : "self-center bg-hot/10 text-hot"
                   }`}
                 >
-                  {message.text}
+                  <WithLinks text={message.text} />
                 </div>
               ))}
               {sending && (

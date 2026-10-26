@@ -8,6 +8,7 @@ import { ViewTransition } from "react";
 import { PlusIcon } from "@/components/icons/DashboardIcons";
 import { ImportCsvModal } from "@/components/ImportCsvModal";
 import { UnitFormModal } from "@/components/inventory/UnitFormModal";
+import { saveMediaDraft, type MediaDraft } from "@/components/inventory/MediaField";
 import { FilterBar, FilterField, FilterInput, FilterSelect } from "@/components/list/FilterBar";
 import { RowMenu } from "@/components/list/RowMenu";
 import { FavouritesButton, SortButton, StatusTabs, type StatusTab } from "@/components/list/StatusTabs";
@@ -132,15 +133,13 @@ function Inventory({ inventoryType }: { inventoryType: InventoryType }) {
     resetPaging();
   }
 
-  async function handleUnitSubmit(unitDraft: UnitInput) {
+  async function handleUnitSubmit(unitDraft: UnitInput, media: MediaDraft) {
     setIsSaving(true);
     setFormError(null);
     try {
-      if (editingUnit) {
-        await updateUnit(editingUnit.id, unitDraft);
-      } else {
-        await createUnit(unitDraft);
-      }
+      const saved = editingUnit ? await updateUnit(editingUnit.id, unitDraft) : await createUnit(unitDraft);
+      const failures = await saveMediaDraft({ unit_id: saved.id }, media);
+      if (failures.length) window.alert(`The unit was saved, but some files didn't upload:\n${failures.join("\n")}`);
       setIsUnitFormOpen(false);
       setEditingUnit(null);
       loadUnits();

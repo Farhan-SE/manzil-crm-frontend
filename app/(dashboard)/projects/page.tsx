@@ -7,6 +7,7 @@ import { ViewTransition } from "react";
 import { PlusIcon, StarIcon } from "@/components/icons/DashboardIcons";
 import { PartnerDetailModal } from "@/components/inventory/PartnerDetailModal";
 import { PartnerFormModal, type PartnerDraft } from "@/components/inventory/PartnerFormModal";
+import { saveMediaDraft, type MediaDraft } from "@/components/inventory/MediaField";
 import { FilterBar, FilterField, FilterInput, FilterSelect } from "@/components/list/FilterBar";
 import { RowMenu } from "@/components/list/RowMenu";
 import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
@@ -139,15 +140,15 @@ export default function ProjectsPage() {
     }
   }
 
-  async function handleSubmit(projectDraft: PartnerDraft) {
+  async function handleSubmit(projectDraft: PartnerDraft, media: MediaDraft) {
     setIsSaving(true);
     setFormError(null);
     try {
-      if (editingProject) {
-        await updatePartnerProject(editingProject.id, projectDraft);
-      } else {
-        await createPartnerProject(projectDraft);
-      }
+      const saved = editingProject
+        ? await updatePartnerProject(editingProject.id, projectDraft)
+        : await createPartnerProject(projectDraft);
+      const failures = await saveMediaDraft({ project_id: saved.id }, media);
+      if (failures.length) window.alert(`The project was saved, but some files didn't upload:\n${failures.join("\n")}`);
       setIsFormOpen(false);
       setEditingProject(null);
       setOpenProject(null);
