@@ -18,6 +18,7 @@ import {
   type LeadTemperature,
 } from "@/lib/api";
 import { LEAD_STAGES, needsPayment } from "@/lib/leads";
+import { formatMoney } from "@/lib/money";
 import { useCan } from "@/lib/session";
 import { StagePaymentFields, emptyStagePayment, toStagePayment, type StagePaymentDraft } from "@/components/leads/StagePayment";
 import { PaymentError } from "@/components/leads/PaymentError";
@@ -36,6 +37,45 @@ const inputClass =
 function formatBudget(budget: number | null) {
   if (budget == null) return "Not set";
   return `PKR ${budget.toLocaleString()}`;
+}
+
+function ChatbotMatches({ matches }: { matches: NonNullable<Lead["chatbot_matches"]> }) {
+  const shownOn = new Date(matches.shown_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return (
+    <div className="flex flex-col gap-3 border-t border-border pt-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-xs font-bold uppercase tracking-[0.6px] text-muted">Options shown by chatbot</p>
+        <p className="shrink-0 text-xs text-muted">{shownOn}</p>
+      </div>
+      {matches.total === 0 ? (
+        <p className="text-sm text-placeholder">Nothing in the inventory matched — the client was told the team will get in touch.</p>
+      ) : (
+        <>
+          {matches.portions_instead && (
+            <p className="text-xs text-muted">No full house matched, so the client was offered portions instead.</p>
+          )}
+          <ul className="flex flex-col gap-2">
+            {matches.units.map((unit) => (
+              <li key={unit.unit_id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-white px-4 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-bold text-ink">{unit.project} · {unit.unit_number}</p>
+                  <p className="truncate text-xs text-muted">
+                    {[unit.unit_type, unit.beds ? `${unit.beds} bed` : null].filter(Boolean).join(" · ") || "—"}
+                  </p>
+                </div>
+                <p className="shrink-0 font-bold text-ink">{formatMoney(unit.price)}</p>
+              </li>
+            ))}
+          </ul>
+          {matches.total > matches.units.length && (
+            <p className="text-xs text-muted">
+              {matches.total} units matched; the {matches.units.length} cheapest were sent.
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
 }
 
 function formatDueAt(dueDate: string, dueTime: string) {
@@ -352,6 +392,8 @@ export function LeadDetailModal({ lead, onClose, onChanged }: LeadDetailModalPro
             <p className="text-sm text-muted">Budget</p>
             <p className="text-base font-bold text-ink">{formatBudget(currentLead.budget)}</p>
           </div>
+
+          {currentLead.chatbot_matches && <ChatbotMatches matches={currentLead.chatbot_matches} />}
 
           <div className="flex flex-col gap-3 border-t border-border pt-4">
             <p className="text-xs font-bold uppercase tracking-[0.6px] text-muted">Follow-ups</p>
