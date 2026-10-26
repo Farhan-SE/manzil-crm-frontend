@@ -28,6 +28,7 @@ export function affectedResources(path: string): Set<string> {
     interests: ["partner-projects", "units", "listings", "leads", "customers"],
     sources: ["leads", "customers", "follow-ups", "stats", "reports"],
     locations: ["partner-projects"],
+    chatbot: ["leads", "customers", "stats", "reports"],
   };
   return new Set([root, ...(related[root] ?? [])]);
 }

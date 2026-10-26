@@ -449,6 +449,14 @@ export type Lead = {
   stage: string;
   /** When the stage became `sold`. */
   sold_at: string | null;
+  /** The units the WhatsApp chatbot last offered this client, as they were then. */
+  chatbot_matches: {
+    shown_at: string;
+    total: number;
+    /** A full house was asked for but none matched, so portions were offered. */
+    portions_instead?: boolean;
+    units: { unit_id: string; project: string; unit_number: string; unit_type: string | null; beds: number | null; price: number }[];
+  } | null;
   assigned_to: { id: number; first_name: string; last_name: string; team: string | null } | null;
   created_by: { id: number; first_name: string; last_name: string } | null;
   created_at: string;
@@ -2006,3 +2014,10 @@ export type Performance = {
 };
 
 export const getPerformance = (date?: string) => apiFetch<Performance>(`/stats/performance${buildQueryString({ date })}`);
+
+// ── Chatbot test ─────────────────────────────────────────────────────────────
+
+export type ChatbotTestInput = { message: string; session_id: string; phone: string; name?: string };
+
+export const sendChatbotTest = (dto: ChatbotTestInput) =>
+  apiFetch<{ replies: string[] }>("/chatbot/test", { method: "POST", body: JSON.stringify(dto) });
