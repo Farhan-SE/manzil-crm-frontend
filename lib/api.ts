@@ -449,6 +449,14 @@ export type Lead = {
   stage: string;
   /** When the stage became `sold`. */
   sold_at: string | null;
+  /** The units the WhatsApp chatbot last offered this client, as they were then. */
+  chatbot_matches: {
+    shown_at: string;
+    total: number;
+    /** A full house was asked for but none matched, so portions were offered. */
+    portions_instead?: boolean;
+    units: { unit_id: string; project: string; unit_number: string; unit_type: string | null; beds: number | null; price: number; has_media?: boolean }[];
+  } | null;
   assigned_to: { id: number; first_name: string; last_name: string; team: string | null } | null;
   created_by: { id: number; first_name: string; last_name: string } | null;
   created_at: string;
@@ -2006,3 +2014,95 @@ export type Performance = {
 };
 
 export const getPerformance = (date?: string) => apiFetch<Performance>(`/stats/performance${buildQueryString({ date })}`);
+
+// ── Chatbot test ─────────────────────────────────────────────────────────────
+
+export type ChatbotTestInput = { message: string; session_id: string; phone: string; name?: string };
+
+export const sendChatbotTest = (dto: ChatbotTestInput) =>
+  apiFetch<{ replies: string[] }>("/chatbot/test", { method: "POST", body: JSON.stringify(dto) });
+
+// ── Inventory photos and videos ─────────────────────────────────────────────
+
+export type MediaOwner = { project_id: string } | { unit_id: string };
+
+export type MediaItem = {
+  id: string;
+  kind: "image" | "video";
+  mime: string;
+  file_name: string;
+  size_bytes: number;
+  /** A short-lived link straight to the file. */
+  url: string;
+};
+
+export const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
+
+export const getMedia = (owner: MediaOwner) =>
+  apiFetch<MediaItem[]>(`/media${buildQueryString(owner)}`, { cache: "no-store" });
+
+export const deleteMedia = (id: string) => apiFetch<{ status: string }>(`/media/${id}`, { method: "DELETE" });
+
+/** Sends the file straight to storage, then has the API check it before it is shown anywhere. */
+export async function uploadMedia(owner: MediaOwner, file: File, onProgress?: (sentBytes: number) => void): Promise<MediaItem> {
+  const { media, upload } = await apiFetch<{ media: { id: string }; upload: ImportUpload }>("/media/uploads", {
+    method: "POST",
+    body: JSON.stringify({ ...owner, file_name: file.name, mime: file.type, size_bytes: file.size }),
+  });
+  const form = new FormData();
+  for (const [key, value] of Object.entries(upload.fields)) form.append(key, value);
+  form.append("file", file);
+  // XHR rather than fetch: only XHR reports upload progress.
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", upload.url);
+    xhr.upload.onprogress = (e) => onProgress?.(e.loaded);
+    xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error(`${file.name} couldn't be uploaded. Please try again.`)));
+    xhr.onerror = () => reject(new Error(`${file.name} couldn't be uploaded — check your connection.`));
+    xhr.send(form);
+  });
+  onProgress?.(file.size);
+  return apiFetch<MediaItem>(`/media/${media.id}/complete`, { method: "POST" });
+}
+
+export type MediaLink = {
+  id: string;
+  unit_id: string;
+  lead_id: string | null;
+  expires_at: string;
+  revoked_at: string | null;
+  open_count: number;
+  last_opened_at: string | null;
+  created_at: string;
+};
+
+export const getMediaLinks = (leadId: string) =>
+  apiFetch<MediaLink[]>(`/media-links${buildQueryString({ lead_id: leadId })}`, { cache: "no-store" });
+
+export const revokeMediaLink = (id: string) =>
+  apiFetch<{ status: string }>(`/media-links/${id}/revoke`, { method: "PATCH" });
+
+export type SharedUnit = {
+  company: { name: string; logo_url: string | null } | null;
+  project: string;
+  location: string | null;
+  unit: {
+    unit_number: string;
+    unit_type: string | null;
+    floor: string | null;
+    beds: number | null;
+    area_sqft: number | null;
+    price: number | null;
+    features: string | null;
+  };
+  media: MediaItem[];
+  expires_at: string;
+};
+
+/** Public: the token in the link is the only key, so no session is sent. */
+export async function getSharedUnit(token: string): Promise<SharedUnit> {
+  const res = await fetch(`${API_URL}/public/media-links/${encodeURIComponent(token)}`, { cache: "no-store" });
+  if (res.status === 404) throw new Error("expired");
+  if (!res.ok) throw new Error(res.status === 429 ? "Too many requests — please wait a minute." : "This page couldn't be loaded.");
+  return res.json();
+}

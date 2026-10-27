@@ -9,6 +9,14 @@ export function formatMoney(value: number) {
   return `PKR ${value.toLocaleString()}`;
 }
 
+/** Lakh/crore, the way the chatbot quotes prices to clients: 18500000 → "PKR 1.85 crore", 75000 → "PKR 75,000". */
+export function formatLakhCrore(value: number) {
+  const trim = (n: number) => String(+n.toFixed(2));
+  if (value >= 10_000_000) return `PKR ${trim(value / 10_000_000)} crore`;
+  if (value >= 100_000) return `PKR ${trim(value / 100_000)} lakh`;
+  return `PKR ${value.toLocaleString("en-US")}`;
+}
+
 /** The bare figure in millions, for chart labels that already say "PKR million". */
 export function formatMillions(value: number) {
   return trimDecimal(value / 1_000_000);

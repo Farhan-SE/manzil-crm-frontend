@@ -4,6 +4,8 @@ import { useState, type SubmitEvent } from "react";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import type { InventoryType, Unit, UnitInput, UnitStatus } from "@/lib/api";
 import { UNIT_STATUS_OPTIONS } from "@/lib/inventory";
+import { useCan } from "@/lib/session";
+import { EMPTY_MEDIA_DRAFT, MediaField, type MediaDraft } from "@/components/inventory/MediaField";
 
 const inputClass =
   "w-full min-w-0 rounded-xl border border-border bg-white px-4 py-2 text-sm text-ink placeholder:text-placeholder focus:outline-none";
@@ -23,7 +25,7 @@ type UnitFormModalProps = {
   isSaving: boolean;
   error: string | null;
   onClose: () => void;
-  onSubmit: (draft: UnitInput) => void;
+  onSubmit: (draft: UnitInput, media: MediaDraft) => void;
 };
 
 export function UnitFormModal({
@@ -49,6 +51,8 @@ export function UnitFormModal({
   const [area, setArea] = useState(initial?.area_sqft != null ? String(initial.area_sqft) : "");
   const [status, setStatus] = useState<UnitStatus>(initial?.status ?? "available");
   const [localError, setLocalError] = useState<string | null>(null);
+  const [media, setMedia] = useState<MediaDraft>(EMPTY_MEDIA_DRAFT);
+  const canManageMedia = useCan("inventory.manage");
 
   function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -66,7 +70,7 @@ export function UnitFormModal({
       price: price ? Number(price) : undefined,
       area_sqft: area ? Number(area) : undefined,
       status,
-    });
+    }, media);
   }
 
   return (
@@ -245,6 +249,10 @@ export function UnitFormModal({
               />
             </div>
           </div>
+
+          {canManageMedia && (
+            <MediaField owner={initial ? { unit_id: initial.id } : null} value={media} onChange={setMedia} />
+          )}
 
           {(localError ?? error) && <p className="text-sm text-hot">{localError ?? error}</p>}
 

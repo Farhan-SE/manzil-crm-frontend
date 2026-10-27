@@ -1,12 +1,12 @@
 import type { CustomerStage } from "@/lib/api";
 
 export const CUSTOMER_STAGES: { id: CustomerStage; label: string; className: string }[] = [
-  { id: "inquiry", label: "Inquiry", className: "bg-status-inquiry text-white" },
-  { id: "prospect", label: "Prospect", className: "bg-stage-contacted text-white" },
-  { id: "mature", label: "Mature", className: "bg-status-visit text-white" },
-  { id: "pre_closure", label: "Pre-Closure", className: "bg-status-negotiation text-white" },
-  { id: "sold", label: "Sold", className: "bg-stage-sold text-white" },
-  { id: "lost", label: "Closed Lost", className: "bg-stage-lost text-white" },
+  { id: "inquiry", label: "Inquiry", className: "bg-[#e8ecf1] text-[#3d4a5e]" },
+  { id: "prospect", label: "Prospect", className: "bg-[#e2edf6] text-[#1f4a6e]" },
+  { id: "mature", label: "Mature", className: "bg-[#e0efe9] text-[#245847]" },
+  { id: "pre_closure", label: "Pre-Closure", className: "bg-[#fbecd6] text-[#6e420a]" },
+  { id: "sold", label: "Sold", className: "bg-[#dcefe2] text-[#1d4a2a]" },
+  { id: "lost", label: "Closed Lost", className: "bg-[#f6e3e1] text-[#7c2d2d]" },
 ];
 
 const COMMON_COUNTRIES = [

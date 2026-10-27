@@ -5,7 +5,7 @@ import type { UnitStatus } from "@/lib/api";
 export const UNIT_STATUSES: { id: UnitStatus; tab: string; label: string; className: string }[] = [
   { id: "available", tab: "Available", label: "Available", className: "bg-stage-sold/10 text-stage-sold" },
   { id: "token", tab: "Token", label: "Token", className: "bg-stage-inquiry/10 text-stage-inquiry" },
-  { id: "pdp", tab: "PDP", label: "Partial Down Payment", className: "bg-warm/20 text-warm" },
+  { id: "pdp", tab: "PDP", label: "Partial Down Payment", className: "bg-warm/20 text-warm-ink" },
   { id: "cdp", tab: "CDP", label: "Complete Down Payment", className: "bg-stage-negotiation/10 text-stage-negotiation" },
   { id: "sold", tab: "SCW", label: "Sold (Closed Won)", className: "bg-badge-neutral text-muted" },
 ];

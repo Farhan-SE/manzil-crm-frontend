@@ -287,7 +287,7 @@ export default function SalesDisputesPage() {
             <tbody>
               {isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className={`${rowClass} !h-[94px]`}>
+                  <tr key={i} className={`${rowClass}`}>
                     <SpanCell colSpan={COLUMN_COUNT}>
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
@@ -312,7 +312,7 @@ export default function SalesDisputesPage() {
                   const canReview = canManage || dispute.review_owner?.id === sessionUserId;
                   const note = resolutionNote(dispute);
                   return (
-                    <tr key={dispute.id} className={`${rowClass} !h-[94px]`}>
+                    <tr key={dispute.id} className={`${rowClass}`}>
                       <td className="pr-3">
                         <p>{disputeCode(dispute)}</p>
                         <p className={subTextClass}>{formatDay(dispute.created_at)}</p>

@@ -46,7 +46,7 @@ const TABS: { id: LeadTab; label: string }[] = [
 
 const COLUMN_COUNT = 9;
 
-const actionClass = "size-8 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-110";
+const actionClass = "size-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-badge-neutral hover:text-ink";
 
 const headerActionClass =
   "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
@@ -243,7 +243,7 @@ function LeadsDirectory() {
                     className={checkboxClass}
                   />
                 </th>
-                <th scope="col" className={`${headCellClass} w-[112px] pl-10 lg:w-[10%]`}>Lead ID</th>
+                <th scope="col" className={`${headCellClass} w-[124px] pl-10 lg:w-[11%]`}>Lead ID</th>
                 <th scope="col" className={`${headCellClass} lg:w-[13%]`}>Client</th>
                 <th scope="col" className={`${headCellClass} hidden w-[9%] lg:table-cell`}>City</th>
                 <th scope="col" className={`${headCellClass} hidden w-[11%] lg:table-cell`}>Last task</th>
@@ -313,7 +313,7 @@ function LeadsDirectory() {
                           </button>
                           <div className="min-w-0">
                             <p className="text-primary">{lead.lead_no}</p>
-                            <p className={subTextClass}>▣&nbsp; {formatDay(lead.created_at)}</p>
+                            <p className="mt-0.5 truncate text-[11px] text-muted">▣&nbsp; {formatDay(lead.created_at)}</p>
                           </div>
                         </div>
                       </td>
@@ -357,7 +357,7 @@ function LeadsDirectory() {
                             onClick={() => setSelectedLead(lead)}
                             aria-label={`Open lead ${lead.lead_no}`}
                             title="Open lead"
-                            className={`${actionClass} hidden bg-cold/10 text-cold lg:flex`}
+                            className={`${actionClass} hidden lg:flex`}
                           >
                             <Icon name="link" className="size-3.5" />
                           </button>
@@ -367,7 +367,7 @@ function LeadsDirectory() {
                               onClick={() => setTaskLead(lead)}
                               aria-label={`Add task to lead ${lead.lead_no}`}
                               title="Add task"
-                              className={`${actionClass} hidden bg-badge-neutral text-primary sm:flex`}
+                              className={`${actionClass} hidden sm:flex`}
                             >
                               <Icon name="tasks" className="size-3.5" />
                             </button>
@@ -378,7 +378,7 @@ function LeadsDirectory() {
                             rel="noopener noreferrer"
                             aria-label={`WhatsApp ${lead.client_name}`}
                             title="WhatsApp"
-                            className={`${actionClass} flex bg-success/15 text-success`}
+                            className={`${actionClass} flex hover:!text-success`}
                           >
                             <Icon name="whatsapp" className="size-3.5" />
                           </a>
@@ -386,7 +386,7 @@ function LeadsDirectory() {
                             href={`tel:${lead.client_number}`}
                             aria-label={`Call ${lead.client_name}`}
                             title={`Call ${lead.client_number}`}
-                            className={`${actionClass} flex bg-attention/15 text-attention`}
+                            className={`${actionClass} flex`}
                           >
                             <Icon name="phone" className="size-3.5" />
                           </a>

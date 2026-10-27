@@ -1,4 +1,5 @@
 import { ImportProgress } from "@/components/ImportProgress";
+import { MediaUploadProgress } from "@/components/MediaUploadProgress";
 import { NotificationToasts } from "@/components/NotificationToasts";
 import { Sidebar } from "@/components/Sidebar";
 import { TopNav } from "@/components/TopNav";
@@ -15,7 +16,10 @@ export default function DashboardLayout({
       <Sidebar />
       <main className="lg:pl-24">{children}</main>
       <NotificationToasts />
-      <ImportProgress />
+      <div className="fixed bottom-4 right-4 z-[60] flex flex-col items-end gap-2">
+        <MediaUploadProgress />
+        <ImportProgress />
+      </div>
       <WelcomeGate />
     </div>
   );

@@ -335,14 +335,14 @@ export default function DashboardPage() {
             <Tabs tabs={[{ id: "log", label: "Activity Logs" }]} active="log" onChange={() => {}} />
             <div className="max-h-[310px] overflow-y-auto">
               <table className="w-full text-left text-xs text-ink">
-                <thead className="sticky top-0 bg-cream text-[11px] uppercase text-muted">
+                <thead className="sticky top-0 border-b border-border bg-white text-xs text-muted">
                   <tr className="h-9">
-                    <th scope="col" className="pl-5 font-bold">Time</th>
-                    <th scope="col" className="font-bold" title="Unique qualified calls">
+                    <th scope="col" className="pl-5 font-medium">Time</th>
+                    <th scope="col" className="font-medium" title="Unique qualified calls">
                       UQC
                     </th>
-                    <th scope="col" className="font-bold">Calls</th>
-                    <th scope="col" className="font-bold" title="Unique meetings">
+                    <th scope="col" className="font-medium">Calls</th>
+                    <th scope="col" className="font-medium" title="Unique meetings">
                       U.Met
                     </th>
                   </tr>
@@ -351,7 +351,7 @@ export default function DashboardPage() {
                   {(data?.activity ?? []).map((row) => {
                     const hour = String(row.hour).padStart(2, "0");
                     return (
-                      <tr key={row.hour} className="h-[34px] odd:bg-white even:bg-sidebar">
+                      <tr key={row.hour} className="h-[34px] border-b border-border/60">
                         <td className="pl-5">
                           {hour}:00 - {hour}:59
                         </td>
@@ -398,15 +398,15 @@ export default function DashboardPage() {
             />
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-left text-xs text-ink">
-                <thead className="bg-cream text-[11px] uppercase text-muted">
+                <thead className="border-b border-border text-xs text-muted">
                   <tr className="h-9">
-                    <th scope="col" className="pl-5 font-bold">Expected date</th>
-                    <th scope="col" className="font-bold">Client</th>
-                    <th scope="col" className="font-bold">Project</th>
-                    <th scope="col" className="font-bold">Unit</th>
-                    <th scope="col" className="font-bold">Payments (PKR)</th>
-                    <th scope="col" className="font-bold">Expiry</th>
-                    <th scope="col" className="font-bold">User</th>
+                    <th scope="col" className="pl-5 font-medium">Expected date</th>
+                    <th scope="col" className="font-medium">Client</th>
+                    <th scope="col" className="font-medium">Project</th>
+                    <th scope="col" className="font-medium">Unit</th>
+                    <th scope="col" className="font-medium">Payments (PKR)</th>
+                    <th scope="col" className="font-medium">Expiry</th>
+                    <th scope="col" className="font-medium">User</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -415,7 +415,7 @@ export default function DashboardPage() {
                       (new Date(`${row.due_date}T00:00:00`).getTime() - new Date(`${date}T00:00:00`).getTime()) / 86_400_000,
                     );
                     return (
-                      <tr key={row.id} className="h-[38px] odd:bg-white even:bg-sidebar">
+                      <tr key={row.id} className="h-[38px] border-b border-border/60">
                         <td className="pl-5">{formatDay(`${row.due_date}T00:00:00`)}</td>
                         <td className="max-w-[160px] truncate pr-3">{row.client_name}</td>
                         <td className="max-w-[180px] truncate pr-3">{row.project ?? "—"}</td>

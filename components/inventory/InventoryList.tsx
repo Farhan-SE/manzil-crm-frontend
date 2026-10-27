@@ -7,7 +7,10 @@ import { useSearchParams } from "next/navigation";
 import { ViewTransition } from "react";
 import { PlusIcon } from "@/components/icons/DashboardIcons";
 import { ImportCsvModal } from "@/components/ImportCsvModal";
+import { UnitDetailModal } from "@/components/inventory/UnitDetailModal";
 import { UnitFormModal } from "@/components/inventory/UnitFormModal";
+import { type MediaDraft } from "@/components/inventory/MediaField";
+import { startMediaUpload } from "@/lib/media-uploads";
 import { FilterBar, FilterField, FilterInput, FilterSelect } from "@/components/list/FilterBar";
 import { RowMenu } from "@/components/list/RowMenu";
 import { FavouritesButton, SortButton, StatusTabs, type StatusTab } from "@/components/list/StatusTabs";
@@ -70,6 +73,7 @@ function Inventory({ inventoryType }: { inventoryType: InventoryType }) {
   const [pageSize, setPageSize] = useNavigationState("pageSize", 10, initialProject);
 
   const [units, setUnits] = useState<Unit[]>([]);
+  const [viewingUnit, setViewingUnit] = useState<Unit | null>(null);
   const [total, setTotal] = useState(0);
   const [statusCounts, setStatusCounts] = useState<Record<UnitStatus, number> | null>(null);
   const [unitTypes, setUnitTypes] = useState<string[]>([]);
@@ -132,15 +136,12 @@ function Inventory({ inventoryType }: { inventoryType: InventoryType }) {
     resetPaging();
   }
 
-  async function handleUnitSubmit(unitDraft: UnitInput) {
+  async function handleUnitSubmit(unitDraft: UnitInput, media: MediaDraft) {
     setIsSaving(true);
     setFormError(null);
     try {
-      if (editingUnit) {
-        await updateUnit(editingUnit.id, unitDraft);
-      } else {
-        await createUnit(unitDraft);
-      }
+      const saved = editingUnit ? await updateUnit(editingUnit.id, unitDraft) : await createUnit(unitDraft);
+      startMediaUpload({ unit_id: saved.id }, media, `Unit ${saved.unit_number}`);
       setIsUnitFormOpen(false);
       setEditingUnit(null);
       loadUnits();
@@ -278,22 +279,22 @@ function Inventory({ inventoryType }: { inventoryType: InventoryType }) {
           <table className={tableClass}>
             <thead>
               <tr className={headRowClass}>
-                <th scope="col" className={`${headCellClass} w-[30%] lg:w-[12%]`}>Unit</th>
+                <th scope="col" className={`${headCellClass} w-[30%] lg:w-[8%]`}>Unit</th>
                 <th scope="col" className={headCellClass}>Project</th>
-                <th scope="col" className={`${headCellClass} hidden w-[5%] lg:table-cell`}>Feat</th>
+                <th scope="col" className={`${headCellClass} hidden w-[17%] lg:table-cell`}>Features</th>
                 <th scope="col" className={`${headCellClass} hidden w-[11%] lg:table-cell`}>Type</th>
-                <th scope="col" className={`${headCellClass} hidden w-[10%] lg:table-cell`}>Location</th>
-                <th scope="col" className={`${headCellClass} hidden w-[6%] lg:table-cell`}>Beds</th>
-                <th scope="col" className={`${headCellClass} hidden w-[11%] sm:table-cell`}>Price (PKR)</th>
-                <th scope="col" className={`${headCellClass} hidden w-[9%] lg:table-cell`}>Area (sqft)</th>
+                <th scope="col" className={`${headCellClass} hidden w-[7%] lg:table-cell`}>Floor</th>
+                <th scope="col" className={`${headCellClass} hidden w-[5%] lg:table-cell`}>Beds</th>
+                <th scope="col" className={`${headCellClass} hidden w-[11%] text-right sm:table-cell`}>Price (PKR)</th>
+                <th scope="col" className={`${headCellClass} hidden w-[9%] pl-3 pr-6 text-right lg:table-cell`}>Area (sqft)</th>
                 <th scope="col" className={`${headCellClass} w-[96px] lg:w-[13%]`}>Status</th>
-                <th scope="col" className="w-[40px] lg:w-[8%]" />
+                <th scope="col" className="w-[40px] lg:w-[4%]" />
               </tr>
             </thead>
             <tbody>
               {isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className={`${rowClass} !h-[100px]`}>
+                  <tr key={i} className={`${rowClass}`}>
                     <SpanCell colSpan={COLUMN_COUNT}>
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
@@ -317,13 +318,13 @@ function Inventory({ inventoryType }: { inventoryType: InventoryType }) {
                 units.map((unit) => {
                   const unitStatus = UNIT_STATUSES.find((entry) => entry.id === unit.status);
                   return (
-                    <tr key={unit.id} className={`${rowClass} !h-[100px]`}>
+                    <tr key={unit.id} onClick={() => setViewingUnit(unit)} className={`${rowClass} cursor-pointer`}>
                       <td className="truncate pr-3">{unit.unit_number}</td>
                       <td className="pr-3">
                         <p className="line-clamp-2">{unit.project?.name ?? "—"}</p>
                       </td>
-                      <td className="hidden truncate pr-3 lg:table-cell" title={unit.features ?? undefined}>
-                        {unit.features || "-"}
+                      <td className="hidden pr-3 lg:table-cell" title={unit.features ?? undefined}>
+                        <p className="line-clamp-2">{unit.features || "-"}</p>
                       </td>
                       <td className="hidden pr-3 lg:table-cell">
                         <p className="line-clamp-2">{unit.unit_type || "-"}</p>
@@ -331,11 +332,11 @@ function Inventory({ inventoryType }: { inventoryType: InventoryType }) {
                       <td className="hidden truncate pr-3 lg:table-cell" title={unit.floor ?? undefined}>
                         {unit.floor || "-"}
                       </td>
-                      <td className="hidden pr-3 lg:table-cell">{unit.beds != null ? `Beds ${unit.beds}` : "-"}</td>
-                      <td className="hidden truncate pr-3 sm:table-cell">
+                      <td className="hidden pr-3 lg:table-cell">{unit.beds ?? "-"}</td>
+                      <td className="hidden truncate pr-3 text-right sm:table-cell">
                         {unit.price != null ? unit.price.toLocaleString() : "-"}
                       </td>
-                      <td className="hidden pr-3 lg:table-cell">
+                      <td className="hidden pl-3 pr-6 text-right lg:table-cell">
                         {unit.area_sqft != null ? unit.area_sqft.toLocaleString() : "-"}
                       </td>
                       <td className="pr-3">
@@ -350,7 +351,7 @@ function Inventory({ inventoryType }: { inventoryType: InventoryType }) {
                           {unit.lead ? `Lead ${unit.lead.lead_no} · ${unit.lead.client_name}` : "Payment Plan"}
                         </p>
                       </td>
-                      <td>
+                      <td onClick={(e) => e.stopPropagation()}>
                         <RowMenu
                           label={`More actions for unit ${unit.unit_number}`}
                           items={[
@@ -386,6 +387,22 @@ function Inventory({ inventoryType }: { inventoryType: InventoryType }) {
           }}
         />
       </div>
+
+      {viewingUnit && (
+        <UnitDetailModal
+          unit={viewingUnit}
+          canManage={canManage}
+          onClose={() => setViewingUnit(null)}
+          onEdit={() => {
+            setViewingUnit(null);
+            openUnitForm(viewingUnit);
+          }}
+          onDelete={() => {
+            setViewingUnit(null);
+            void handleDeleteUnit(viewingUnit);
+          }}
+        />
+      )}
 
       {isUnitFormOpen && (
         <UnitFormModal
