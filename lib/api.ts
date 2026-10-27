@@ -2044,7 +2044,7 @@ export const getMedia = (owner: MediaOwner) =>
 export const deleteMedia = (id: string) => apiFetch<{ status: string }>(`/media/${id}`, { method: "DELETE" });
 
 /** Sends the file straight to storage, then has the API check it before it is shown anywhere. */
-export async function uploadMedia(owner: MediaOwner, file: File): Promise<MediaItem> {
+export async function uploadMedia(owner: MediaOwner, file: File, onProgress?: (sentBytes: number) => void): Promise<MediaItem> {
   const { media, upload } = await apiFetch<{ media: { id: string }; upload: ImportUpload }>("/media/uploads", {
     method: "POST",
     body: JSON.stringify({ ...owner, file_name: file.name, mime: file.type, size_bytes: file.size }),
@@ -2052,8 +2052,16 @@ export async function uploadMedia(owner: MediaOwner, file: File): Promise<MediaI
   const form = new FormData();
   for (const [key, value] of Object.entries(upload.fields)) form.append(key, value);
   form.append("file", file);
-  const res = await fetch(upload.url, { method: "POST", body: form });
-  if (!res.ok) throw new Error(`${file.name} couldn't be uploaded. Please try again.`);
+  // XHR rather than fetch: only XHR reports upload progress.
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", upload.url);
+    xhr.upload.onprogress = (e) => onProgress?.(e.loaded);
+    xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error(`${file.name} couldn't be uploaded. Please try again.`)));
+    xhr.onerror = () => reject(new Error(`${file.name} couldn't be uploaded — check your connection.`));
+    xhr.send(form);
+  });
+  onProgress?.(file.size);
   return apiFetch<MediaItem>(`/media/${media.id}/complete`, { method: "POST" });
 }
 

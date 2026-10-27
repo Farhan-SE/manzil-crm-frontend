@@ -3,15 +3,15 @@
 :root {
   --background: #ffffff;
   --foreground: #1a1d20;
-  --cream: #f2f3ec;
+  --cream: #f3f0ea;
   --ink: #1a1d20;
   --primary: #1c222a;
   --primary-foreground: #ffffff;
   --muted: #62696e;
-  --border-color: #d1d5db;
+  --border-color: #e2ddd4;
   --placeholder: #666d78;
-  --dash-bg: #f4fcf3;
-  --sidebar-bg: #f8f9f6;
+  --dash-bg: #faf8f5;
+  --sidebar-bg: #f6f3ee;
   --hot: #a3453d;
   --warm: #feb565;
   /* The warm accent deep enough to read as text or an icon on light surfaces. */
@@ -27,7 +27,7 @@
   --status-visit: #3f7d6b;
   --status-negotiation: #885205;
   --cold: #3b6c9e;
-  --column-bg: #f8faf7;
+  --column-bg: #f6f3ee;
   --stage-inquiry: #27538a;
   --stage-contacted: #31658e;
   --stage-site-visit: #286039;
@@ -139,4 +139,25 @@ textarea {
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+@layer base {
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Press feedback on every button: a quick, small scale-down so the UI feels like it heard the click. */
+  button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+  button {
+    transition-property: transform, color, background-color, border-color, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button:not(:disabled):active {
+      transform: none;
+    }
+  }
 }

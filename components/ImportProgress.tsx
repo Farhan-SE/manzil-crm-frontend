@@ -82,7 +82,7 @@ export function ImportProgress() {
     <>
       <div
         aria-live="polite"
-        className="fixed bottom-4 right-4 z-[60] flex w-[320px] max-w-[calc(100vw-2rem)] items-start gap-3 rounded-[4px] border border-border bg-white p-3 shadow-lg"
+        className="flex w-[320px] max-w-[calc(100vw-2rem)] items-start gap-3 rounded-[4px] border border-border bg-white p-3 shadow-lg"
       >
         <span
           className={`flex size-8 shrink-0 items-center justify-center rounded-full ${

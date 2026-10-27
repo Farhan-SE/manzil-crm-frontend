@@ -91,7 +91,7 @@ export function TopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-[70px] items-center gap-4 border-b border-nav-idle bg-dash-bg px-4 lg:px-7 xl:gap-6">
+      <header className="sticky top-0 z-30 flex h-[70px] items-center gap-4 border-b border-border bg-dash-bg px-4 lg:px-7 xl:gap-6">
         <button
           type="button"
           onClick={() => setIsDrawerOpen(true)}

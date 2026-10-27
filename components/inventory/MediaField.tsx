@@ -17,14 +17,61 @@ function checkFile(file: File): string | null {
   return null;
 }
 
-/** Uploads the new files and deletes the removed ones. Returns a message for each one that failed. */
-export async function saveMediaDraft(owner: MediaOwner, draft: MediaDraft): Promise<string[]> {
-  const failures: string[] = [];
-  for (const id of draft.removed) {
-    await deleteMedia(id).catch((err) => failures.push(err instanceof Error ? err.message : "A file couldn't be removed"));
+const PARALLEL_UPLOADS = 3;
+const MAX_IMAGE_SIDE = 1920;
+const SHRINK_ABOVE_BYTES = 400 * 1024;
+
+/** Resizes and re-encodes a large photo in the browser; returns the original when that doesn't help. */
+async function shrinkImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.size <= SHRINK_ABOVE_BYTES) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    // JPEG has no transparency, so PNG/WebP (often logos) go to WebP instead.
+    const mime = file.type === "image/jpeg" ? "image/jpeg" : "image/webp";
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, 0.82));
+    // Some browsers can't encode WebP and silently hand back a PNG.
+    if (!blob || blob.type !== mime || blob.size >= file.size) return file;
+    const name = file.name.replace(/\.[^.]+$/, "") + (mime === "image/jpeg" ? ".jpg" : ".webp");
+    return new File([blob], name, { type: mime });
+  } catch {
+    return file;
   }
-  for (const file of draft.files) {
-    await uploadMedia(owner, file).catch((err) => failures.push(err instanceof Error ? err.message : `${file.name} couldn't be uploaded`));
+}
+
+/** Uploads the new files and deletes the removed ones. Returns a message for each one that failed. */
+export async function saveMediaDraft(
+  owner: MediaOwner,
+  draft: MediaDraft,
+  onProgress?: (percent: number) => void,
+): Promise<string[]> {
+  const failures: string[] = [];
+  const files = await Promise.all(draft.files.map(shrinkImage));
+  const fail = (fallback: string) => (err: unknown) => failures.push(err instanceof Error ? err.message : fallback);
+  await Promise.all(draft.removed.map((id) => deleteMedia(id).catch(fail("A file couldn't be removed"))));
+
+  const total = files.reduce((sum, file) => sum + file.size, 0) || 1;
+  const sent = files.map(() => 0);
+  const report = () => onProgress?.(Math.min(99, Math.round((sent.reduce((a, b) => a + b, 0) / total) * 100)));
+  let next = 0;
+  async function worker() {
+    while (next < files.length) {
+      const i = next++;
+      const file = files[i];
+      await uploadMedia(owner, file, (bytes) => {
+        sent[i] = bytes;
+        report();
+      }).catch(fail(`${file.name} couldn't be uploaded`));
+    }
+  }
+  if (files.length) {
+    report();
+    await Promise.all(Array.from({ length: Math.min(PARALLEL_UPLOADS, files.length) }, worker));
   }
   return failures;
 }
@@ -137,7 +184,7 @@ export function MediaField({
           ))}
         </div>
       )}
-      {value.files.length > 0 && <p className="text-xs text-muted">New files upload when you save.</p>}
+      {value.files.length > 0 && <p className="text-xs text-muted">New files upload in the background after you save.</p>}
       {error && <p className="text-xs text-hot">{error}</p>}
     </div>
   );

@@ -7,7 +7,8 @@ import { ViewTransition } from "react";
 import { PlusIcon, StarIcon } from "@/components/icons/DashboardIcons";
 import { PartnerDetailModal } from "@/components/inventory/PartnerDetailModal";
 import { PartnerFormModal, type PartnerDraft } from "@/components/inventory/PartnerFormModal";
-import { saveMediaDraft, type MediaDraft } from "@/components/inventory/MediaField";
+import { type MediaDraft } from "@/components/inventory/MediaField";
+import { startMediaUpload } from "@/lib/media-uploads";
 import { FilterBar, FilterField, FilterInput, FilterSelect } from "@/components/list/FilterBar";
 import { RowMenu } from "@/components/list/RowMenu";
 import { FavouritesButton, SortButton, StatusTabs } from "@/components/list/StatusTabs";
@@ -147,8 +148,7 @@ export default function ProjectsPage() {
       const saved = editingProject
         ? await updatePartnerProject(editingProject.id, projectDraft)
         : await createPartnerProject(projectDraft);
-      const failures = await saveMediaDraft({ project_id: saved.id }, media);
-      if (failures.length) window.alert(`The project was saved, but some files didn't upload:\n${failures.join("\n")}`);
+      startMediaUpload({ project_id: saved.id }, media, saved.project_name);
       setIsFormOpen(false);
       setEditingProject(null);
       setOpenProject(null);
@@ -273,7 +273,7 @@ export default function ProjectsPage() {
             <tbody>
               {isLoading &&
                 Array.from({ length: 3 }).map((_, i) => (
-                  <tr key={i} className={`${rowClass} lg:!h-[162px]`}>
+                  <tr key={i} className={`${rowClass} lg:!h-[88px]`}>
                     <SpanCell colSpan={COLUMN_COUNT}>
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
@@ -299,7 +299,7 @@ export default function ProjectsPage() {
                     <tr
                       key={project.id}
                       onClick={() => setOpenProject(project)}
-                      className={`${rowClass} lg:!h-[162px] cursor-pointer hover:bg-white/60`}
+                      className={`${rowClass} lg:!h-[88px] cursor-pointer hover:bg-white/60`}
                     >
                       <td>
                         <button

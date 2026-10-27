@@ -330,7 +330,7 @@ export default function StaffPage() {
             <tbody>
               {isLoading &&
                 Array.from({ length: 3 }).map((_, i) => (
-                  <tr key={i} className={`${rowClass} lg:!h-[170px]`}>
+                  <tr key={i} className={`${rowClass}`}>
                     <SpanCell colSpan={COLUMN_COUNT}>
                       <div className="flex flex-col gap-2">
                         <Skeleton className="h-3 w-1/3" />
@@ -353,7 +353,7 @@ export default function StaffPage() {
                   const joined = tenure(member);
                   const isSelf = member.id === currentUserId;
                   return (
-                    <tr key={member.id} className={`${rowClass} lg:!h-[170px]`}>
+                    <tr key={member.id} className={`${rowClass}`}>
                       <td className="pr-3">
                         <p className="truncate">
                           {member.first_name} {member.last_name}

@@ -21,7 +21,7 @@ import {
   type LeadTemperature,
 } from "@/lib/api";
 import { LEAD_STAGES, needsPayment } from "@/lib/leads";
-import { formatMoney } from "@/lib/money";
+import { formatLakhCrore } from "@/lib/money";
 import { useCan } from "@/lib/session";
 import { StagePaymentFields, emptyStagePayment, toStagePayment, type StagePaymentDraft } from "@/components/leads/StagePayment";
 import { PaymentError } from "@/components/leads/PaymentError";
@@ -103,14 +103,13 @@ function ChatbotMatches({ leadId, matches }: { leadId: string; matches: NonNulla
                 <div className="min-w-0">
                   <p className="truncate font-bold text-ink">
                     {unit.project} · {unit.unit_number}
-                    {unit.has_media && <span className="ml-1.5 font-normal" title="Has photos or videos">📷</span>}
                   </p>
                   <p className="truncate text-xs text-muted">
                     {[unit.unit_type, unit.beds ? `${unit.beds} bed` : null].filter(Boolean).join(" · ") || "—"}
                   </p>
                   <PhotoLinkStatus link={latestLink(unit.unit_id)} onRevoke={revoke} />
                 </div>
-                <p className="shrink-0 font-bold text-ink">{formatMoney(unit.price)}</p>
+                <p className="shrink-0 font-bold text-ink">{formatLakhCrore(unit.price)}</p>
               </li>
             ))}
           </ul>

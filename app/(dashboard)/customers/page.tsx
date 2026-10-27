@@ -92,9 +92,9 @@ const SORT_OPTIONS = [
   { id: "asc", name: "Client ID Ascending" },
 ];
 
-const clientRowClass = "h-[78px] text-xs leading-[1.4] text-ink odd:bg-white even:bg-sidebar";
+const clientRowClass = "h-16 border-b border-border text-[13px] leading-[1.4] text-ink transition-colors hover:bg-white/70";
 
-const actionClass = "size-8 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-110";
+const actionClass = "size-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-badge-neutral hover:text-ink";
 
 const headerActionClass =
   "flex h-8 shrink-0 items-center gap-1.5 rounded-[4px] border border-border bg-white px-3 text-xs text-primary transition-colors hover:bg-sidebar";
@@ -621,7 +621,7 @@ export default function CustomersPage() {
                             href={href}
                             aria-label={`Open ${customer.customer_name}`}
                             title="Open client"
-                            className={`${actionClass} hidden bg-cold/10 text-cold lg:flex`}
+                            className={`${actionClass} hidden lg:flex`}
                           >
                             <Icon name="link" className="size-3.5" />
                           </Link>
@@ -631,7 +631,7 @@ export default function CustomersPage() {
                             rel="noopener noreferrer"
                             aria-label={`WhatsApp ${customer.customer_name}`}
                             title="WhatsApp"
-                            className={`${actionClass} flex bg-success/15 text-success`}
+                            className={`${actionClass} flex hover:!text-success`}
                           >
                             <Icon name="whatsapp" className="size-3.5" />
                           </a>
@@ -640,7 +640,7 @@ export default function CustomersPage() {
                               href={`mailto:${customer.email}`}
                               aria-label={`Email ${customer.customer_name}`}
                               title={customer.email}
-                              className={`${actionClass} hidden bg-success/10 text-success lg:flex`}
+                              className={`${actionClass} hidden lg:flex`}
                             >
                               <Icon name="mail" className="size-3.5" />
                             </a>
@@ -650,7 +650,7 @@ export default function CustomersPage() {
                               href={`${href}/edit`}
                               aria-label={`Edit ${customer.customer_name}`}
                               title="Edit client"
-                              className={`${actionClass} hidden bg-badge-neutral text-primary lg:flex`}
+                              className={`${actionClass} hidden lg:flex`}
                             >
                               <Icon name="file" className="size-3.5" />
                             </Link>
@@ -661,7 +661,7 @@ export default function CustomersPage() {
                               onClick={() => setNewLeadFor(customer)}
                               aria-label={`Add a lead for ${customer.customer_name}`}
                               title="Add lead"
-                              className={`${actionClass} hidden bg-stage-inquiry/10 text-stage-inquiry lg:flex`}
+                              className={`${actionClass} hidden lg:flex`}
                             >
                               <PlusIcon className="size-3" />
                             </button>
@@ -670,7 +670,7 @@ export default function CustomersPage() {
                             href={`tel:${customer.contact_number}`}
                             aria-label={`Call ${customer.customer_name}`}
                             title={`Call ${customer.contact_number}`}
-                            className={`${actionClass} flex bg-attention/15 text-attention`}
+                            className={`${actionClass} flex`}
                           >
                             <Icon name="phone" className="size-3.5" />
                           </a>
