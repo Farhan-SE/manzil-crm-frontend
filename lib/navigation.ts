@@ -41,7 +41,10 @@ export const NAV_SECTIONS: NavSection[] = [
   { label: "Management", items: [{ label: "Management", icon: "management", href: "/management", permission: "approvals.view" }] },
   { label: "Reports", items: [{ label: "Reports", icon: "reports", href: "/reports", permission: "reports.view" }] },
   { label: "Accounts", items: [{ label: "Accounts", icon: "accounts", href: "/accounts", permission: "payments.view" }] },
-  { label: "Chatbot", items: [{ label: "Test Chat", icon: "whatsapp", href: "/chatbot", permission: "settings.manage" }] },
+  // The test chat page is kept out of git, so it only exists on a dev machine.
+  ...(process.env.NODE_ENV === "development"
+    ? [{ label: "Chatbot", items: [{ label: "Test Chat", icon: "whatsapp", href: "/chatbot", permission: "settings.manage" }] } as NavSection]
+    : []),
 ];
 
 /** The sections and items this member's role can reach. Nothing gated shows until access has loaded. */
